@@ -3,6 +3,8 @@ typeset -U path
 
 export PATH=/usr/local/sbin:$PATH
 
+# export HOMEBREW_GITHUB_API_TOKEN=your-token
+
 # anyenv
 if which anyenv > /dev/null; then
   export PATH=$HOME/.anyenv/bin:$PATH
