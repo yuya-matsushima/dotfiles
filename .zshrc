@@ -90,8 +90,8 @@ done
 
 ## completion
 fpath=($(brew --prefix)/share/zsh/site-functions $(brew --prefix)/share/zsh-completions $fpath)
-if $(pyenv which awsume) > /dev/null; then
-  fpath=(~/.awsume/zsh-autocomplete/ $fpath)
+if [ -f $HOME/.awsume/zsh-autocomplete ]; then
+  fpath=($HOME/.awsume/zsh-autocomplete/ $fpath)
 fi
 
 autoload -Uz compinit
@@ -176,8 +176,8 @@ esac
 REPORTTIME=3
 
 # git-prompt
-if [ -f $(/usr/local/brew --prefix)/opt/zsh-git-prompt/zshrc.sh]; then
-  source $(/usr/local/brew --prefix)/opt/zsh-git-prompt/zshrc.sh
+if [ -f $(/usr/local/bin/brew --prefix)/opt/zsh-git-prompt/zshrc.sh ]; then
+  source $(/usr/local/bin/brew --prefix)/opt/zsh-git-prompt/zshrc.sh
   ZSH_THEME_GIT_PROMPT_PREFIX="["
   ZSH_THEME_GIT_PROMPT_SUFFIX=" ]"
   ZSH_THEME_GIT_PROMPT_BRANCH="%{$fg[white]%}"
