@@ -1,0 +1,57 @@
+[user]
+	name = Yuya Matsushima
+	email = yuyam@fillin-inc.com
+[core]
+  editor = /usr/local/bin/vim
+  excludesfile = ~/.gitignore
+  pager = less -x2 -R
+  quotepath = false
+  precomposeunicode = true
+  whitespace = cr-at-eol
+[color]
+  diff = auto
+  status = auto
+  branch = auto
+  interactive = auto
+[merge]
+  ff = false
+  tool = vimdiff
+[pull]
+  rebase = true
+[alias]
+  h = "log --graph --all --pretty='format:%C(yellow)%h%Creset %s %Cgreen(%an)%Creset %Cred%d%Creset'"
+  l = "log --pretty='format:%C(yellow)%h%Creset %s %Cgreen(%an)%Creset %Cred%d%Creset'"
+  stat = "log --stat"
+  com = "commit -v"
+  amend = "commit --amend -v"
+  co = "checkout"
+  st = "status -sb"
+  b  = "branch -a"
+  list = "config --list"
+  grep = "grep --color=auto"
+  cached = "diff --cached"
+  hash = "rev-parse --short HEAD"
+[credential]
+	helper = osxkeychain
+[push]
+	default = simple
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	required = true
+	trustExitCode = true
+	process = git-lfs filter-process
+[diff]
+	compactionHeuristic = true
+[http]
+	sslVerify = true
+[secrets]
+	providers = git secrets --aws-provider
+	patterns = (A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}
+	patterns = (\"|')?(AWS|aws|Aws)?_?(SECRET|secret|Secret)?_?(ACCESS|access|Access)?_?(KEY|key|Key)(\"|')?\\s*(:|=>|=)\\s*(\"|')?[A-Za-z0-9/\\+=]{40}(\"|')?
+	patterns = (\"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\"|')?\\s*(:|=>|=)\\s*(\"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\"|')?
+	allowed = AKIAIOSFODNN7EXAMPLE
+	allowed = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+[init]
+	templatedir = $HOME/.git-templates/git-secrets
+	defaultBranch = main
