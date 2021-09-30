@@ -5,7 +5,6 @@ set -e
 CURRENT_DIR=`pwd`
 TARGETS=( \
          ".gemrc" \
-         ".git" \
          ".git-templates" \
          ".gitconfig" \
          "gitignore" \
