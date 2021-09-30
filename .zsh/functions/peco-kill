@@ -1,0 +1,3 @@
+#!/bin/zsh
+
+ps ax -o pid,lstart,command | peco --query "$LBUFFER" | awk '{print $1}' | xargs kill -TERM

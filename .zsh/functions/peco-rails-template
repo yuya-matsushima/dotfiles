@@ -1,0 +1,35 @@
+#!/bin/zsh
+
+local JSON=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/rails | jq '.[]')
+
+local TEMPLATE=$(echo ${JSON} | jq '.name' | grep '.rb' | sed -e 's/"//g' | sed -e 's/\.rb$//' | peco)
+if [ -z ${TEMPLATE} ]; then
+  echo "failed to retrieve templates."
+  return 1
+fi
+
+local SELECTED=$(echo ${JSON} | jq ". | select (.name == \"${TEMPLATE}.rb\") | .download_url" | sed -e 's/"//g')
+if [ -z ${SELECTED} ]; then
+  echo "failed to get the download_url for the selected template."
+  return 1
+fi
+
+# create commit
+if [ ! -d .git ]; then
+  git init
+  git commit --allow-empty -m "initial commit"
+fi
+
+# download defaulg Gemfile
+if [ ! -f "Gemfile" ]; then
+  curl -O --silent https://raw.githubusercontent.com/fillin-inc/templates/master/rails/example/Gemfile
+fi
+
+bundle config set without 'production'
+bundle i
+
+if [[ $TEMPLATE == *"api"*]]; then
+  bundle exec rails new . -v --force -m ${SELECTED} -d mysql --skip-action-text --skip-action-mailbox --skip-action-cable --skip-turbolinks --skip-test --api
+else
+  bundle exec rails new . -v --force -m ${SELECTED} -d mysql --skip-action-text --skip-action-mailbox --skip-action-cable --skip-turbolinks --skip-test --webpacker
+fi

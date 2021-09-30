@@ -1,0 +1,21 @@
+#!/bin/zsh
+
+local JSON=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/docker-compose | jq '.[]')
+
+local TEMPLATE=$(echo ${JSON} | jq '.name' | grep '.yml' | sed -e 's/"//g' | sed -e 's/\.yml$//' | peco)
+if [ -z ${TEMPLATE} ]; then
+  echo "failed to retrieve templates."
+  return 1
+fi
+
+echo "TEMPLATE: ${TEMPLATE}"
+
+local SELECTED=$(echo ${JSON} | jq ". | select (.name == \"${TEMPLATE}.yml\") | .download_url" | sed -e 's/"//g')
+if [ -z ${SELECTED} ]; then
+  echo "failed to get the download_url for the selected template."
+  return 1
+fi
+
+echo "download_url: ${SELECTED}"
+
+curl -o docker-compose.yml --silent ${SELECTED}

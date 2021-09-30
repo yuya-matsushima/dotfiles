@@ -1,0 +1,5 @@
+#!/bin/zsh
+
+local HASH=$(git log --pretty='%h %s (%an)' | peco --query "$LBUFFER" | cut -d ' ' -f 1)
+echo ${HASH} | pbcopy
+echo ${HASH}
