@@ -123,9 +123,9 @@ set splitright
 " vimdiff
 set diffopt-=filler diffopt=iwhite,horizontal
 
-call map(sort(split(globpath(&runtimepath, '_config/*.vim'))), {->[execute('exec "so" v:val')]})
-
 " load ~/.vimrc_local if exists
 if filereadable($HOME . '/.vimrc_local')
   source $HOME/.vimrc_local
 endif
+
+call map(sort(split(globpath(&runtimepath, '_config/*.vim'))), {->[execute('exec "so" v:val')]})
