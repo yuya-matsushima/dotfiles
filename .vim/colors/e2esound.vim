@@ -25,7 +25,7 @@ hi NonText          guifg=#555555     guibg=black       gui=NONE      ctermfg=gr
 hi Cursor           guifg=black       guibg=white       gui=NONE      ctermfg=black       ctermbg=white       cterm=reverse
 hi CursorIM         guifg=black       guibg=red         gui=NONE      ctermfg=black       ctermbg=white       cterm=reverse
 
-hi LineNr           guifg=#4D4D4D     guibg=black       gui=NONE      ctermfg=gray        ctermbg=black       cterm=NONE
+hi LineNr           guifg=#4D4D4D     guibg=black       gui=NONE      ctermfg=grey        ctermbg=NONE        cterm=NONE
 hi SignColumn       guifg=#f6f3e8     guibg=black       gui=NONE      ctermfg=NONE        ctermbg=NONE        cterm=NONE
 
 hi VertSplit        guifg=#202020     guibg=#222222     gui=NONE      ctermfg=darkblue    ctermbg=darkblue    cterm=NONE
