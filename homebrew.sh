@@ -2,6 +2,9 @@
 
 set -e
 
+brew tap homebrew/cask-fonts
+brew tap gjbae1212/gossm
+
 brew install \
           anyenv \
           awscli \
@@ -26,7 +29,6 @@ brew install \
           peco \
           plantuml \
           rename \
-          terraformer \
           tfenv \
           tflint \
           the_silver_searcher \
