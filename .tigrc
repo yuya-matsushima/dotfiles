@@ -1,0 +1,14 @@
+set tab-size = 2
+
+# color
+color cursor black yellow
+color status default default
+# color line-number white default
+color main-commit default default bold
+
+# bind
+bind generic g move-first-line
+bind generic G move-last-line
+
+# show merge diff
+set diff-options = -m --first-parent
