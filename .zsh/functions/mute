@@ -5,3 +5,4 @@
 set -e
 
 osascript -e 'set volume output muted true'
+osascript -e "get volume settings" | tr ',' '\n' | tail -n 1
