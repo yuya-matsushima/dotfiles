@@ -1,0 +1,7 @@
+#!/bin/zsh
+
+# for MacOS
+
+set -e
+
+osascript -e 'set volume output muted true'

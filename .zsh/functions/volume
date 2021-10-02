@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+# for MacOS
+
+set -e
+
+if [[ $1 =~ ^(100|[0-9]{1,2})$ ]]; then
+  osascript -e "set volume output volume $1"
+  osascript -e "get volume settings" | tr ',' '\n' | head -n 1
+else
+  echo "Specify a number between 0 and 100."
+fi
