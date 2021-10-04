@@ -1,5 +1,10 @@
 ## dotfiles
 
+requirements:
+
+- XCode from AppStore
+- Homebrew
+
 ```sh
 # install homebrew libraries
 sh homebrew.sh
