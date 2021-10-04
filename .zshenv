@@ -1,9 +1,15 @@
 # zmodload zsh/zprof && zprof
 typeset -U path
 
-export PATH=/usr/local/sbin:$PATH
+# GPG
+export GPG_TTY=$(tty)
+
+# Set Editor
+export EDITOR=vim
 
 # export HOMEBREW_GITHUB_API_TOKEN=your-token
+
+export PATH=/usr/local/sbin:$PATH
 
 # anyenv
 if which anyenv > /dev/null; then
@@ -38,6 +44,3 @@ fi
 if which direnv > /dev/null; then
   eval "$(direnv hook zsh)"
 fi
-
-# GPG
-export GPG_TTY=$(tty)
