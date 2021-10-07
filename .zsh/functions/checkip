@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-local AWS=$(curl -sS https://checkip.amazonaws.com/)
-local GCP=$(curl -sS https://domains.google.com/checkip)
-echo "AWS: ${AWS}"
-echo "GCP: ${GCP}"
+set -e
+
+echo "AWS: $(curl -sS https://checkip.amazonaws.com/)"
+echo "GCP: $(curl -sS https://domains.google.com/checkip)"

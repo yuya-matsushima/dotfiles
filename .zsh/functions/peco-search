@@ -1,3 +1,5 @@
 #!/bin/zsh
 
+set -e
+
 find . | grep -v "\/\." | cut -c 3- | peco --query "$LBUFFER"

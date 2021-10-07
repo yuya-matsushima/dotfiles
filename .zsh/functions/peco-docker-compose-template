@@ -1,21 +1,23 @@
 #!/bin/zsh
 
-local JSON=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/docker-compose | jq '.[]')
+set -e
 
-local TEMPLATE=$(echo ${JSON} | jq '.name' | grep '.yml' | sed -e 's/"//g' | sed -e 's/\.yml$//' | peco)
-if [ -z ${TEMPLATE} ]; then
+local json=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/docker-compose | jq '.[]')
+
+local template=$(echo ${json} | jq '.name' | grep '.yml' | sed -e 's/"//g' | sed -e 's/\.yml$//' | peco)
+if [ -z $template ]; then
   echo "failed to retrieve templates."
   return 1
 fi
 
-echo "TEMPLATE: ${TEMPLATE}"
+echo "TEMPLATE: $template"
 
-local SELECTED=$(echo ${JSON} | jq ". | select (.name == \"${TEMPLATE}.yml\") | .download_url" | sed -e 's/"//g')
-if [ -z ${SELECTED} ]; then
+local selected=$(echo ${json} | jq ". | select (.name == \"${template}.yml\") | .download_url" | sed -e 's/"//g')
+if [ -z $selected ]; then
   echo "failed to get the download_url for the selected template."
   return 1
 fi
 
-echo "download_url: ${SELECTED}"
+echo "download_url: $selected"
 
-curl -o docker-compose.yml --silent ${SELECTED}
+curl -o docker-compose.yml --silent $selected
