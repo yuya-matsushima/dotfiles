@@ -4,5 +4,11 @@
 
 set -e
 
-osascript -e 'set volume output muted true'
+local current=$(osascript -e "get volume settings" | awk '{ print $8 }' | sed -e 's/muted://')
+
+if [ $current = 'true' ]; then
+  osascript -e 'set volume output muted false'
+else
+  osascript -e 'set volume output muted true'
+fi
 osascript -e "get volume settings" | tr ',' '\n' | tail -n 1
