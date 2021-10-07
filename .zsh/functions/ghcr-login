@@ -1,0 +1,14 @@
+#!/bin/zsh
+
+if [ -z "$CR_PAT" ]; then
+  echo "GitHub access token is not set. Please set the token to \$CR_PAT."
+  echo "ref: https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-container-registry"
+  return
+fi
+
+if [ -z "$1" ]; then
+  echo "Please specify your GitHub account name. ex: ghcr-login github-account-id"
+  return
+fi
+
+echo $CR_PAT | docker login ghcr.io -u $1 --password-stdin
