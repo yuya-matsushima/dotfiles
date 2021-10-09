@@ -95,7 +95,7 @@ for file in `find $fpath[1] -type f`; do
 done
 
 ## completion
-fpath=($(brew --prefix)/share/zsh/site-functions $(brew --prefix)/share/zsh-completions $fpath)
+fpath=($HOMEBREW_PREFIX/share/zsh/site-functions $HOMEBREW_PREFIX/share/zsh-completions $fpath)
 if [ -f $HOME/.awsume/zsh-autocomplete ]; then
   fpath=($HOME/.awsume/zsh-autocomplete/ $fpath)
 fi
@@ -182,8 +182,8 @@ esac
 REPORTTIME=3
 
 # git-prompt
-if [ -f $(/usr/local/bin/brew --prefix)/opt/zsh-git-prompt/zshrc.sh ]; then
-  source $(/usr/local/bin/brew --prefix)/opt/zsh-git-prompt/zshrc.sh
+if [ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]; then
+  source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
   ZSH_THEME_GIT_PROMPT_PREFIX="["
   ZSH_THEME_GIT_PROMPT_SUFFIX=" ]"
   ZSH_THEME_GIT_PROMPT_BRANCH="%{$fg[white]%}"

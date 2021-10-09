@@ -11,6 +11,8 @@ export EDITOR=vim
 
 export PATH=/usr/local/sbin:$PATH
 
+export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
+
 # anyenv
 if which anyenv > /dev/null; then
   export PATH=$HOME/.anyenv/bin:$PATH
@@ -22,22 +24,22 @@ if which go > /dev/null; then
 fi
 
 if which python > /dev/null; then
-  export PATH=$(/usr/local/bin/brew --prefix)/opt/python/libexec/bin:$PATH
+  export PATH=$HOMEBREW_PREFIX/opt/python/libexec/bin:$PATH
 fi
 
-if [ -d $(/usr/local/bin/brew --prefix)/opt/curl/bin ]; then
-  export PATH=$(/usr/local/bin/brew --prefix)/opt/curl/bin:$PATH
+if [ -d $HOMEBREW_PREFIX/opt/curl/bin ]; then
+  export PATH=$HOMEBREW_PREFIX/opt/curl/bin:$PATH
 fi
 
 # sed
 if which gsed > /dev/null; then
-  export PATH=$(/usr/local/bin/brew --prefix)/opt/gnu-sed/libexec/gnubin:$PATH
-  export MANPATH=$(/usr/local/bin/brew --prefix)/opt/gnu-sed/libexec/gnuman:$MANPATH
+  export PATH=$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin:$PATH
+  export MANPATH=$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnuman:$MANPATH
 fi
 
 # mysql-client
-if [ -d $(/usr/local/bin/brew --prefix)/opt/mysql-client ]; then
-  export PATH=$(/usr/local/bin/brew --prefix)/opt/mysql-client/bin:$PATH
+if [ -d $HOMEBREW_PREFIX/opt/mysql-client ]; then
+  export PATH=$HOMEBREW_PREFIX/opt/mysql-client/bin:$PATH
 fi
 
 # direnv
