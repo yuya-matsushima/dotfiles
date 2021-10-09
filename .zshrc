@@ -205,3 +205,7 @@ if which less > /dev/null; then
   export LESS_TERMCAP_ue=$'\E[0m'
   export LESS_TERMCAP_us=$'\E[01;32m'
 fi
+
+if [ -n "$ZSH_PROFILE" ]; then
+  zprof
+fi

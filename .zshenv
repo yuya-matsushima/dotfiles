@@ -1,4 +1,6 @@
-# zmodload zsh/zprof && zprof
+if [ -n "$ZSH_PROFILE" ]; then
+  zmodload zsh/zprof && zprof
+fi
 typeset -U path
 
 # GPG
