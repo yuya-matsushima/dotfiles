@@ -9,7 +9,13 @@ export GPG_TTY=$(tty)
 # Set Editor
 export EDITOR=vim
 
+# for GitHub
 # export HOMEBREW_GITHUB_API_TOKEN=your-token
+# export CR_PAT=github-access-token-for-ghcr.io
+
+# for ecr-login
+# export AWS_REGION=ap-northeast-1
+# export AWS_ECR_REPOSITORY=account-id.dkr.ecr.region.amazonaws.com
 
 export PATH=/usr/local/sbin:$PATH
 
