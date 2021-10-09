@@ -5,8 +5,14 @@ case ${UID} in
     ;;
 esac
 
-if [ ~/.zshrc -nt ~/.zshrc.zwc ]; then
-  zcompile ~/.zshrc
+local zshrc_path=$HOME/.zshrc
+if [ -L $zshrc_path ]; then
+   # when .zshrc is symbolic link
+   local zshrc_path=$(readlink $HOME/.zshrc)
+fi
+if [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
+  zcompile $HOME/.zshrc
+  echo "compiled the \$HOME/.zshrc file."
 fi
 
 # tmux
