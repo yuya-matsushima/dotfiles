@@ -1,3 +1,6 @@
+" molder.vim
+let g:molder_show_hidden=1
+
 " closetag.vim
 let g:closetag_filenames='*.html,.php,*.js,*.xml,*.erb'
 
