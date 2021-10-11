@@ -11,8 +11,9 @@ augroup END
 " save as sudo
 command! Sudow :w !sudo tee >/dev/null %
 
-" for US Keyboard
-if g:keyboard_type == 'US'
+" replace the colon and semicolon when a US keyboard
+" or external US keyboard is connected.
+if g:keyboard_type == 'US' || g:has_external_us_keyboard
   noremap ; :
   noremap : ;
 endif
