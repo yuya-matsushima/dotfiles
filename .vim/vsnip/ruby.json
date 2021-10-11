@@ -1,0 +1,110 @@
+{
+  "Frozen String Literal": {
+    "prefix": "frozen",
+    "body": [
+      "# frozen_string_literal: true\n"
+    ]
+  },
+  "Class": {
+    "prefix": "class",
+    "body": [
+      "class $1",
+      "\t$0",
+      "end"
+    ]
+  },
+  "Module": {
+    "prefix": "module",
+    "body": [
+      "module $1",
+      "\t$0",
+      "end"
+    ]
+  },
+  "Method": {
+    "prefix": "def",
+    "body": [
+      "def $1",
+      "\t$0",
+      "end"
+    ]
+  },
+  "BeginRescue": {
+    "prefix": "begin",
+    "body": [
+      "begin",
+      "\t$0",
+      "rescue ${1:StandardError}",
+      "\t",
+      "end"
+    ]
+  },
+  "Before": {
+    "prefix": "before",
+    "body": [
+      "before do",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: describe": {
+    "prefix": "describe",
+    "body": [
+      "describe $1",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: context": {
+    "prefix": "context",
+    "body": [
+      "context $1",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: subject": {
+    "prefix": "subject",
+    "body": [
+      "subject { $0 }"
+    ]
+  },
+  "RSpec: subject block": {
+    "prefix": "subject",
+    "body": [
+      "subject do",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: it": {
+    "prefix": "it",
+    "body": [
+      "it \"$1\" do",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: example": {
+    "prefix": "example",
+    "body": [
+      "example $1 do",
+      "\t$0",
+      "end"
+    ]
+  },
+  "RSpec: let": {
+    "prefix": "let",
+    "body": [
+      "let($1) { $0 }"
+    ]
+  },
+  "RSpec: let block": {
+    "prefix": "let",
+    "body": [
+      "let($1) do",
+      "\t$0",
+      "}"
+    ]
+  }
+}
