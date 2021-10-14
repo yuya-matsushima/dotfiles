@@ -12,7 +12,7 @@ if [ -L $zshrc_path ]; then
 fi
 if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
   zcompile $HOME/.zshrc
-  echo "compiled the \$HOME/.zshrc file."
+  echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
 fi
 
 # tmux
@@ -204,6 +204,10 @@ if which less > /dev/null; then
   export LESS_TERMCAP_so=$'\E[01;44;33m'
   export LESS_TERMCAP_ue=$'\E[0m'
   export LESS_TERMCAP_us=$'\E[01;32m'
+fi
+
+if [ -f $HOME/.zshrc_local ]; then
+  source $HOME/.zshrc_local
 fi
 
 if [ -n "$ZSH_PROFILE" ]; then
