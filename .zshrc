@@ -110,7 +110,7 @@ autoload zed
 setopt complete_aliases     # aliased ls needs if file/dir completions work
 
 alias j="jobs -l"
-alias grep="/usr/local/bin/ggrep"
+alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 
 case "${OSTYPE}" in
 freebsd*|darwin*)
