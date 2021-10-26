@@ -10,11 +10,13 @@ local file_path="${dir}/$(date '+%Y%m%d')_$(echo $MARKDOWN_FILENAME | sed -e 's/
 unset MARKDOWN_FILENAME MARKDOWN_DIR
 
 if [ ! -d $dir ]; then
-  echo "There is no directory: ${dir}. Do you want to create it?(y/n)"
-  if read -q; then
+  read -k 1 MARKDOWN_DIR_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
+  if [ $MARKDOWN_DIR_CREATE = 'y' ] ; then
+    unset MARKDOWN_DIR_CREATE
     echo "\nCreating a directory: ${dir}"
     mkdir -p $dir
   else
+    unset MARKDOWN_DIR_CREATE
     echo "\nStopped creating the file."
     return
   fi
