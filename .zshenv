@@ -11,7 +11,7 @@ export EDITOR=vim
 
 export PATH=/usr/local/sbin:$PATH
 
-export HOMEBREW_PREFIX=$(brew --prefix)
+export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
 
 # anyenv
 if which anyenv > /dev/null; then
