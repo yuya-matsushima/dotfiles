@@ -4,6 +4,7 @@ local current_dir=$(pwd)
 read MARKDOWN_FILENAME\?"Enter a file name: "
 read MARKDOWN_DIR\?"Enter the directory(${current_dir}): "
 
+local input=$MARKDOWN_FILENAME
 local dir=$(eval echo ${MARKDOWN_DIR:-${current_dir}})
 local file_path="${dir}/$(date '+%Y%m%d')_$(echo $MARKDOWN_FILENAME | sed -e 's/\s\+/_/g').md"
 unset MARKDOWN_FILENAME MARKDOWN_DIR
