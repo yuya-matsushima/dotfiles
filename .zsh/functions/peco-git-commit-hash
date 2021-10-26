@@ -1,6 +1,9 @@
 #!/bin/zsh
 
-set -e
+if [ ! `uname | grep Darwin` ]; then
+  echo "This command is only available in MacOS (Darwin) environment."
+  return
+fi
 
 local hash=$(git log --pretty='%h %s (%an)' | peco --query "$LBUFFER" | cut -d ' ' -f 1)
 echo $hash | pbcopy
