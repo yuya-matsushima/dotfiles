@@ -1,13 +1,58 @@
 #!/bin/zsh
 
-# for MacOS
-
-set -e
-
-if [[ $1 =~ ^(100|[0-9]{1,2})$ ]]; then
-  osascript -e "set volume output volume $1"
-else
-  echo "Specify a number between 0 and 100."
+if [ ! `uname | grep Darwin` ]; then
+  echo "This command is only available in MacOS (Darwin) environment."
+  return
 fi
 
-osascript -e "get volume settings" | tr ',' '\n' | head -n 1
+local cmd='volume'
+
+function _ymt_volume_usage() {
+  cat <<EOF
+${cmd} is a command to change the volume of your MacOS.
+
+Usage:
+    ${cmd} 50         set output volume to 50 (available:0-100)
+    ${cmd} status     print current volume status
+    ${cmd} mute       mute the volume
+    ${cmd} unmute     unmute the volume
+
+Options:
+    --help, -h        print help
+EOF
+}
+
+function _ymt_volume_status() {
+  local settings=$(osascript -e 'get volume settings')
+  echo $settings | awk '{ print $2 }' | sed -e 's/,//'
+  echo $settings | awk '{ print $8 }'
+}
+
+case ${1} in
+  --help|-h)
+    _ymt_volume_usage
+  ;;
+
+  status)
+    _ymt_volume_status
+  ;;
+
+  mute)
+    osascript -e 'set volume output muted true'
+    _ymt_volume_status
+  ;;
+
+  unmute)
+    osascript -e 'set volume output muted false'
+    _ymt_volume_status
+  ;;
+
+  *)
+    if [[ $1 =~ ^(100|[0-9]{1,2})$ ]]; then
+      osascript -e "set volume output volume $1"
+      _ymt_volume_status
+    else
+      echo "Plead specify a number between 0 and 100."
+    fi
+  ;;
+esac
