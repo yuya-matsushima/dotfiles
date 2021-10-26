@@ -1,14 +1,43 @@
 #!/bin/zsh
 
-if [ -z "$CR_PAT" ]; then
-  echo "GitHub access token is not set. Please set the token to \$CR_PAT."
-  echo "ref: https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-container-registry"
-  return
-fi
+function _ymt_ghcr_login_usage() {
+  cat <<EOF
+ghcr_login is a shortcut for GitHub Container Registory login.
 
-if [ -z "$1" ]; then
-  echo "Please specify your GitHub account name. ex: ghcr-login github-account-id"
-  return
-fi
+Usage:
+    ghcr-login        login to GitHub Container Registory
 
-echo $CR_PAT | docker login ghcr.io -u $1 --password-stdin
+Options:
+    --help, -h        print help
+
+Configurable Environment Variables:
+    CR_PAT=your-github-access-token
+    # ref: https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+EOF
+}
+
+function _ymt_ghcr_login() {
+  if [ -z "$CR_PAT" ]; then
+    read CR_PAT\?'Enter GitHub Access Token: '
+    local github_access_token=$CR_PAT
+    unset CR_PAT
+  else
+    local github_access_token=$CR_PAT
+  fi
+
+  read GITHUB_ACCOUNT_NAME\?'Enter GitHub Account Name: '
+  local github_account_name=$GITHUB_ACCOUNT_NAME
+  unset GITHUB_ACCOUNT_NAME
+
+  echo $github_access_token | docker login ghcr.io -u $github_account_name --password-stdin
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_ghcr_login_usage
+  ;;
+
+  *)
+    _ymt_ghcr_login
+  ;;
+esac
