@@ -19,6 +19,7 @@ Configurable Environment Variables:
     GitHub Container Registory:
         CR_PAT=your-github-access-token
         # ref: https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+        GITHUB_ACCOUNT=your-github-account
 EOF
 }
 
@@ -51,11 +52,15 @@ function _ymt_docker_login_ghcr() {
     local github_access_token=$CR_PAT
   fi
 
-  read GITHUB_ACCOUNT_NAME\?'Enter GitHub Account: '
-  local github_account_name=$GITHUB_ACCOUNT_NAME
-  unset GITHUB_ACCOUNT_NAME
+  if [ -z "$GITHUB_ACCOUNT" ]; then
+    read GITHUB_ACCOUNT\?'Enter GitHub Account: '
+    local github_account=$GITHUB_ACCOUNT
+    unset GITHUB_ACCOUNT
+  else
+    local github_account=$GITHUB_ACCOUNT
+  fi
 
-  echo $github_access_token | docker login ghcr.io -u $github_account_name --password-stdin
+  echo $github_access_token | docker login ghcr.io -u $github_account --password-stdin
 }
 
 case ${1} in
