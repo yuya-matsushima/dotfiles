@@ -16,7 +16,7 @@ if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
 fi
 
 # tmux
-if [ $SHLVL = 1 ]; then
+if [ -z $SKIP_TMUX ] && [ $SHLVL = 1 ]; then
   # skip if attached 'base'
   check=`tmux list-clients | grep base`
   if [ ${#check} -eq 0 ]; then
