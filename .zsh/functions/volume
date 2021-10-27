@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-if [ ! `uname | grep Darwin` ]; then
+if [[ $OSTYPE != 'darwin'* ]]; then
   echo "This command is only available in MacOS (Darwin) environment."
   return
 fi
