@@ -1,29 +1,29 @@
 #!/bin/zsh
 
-local current_dir=$(pwd)
-read MARKDOWN_FILENAME\?"Enter a file name: "
-read MARKDOWN_DIR\?"Enter the directory(${current_dir}): "
+read TODAYMD_FILENAME\?"Enter a file name: "
+read TODAYMD_DIR\?"Enter the directory(`pwd`): "
 
-local input=$MARKDOWN_FILENAME
-local dir=$(eval echo ${MARKDOWN_DIR:-${current_dir}})
-local file_path="${dir}/$(date '+%Y%m%d')_$(echo $MARKDOWN_FILENAME | sed -e 's/\s\+/_/g').md"
-unset MARKDOWN_FILENAME MARKDOWN_DIR
+local filename=$TODAYMD_FILENAME
+local dir=$(eval echo ${TODAYMD_DIR:-$(pwd)})
+local file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
+unset TODAYMD_FILENAME TODAYMD_DIR
 
 if [ ! -d $dir ]; then
-  read -k 1 MARKDOWN_DIR_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
-  if [ $MARKDOWN_DIR_CREATE = 'y' ] ; then
-    unset MARKDOWN_DIR_CREATE
-    echo "\nCreating a directory: ${dir}"
-    mkdir -p $dir
-  else
-    unset MARKDOWN_DIR_CREATE
+  read -k 1 TODAYMD_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
+  local create=$TODAYMD_CREATE
+  unset TODAYMD_CREATE
+
+  if [ $create != 'y' ]; then
     echo "\nStopped creating the file."
     return
   fi
+
+  echo "\nCreating a directory: ${dir}"
+  mkdir -p $dir
 fi
 
 if [ ! -f $file_path ];then
   echo "Create a markdown file: ${file_path}"
-  echo "# ${input}" > $file_path
+  echo "# $filename" > $file_path
 fi
 vi $file_path
