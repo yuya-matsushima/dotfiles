@@ -47,6 +47,10 @@ case ${1} in
     _ymt_volume_status
   ;;
 
+  max)
+    osascript -e "set volume output volume 100"
+  ;;
+
   *)
     if [[ $1 =~ ^(100|[0-9]{1,2})$ ]]; then
       osascript -e "set volume output volume $1"
