@@ -1,0 +1,9 @@
+#compdef pecos
+local -a subcmds
+subcmds=('commit-hash:search git log and copy commit-hash'\
+         'docker-compose:search and download docker-compose.yml'\
+         'history:search history'\
+         'kill:select and kill process'\
+         'rails:search Rails template and initialize Rails project'\
+         'search:search find and directory in the current directory')
+_describe 'command' subcmds

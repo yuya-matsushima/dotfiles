@@ -1,0 +1,8 @@
+#compdef volume
+local -a subcmds
+subcmds=('status:show current volume status'\
+         'mute:mute the volume'\
+         'unmute:unmute the volume'\
+         'max:set max volume')
+_describe 'command' subcmds
+_alternative 'volume:volume level arg:(10 20 30 40 50 60 70 80 90)'

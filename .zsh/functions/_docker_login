@@ -1,0 +1,4 @@
+#compdef docker-login
+local -a subcmds
+subcmds=('ecr:login to AWS ECR' 'ghcr:login to GitHub Container Registory')
+_describe 'command' subcmds
