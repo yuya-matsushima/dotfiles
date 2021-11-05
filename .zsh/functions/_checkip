@@ -1,4 +1,4 @@
 #compdef checkip
 local -a subcmds
-subcmds=('ecr:show your IP Address on AWS' 'gcp:show your IP Address on GCP')
+subcmds=('aws:show your IP Address on AWS' 'gcp:show your IP Address on GCP')
 _describe 'command' subcmds
