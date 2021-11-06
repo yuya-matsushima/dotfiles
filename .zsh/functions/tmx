@@ -1,0 +1,59 @@
+#!bin/zsh
+
+function _ymt_tmx_usage() {
+  cat <<EOF
+tmx is a command to support tmux operations.
+
+Usage:
+    tmx                start base session
+    tmx [name]         start [name] session
+    tmx list           list sessions
+    tmx attach switch  attach/switch session
+    tmx detach         detach session
+    tmx kill [name]    kill [name] session
+
+Options:
+    --help, -h         print help
+EOF
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_tmx_usage
+  ;;
+
+  list|l)
+    tmux list-sessions
+  ;;
+
+  attach|a|switch|s)
+    local session="$(tmux list-sessions | peco | cut -d : -f 1)"
+    if [ -n "$session" ]; then
+      if [ -n "$TMUX" ]; then
+        tmux switch -t $session
+      else
+        tmux attach -t $session
+      fi
+    fi
+  ;;
+
+  detach|d)
+    tmux detach
+  ;;
+
+  kill|k)
+    if [ -z "${1}" ]; then
+      echo 'Specify the session to be killed.'
+      return 1
+    fi
+    tmux kill-session -t ${1}
+  ;;
+
+  *)
+    local session=${1}
+    if [ -z $session ]; then
+      local session='base'
+    fi
+    tmux new -A -s $session
+  ;;
+esac

@@ -1,0 +1,13 @@
+#compdef tmx
+local -a subcmds
+subcmds=('l:list sessions'\
+         'list:list sessions'\
+         'a:attach/switch session'\
+         'attach:attach/switch session'\
+         's:attach/switch session'\
+         'swidth:attach/switch session'\
+         'd:detach session'\
+         'detach:detach session'\
+         'k:kill session'\
+         'kill:kill session')
+_describe 'command' subcmds
