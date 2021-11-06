@@ -15,16 +15,6 @@ if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
   echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
 fi
 
-# tmux
-if [ -z $SKIP_TMUX ] && [ $SHLVL = 1 ]; then
-  # skip if attached 'base'
-  check=`tmux list-clients | grep base`
-  if [ ${#check} -eq 0 ]; then
-    tmux new-session -A -s base
-    clear
-  fi
-fi
-
 source $HOME/.zshenv
 
 autoload colors
