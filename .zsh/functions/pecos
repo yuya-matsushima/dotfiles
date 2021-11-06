@@ -64,7 +64,7 @@ function _ymt_pecos_history() {
 function _ymt_pecos_rails_template() {
   local json=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/rails | jq '.[]')
   local template=$(echo ${json} | jq '.name' | grep '.rb' | sed -e 's/"//g' | sed -e 's/\.rb$//' | peco)
-  if [ -z $template ]; then
+  if [ -z "$template" ]; then
     echo "failed to retrieve templates."
     return 1
   fi
