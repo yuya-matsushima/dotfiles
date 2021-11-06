@@ -65,8 +65,16 @@ setopt nolistbeep
 setopt nobeep
 
 
-## Keybind configuration
+# Keybind configuration
+bindkey -d
 bindkey -v
+
+# start vi comannd mode: ESC&ESC
+bindkey '\e\e' vi-cmd-mode
+
+# move locator
+bindkey '^a' beginning-of-line
+bindkey '^e' end-of-line
 
 # historical backward/forward search with linehead string binded to ^P/^N
 autoload history-search-end
@@ -79,7 +87,6 @@ bindkey "\\en" history-beginning-search-forward-end
 
 # reverse menu completion binded to Shift-Tab
 bindkey "\e[Z" reverse-menu-complete
-
 
 # history
 HISTFILE=${HOME}/.zsh_history
