@@ -42,11 +42,11 @@ case ${1} in
   ;;
 
   kill|k)
-    if [ -z "${1}" ]; then
+    if [ -z "${2}" ]; then
       echo 'Specify the session to be killed.'
       return 1
     fi
-    tmux kill-session -t ${1}
+    tmux kill-session -t ${2}
   ;;
 
   *)
