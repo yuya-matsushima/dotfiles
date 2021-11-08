@@ -1,0 +1,113 @@
+set fileencodings=utf-8,ucs-bom,euc-jp,iso-2022-jp,sjis,cp932,utf-16,utf-16le
+
+au!
+filetype on
+syntax on
+filetype indent on
+filetype plugin on
+set iminsert=0
+set imsearch=0
+set number
+set signcolumn=yes
+set listchars=eol:$,tab:>\ ,extends:<
+set ambiwidth=double
+set showmatch
+set notitle
+set completeopt=menuone,preview,noinsert,noselect
+set shortmess+=c
+set nf=
+set visualbell t_vb=
+set whichwrap=b,s,h,l,<,>,[,]
+set formatoptions+=mM
+set browsedir=buffer
+if has('win32') || has('win64') || has('mac')
+  set clipboard+=unnamed
+endif
+set hidden
+set autoread
+set incsearch
+set smartcase
+set wrapscan
+set hlsearch
+noremap <esc><esc> :nohlsearch<CR><esc>
+set autoindent
+set cindent
+set smartindent
+set backspace=2
+set noundofile
+set noswapfile
+set nobackup
+set wildmenu
+set cmdheight=2
+set showcmd
+set statusline=\%t\%=\[%l/%L]\[%{&filetype}]\[%{&fileencoding}]
+set laststatus=2
+set splitbelow
+set splitright
+set diffopt-=filler diffopt=iwhite,horizontal
+
+set tabstop=2
+set shiftwidth=2
+set expandtab
+augroup tabSetting
+  autocmd!
+  autocmd FileType php setlocal tabstop=4 shiftwidth=4
+  autocmd FileType go setlocal noexpandtab tabstop=2 shiftwidth=2
+augroup END
+
+set foldenable
+set foldmethod=indent
+set fillchars=vert:\1
+augroup folding
+  autocmd!
+  autocmd FileType gitcommit,hgcommit setlocal nofoldenable
+  autocmd FileType quickrun setlocal nofoldenable
+  autocmd FileType scss,css setlocal foldmethod=marker foldmarker={,}
+  autocmd FileType html,xhtml setlocal foldmethod=indent
+augroup END
+
+augroup shortcut
+  autocmd!
+  autocmd FileType * imap <buffer> , ,
+  autocmd FileType * imap <> <><Left>
+  autocmd FileType * imap <buffer> // //
+  autocmd FileType php imap <buffer> <? <?php
+  autocmd FileType php imap <buffer> dec declare(strict_types=1);
+  autocmd FileType ruby imap <buffer> # #
+augroup END
+
+command! Sudow :w !sudo tee >/dev/null %
+
+" for US Keyboard
+" noremap ; :
+" noremap : ;
+
+augroup alias
+  autocmd!
+  autocmd BufRead,BufNewFile *.md,*.md.erb setlocal filetype=markdown
+  autocmd FileType js setlocal ft=javascript
+  autocmd BufRead,BufNewFile *.ts set filetype=typescript
+  autocmd FileType smarty,tpl,ciunit,ctp setlocal ft=php
+  autocmd FileType sql setlocal ft=mysql
+  autocmd FileTYpe scss.css setlocal ft=scss
+  autocmd FileType .envrc setlocal ft=sh
+augroup END
+
+augroup bufferEvent
+  autocmd!
+  " CD.vim
+  autocmd BufEnter * call lcd#changeDir()
+  autocmd BufWritePre [:;][wq]* try | echoerr 'Forbidden file name: ' . expand('<afile>') | endtry
+  " autocmd BufWritePre *.php,*.js,*.jsx,*.tsx,*.ts,*.rb,*.c setlocal fenc=utf-8
+augroup END
+
+augroup width
+  autocmd!
+  autocmd FileType gitcommit,hgcommit setlocal textwidth=72
+  autocmd FileType rst setlocal textwidth=80
+  autocmd FileType javascript,typescript setlocal textwidth=80
+  autocmd FileType php setlocal textwidth=80
+  if exists('&colorcolumn')
+    autocmd FileType rst,gitcommit,hgcommit setlocal colorcolumn=+1
+  endif
+augroup END
