@@ -182,7 +182,7 @@ REPORTTIME=3
 if [ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]; then
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
   ZSH_THEME_GIT_PROMPT_PREFIX="["
-  ZSH_THEME_GIT_PROMPT_SUFFIX=" ]"
+  ZSH_THEME_GIT_PROMPT_SUFFIX="]"
   ZSH_THEME_GIT_PROMPT_BRANCH="%{$fg[white]%}"
   ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}%{ %G%}"
   ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[magenta]%}%{x%G%}"
