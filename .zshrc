@@ -106,9 +106,6 @@ autoload zed
 ## alias
 setopt complete_aliases     # aliased ls needs if file/dir completions work
 
-alias j="jobs -l"
-alias grep="$HOMEBREW_PREFIX/bin/ggrep"
-
 case "${OSTYPE}" in
 freebsd*|darwin*)
     alias ls="ls -G -w"
@@ -121,11 +118,11 @@ alias l="ls"
 alias la="ls -a"
 alias ll="ls -l"
 alias lt="ls -t"
-
 alias agless='ag --pager="less -R"'
-alias awsume="source \$(pyenv which awsume)"
-alias awsume='. awsume'
-alias w3m="/usr/local/bin/w3m -t 2 -s"
+alias awsume=". $(pyenv which awsume)"
+alias j="jobs -l"
+alias grep="$HOMEBREW_PREFIX/bin/ggrep"
+
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
@@ -134,10 +131,13 @@ case "${TERM}" in
 screen)
     TERM=xterm
     ;;
+screen-256color)
+    TERM=xterm-256color
+    ;;
 esac
 
 case "${TERM}" in
-xterm|xterm-color)
+xterm|xterm-color|xterm-256color)
     export LSCOLORS=exfxcxdxbxegedabagacad
     export LS_COLORS='di=34:ln=35:so=32:pi=33:ex=31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
     zstyle ':completion:*' list-colors 'di=34' 'ln=35' 'so=32' 'ex=31' 'bd=46;34' 'cd=43;34'
@@ -168,7 +168,7 @@ esac
 
 # set terminal title including current directory
 case "${TERM}" in
-xterm|xterm-color|kterm|kterm-color)
+xterm|xterm-color|xterm-256color|kterm|kterm-color)
     precmd() {
         echo -ne "\033]0;${USER}@${HOST%%.*}:${PWD}\007"
     }
