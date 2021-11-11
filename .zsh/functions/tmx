@@ -14,6 +14,10 @@ Usage:
 
 Options:
     --help, -h         print help
+
+Dependencies:
+    tmux
+    peco
 EOF
 }
 

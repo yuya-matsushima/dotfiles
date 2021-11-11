@@ -19,6 +19,9 @@ Usage:
 
 Options:
     --help, -h        print help
+
+Dependencies:
+    MacOS
 EOF
 }
 

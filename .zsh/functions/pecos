@@ -19,6 +19,10 @@ Usage:
 
 Options:
     --help, -h             print help
+
+Dependencies:
+    peco
+    git
 EOF
 }
 

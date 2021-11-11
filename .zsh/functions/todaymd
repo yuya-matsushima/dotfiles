@@ -1,29 +1,52 @@
 #!/bin/zsh
 
-read TODAYMD_FILENAME\?"Enter a file name: "
-read TODAYMD_DIR\?"Enter the directory(`pwd`): "
+function _ytm_todaymd_usage() {
+  cat <<EOF
+todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
-local filename=$TODAYMD_FILENAME
-local dir=$(eval echo ${TODAYMD_DIR:-$(pwd)})
-local file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
-unset TODAYMD_FILENAME TODAYMD_DIR
+Usage:
+    tmx                start base session
+    tmx [name]         start [name] session
+    tmx list           list sessions
+    tmx attach switch  attach/switch session
+    tmx detach         detach session
+    tmx kill [name]    kill [name] session
 
-if [ ! -d $dir ]; then
-  read -k 1 TODAYMD_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
-  local create=$TODAYMD_CREATE
-  unset TODAYMD_CREATE
+Options:
+    --help, -h         print help
 
-  if [ $create != 'y' ]; then
-    echo "\nStopped creating the file."
-    return
+Dependencies:
+    tmux
+    peco
+EOF
+}
+
+function _ymt_todaymd() {
+  read TODAYMD_FILENAME\?"Enter a file name: "
+  read TODAYMD_DIR\?"Enter the directory(`pwd`): "
+
+  local filename=$TODAYMD_FILENAME
+  local dir=$(eval echo ${TODAYMD_DIR:-$(pwd)})
+  local file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
+  unset TODAYMD_FILENAME TODAYMD_DIR
+
+  if [ ! -d $dir ]; then
+    read -k 1 TODAYMD_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
+    local create=$TODAYMD_CREATE
+    unset TODAYMD_CREATE
+
+    if [ $create != 'y' ]; then
+      echo "\nStopped creating the file."
+      return
+    fi
+
+    echo "\nCreating a directory: ${dir}"
+    mkdir -p $dir
   fi
 
-  echo "\nCreating a directory: ${dir}"
-  mkdir -p $dir
-fi
-
-if [ ! -f $file_path ];then
-  echo "Create a markdown file: ${file_path}"
-  echo "# $filename" > $file_path
-fi
-vi $file_path
+  if [ ! -f $file_path ];then
+    echo "Create a markdown file: ${file_path}"
+    echo "# $filename" > $file_path
+  fi
+  vi $file_path
+}

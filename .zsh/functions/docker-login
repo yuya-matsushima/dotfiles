@@ -20,6 +20,10 @@ Configurable Environment Variables:
         CR_PAT=your-github-access-token
         # ref: https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-container-registry
         GITHUB_ACCOUNT=your-github-account
+
+Dependencies:
+    awscli command
+    docker cli command
 EOF
 }
 
