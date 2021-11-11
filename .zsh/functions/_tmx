@@ -5,7 +5,7 @@ subcmds=('l:list sessions'\
          'a:attach/switch session'\
          'attach:attach/switch session'\
          's:attach/switch session'\
-         'swidth:attach/switch session'\
+         'switch:attach/switch session'\
          'd:detach session'\
          'detach:detach session'\
          'k:kill session'\
