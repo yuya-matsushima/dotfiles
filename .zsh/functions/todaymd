@@ -5,15 +5,10 @@ function _ytm_todaymd_usage() {
 todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
 Usage:
-    tmx                start base session
-    tmx [name]         start [name] session
-    tmx list           list sessions
-    tmx attach switch  attach/switch session
-    tmx detach         detach session
-    tmx kill [name]    kill [name] session
+    todaymd
 
 Options:
-    --help, -h         print help
+    --help, -h   print help
 
 Dependencies:
     tmux
