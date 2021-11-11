@@ -6,10 +6,10 @@ case ${UID} in
 esac
 
 local zshrc_path=$HOME/.zshrc
-if [ -L $zshrc_path ]; then
-   # when .zshrc is symbolic link
-   local zshrc_path=$(readlink $HOME/.zshrc)
-fi
+# overwrite zshrc_path when .zshrc is symbolic link
+[ -L $zshrc_path ] && local zshrc_path=$(readlink $HOME/.zshrc)
+
+# compile zshrc
 if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
   zcompile $HOME/.zshrc
   echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
@@ -17,8 +17,7 @@ fi
 
 source $HOME/.zshenv
 
-autoload colors
-colors
+autoload colors && colors
 
 case ${UID} in
 0)
@@ -87,15 +86,8 @@ fpath=($HOME/.zsh/functions $fpath)
 for file in `find $fpath[1] -type f`; do
   autoload -Uz $(echo $file | cut -d '/' -f 6)
 done
-
-## completion
-fpath=($HOMEBREW_PREFIX/share/zsh/site-functions $HOMEBREW_PREFIX/share/zsh-completions $fpath)
-if [ -f $HOME/.awsume/zsh-autocomplete ]; then
-  fpath=($HOME/.awsume/zsh-autocomplete/ $fpath)
-fi
-
-autoload -Uz compinit
-compinit -u
+# activate completion
+autoload -Uz compinit && compinit -u
 
 ## zsh editor
 autoload zed
@@ -118,7 +110,6 @@ alias lt="ls -t"
 alias agless='ag --pager="less -R"'
 alias awsume=". $(pyenv which awsume)"
 alias j="jobs -l"
-alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 
 
 ## terminal configuration
@@ -191,10 +182,5 @@ if which less > /dev/null; then
   export LESS_TERMCAP_us=$'\E[01;32m'
 fi
 
-if [ -f $HOME/.zshrc_local ]; then
-  source $HOME/.zshrc_local
-fi
-
-if [ -n "$ZSH_PROFILE" ]; then
-  zprof
-fi
+[ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
+[ -n "$ZSH_PROFILE" ] && zprof

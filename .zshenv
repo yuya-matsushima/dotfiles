@@ -1,6 +1,5 @@
-if [ -n "$ZSH_PROFILE" ]; then
-  zmodload zsh/zprof && zprof
-fi
+[ -n "$ZSH_PROFILE" ] && zmodload zsh/zprof && zprof
+
 typeset -U path
 
 # GPG
@@ -23,13 +22,11 @@ if which go > /dev/null; then
   export PATH=$GOPATH/bin:$PATH
 fi
 
-if which python > /dev/null; then
-  export PATH=$HOMEBREW_PREFIX/opt/python/libexec/bin:$PATH
-fi
+which python > /dev/null && export PATH=$HOMEBREW_PREFIX/opt/python/libexec/bin:$PATH
+which direnv > /dev/null && eval "$(direnv hook zsh)"
 
-if [ -d $HOMEBREW_PREFIX/opt/curl/bin ]; then
-  export PATH=$HOMEBREW_PREFIX/opt/curl/bin:$PATH
-fi
+# grep
+which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 
 # sed
 if which gsed > /dev/null; then
@@ -37,12 +34,13 @@ if which gsed > /dev/null; then
   export MANPATH=$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnuman:$MANPATH
 fi
 
-# mysql-client
-if [ -d $HOMEBREW_PREFIX/opt/mysql-client ]; then
-  export PATH=$HOMEBREW_PREFIX/opt/mysql-client/bin:$PATH
-fi
+# curl
+[ -d $HOMEBREW_PREFIX/opt/curl/bin ] && export PATH=$HOMEBREW_PREFIX/opt/curl/bin:$PATH
 
-# direnv
-if which direnv > /dev/null; then
-  eval "$(direnv hook zsh)"
-fi
+# mysql-client
+[ -d $HOMEBREW_PREFIX/opt/mysql-client ] && export PATH=$HOMEBREW_PREFIX/opt/mysql-client/bin:$PATH
+
+# set fpath
+[ -f $HOMEBREW_PREFIX/share/zsh/site-functions ] && fpath=($HOMEBREW_PREFIX/share/zsh/site-functions $fpath)
+[ -f $HOMEBREW_PREFIX/share/zsh-completions ] && fpath=($HOMEBREW_PREFIX/share/zsh-completions $fpath)
+[ -f $HOME/.awsume/zsh-autocomplete ] && fpath=($HOME/.awsume/zsh-autocomplete/ $fpath)
