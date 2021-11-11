@@ -5,14 +5,24 @@ function _ymt_git_root_usage() {
 git_root move current_directory to project root dir.
 
 Usage:
-    git_root     change directory to project root
+    git_root        change directory to git project root
+    git_root show   show git project root
 
 Options:
-    --help, -h   print help
+    --help, -h      print help
 
 Dependencies:
     git
 EOF
+}
+
+function _ymt_git_root_dir() {
+  local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [ -z $root_dir ]; then
+    echo 'not under git control.'
+    return 1
+  fi
+  echo $root_dir
 }
 
 function _ymt_git_root() {
@@ -20,9 +30,8 @@ function _ymt_git_root() {
   if [ -z $root_dir ]; then
     echo 'not under git control.'
     return 1
-  else
-    cd $root_dir
   fi
+  cd $root_dir
 }
 
 case ${1} in
@@ -30,6 +39,11 @@ case ${1} in
     _ymt_git_root_usage
   ;;
 
+  show)
+    _ymt_git_root_dir
+  ;;
+
   *)
     _ymt_git_root
+  ;;
 esac
