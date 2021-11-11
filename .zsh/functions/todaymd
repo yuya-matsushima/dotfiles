@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-function _ytm_todaymd_usage() {
+function _ymt_todaymd_usage() {
   cat <<EOF
 todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
@@ -45,3 +45,13 @@ function _ymt_todaymd() {
   fi
   vi $file_path
 }
+
+case ${1} in
+  -h|--help)
+    _ymt_todaymd_usage
+  ;;
+
+  *)
+    _ymt_todaymd
+  ;;
+esac
