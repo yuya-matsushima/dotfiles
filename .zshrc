@@ -110,6 +110,7 @@ alias lt="ls -t"
 alias agless='ag --pager="less -R"'
 alias awsume=". $(pyenv which awsume)"
 alias j="jobs -l"
+which git_root > /dev/null && alias root=git_root
 
 
 ## terminal configuration
