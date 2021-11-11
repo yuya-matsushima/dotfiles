@@ -107,9 +107,9 @@ alias l="ls"
 alias la="ls -a"
 alias ll="ls -l"
 alias lt="ls -t"
-alias agless='ag --pager="less -R"'
-alias awsume=". $(pyenv which awsume)"
 alias j="jobs -l"
+alias agless='ag --pager="less -R"'
+which pyenv > /dev/null && alias awsume=". $(pyenv which awsume)"
 which git_root > /dev/null && alias root=git_root
 
 
