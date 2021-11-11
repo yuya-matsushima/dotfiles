@@ -27,10 +27,10 @@ EOF
 }
 
 function _ymt_pecos_commit_hash() {
-  local git_dir=$(git rev-parse --git-dir 2> /dev/null)
-  if [ -z $git_dir ]; then
-    echo "current directory is not under git's control."
-    return
+  local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [ -z $root_dir ]; then
+    echo "not under git control."
+    return 1
   fi
 
   local hash=$(git log --pretty='%h %s (%an)' | peco --query "$LBUFFER" | cut -d ' ' -f 1)

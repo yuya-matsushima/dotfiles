@@ -19,6 +19,7 @@ function _ymt_git_root() {
   local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
   if [ -z $root_dir ]; then
     echo 'not under git control.'
+    return 1
   else
     cd $root_dir
   fi
