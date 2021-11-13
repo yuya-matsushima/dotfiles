@@ -30,7 +30,7 @@ local add_path_dirs=(
   $HOMEBREW_PREFIX/opt/curl/bin
   $HOMEBREW_PREFIX/opt/mysql-client/bin
 )
-for dir in $add_fpath_dirs; do
+for dir in $add_path_dirs; do
   [ -d $dir ] && export PATH=$dir:$PATH
 done
 
