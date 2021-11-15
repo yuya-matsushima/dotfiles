@@ -18,6 +18,7 @@ Plug 'hrsh7th/vim-vsnip-integ'
 " JavaScript/TypeScript
 Plug 'pangloss/vim-javascript'
 Plug 'leafgarland/typescript-vim'
+Plug 'leafOfTree/vim-vue-plugin'
 Plug 'MaxMEllon/vim-jsx-pretty'
 Plug 'peitalin/vim-jsx-typescript'
 Plug 'styled-components/vim-styled-components'
