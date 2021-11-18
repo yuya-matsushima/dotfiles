@@ -27,6 +27,10 @@ function _ymt_vip_relative_path() {
   fi
 
   local selected=$(git status -s | awk '{ print $2 }' | peco --query "$LBUFFER")
+  if [ -z $selected ]; then
+    echo "file not selected."
+    return 1
+  fi
   vi $selected
 }
 
@@ -38,6 +42,10 @@ function _ymt_vip_absolute_path() {
   fi
 
   local selected=$(cd $root_dir;git status -s | awk '{ print $2 }' | peco --query "$LBUFFER")
+  if [ -z $selected ]; then
+    echo "file not selected."
+    return 1
+  fi
   vi $selected
 }
 
