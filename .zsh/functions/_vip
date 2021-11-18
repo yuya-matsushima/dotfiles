@@ -1,0 +1,4 @@
+#compdef vip
+local -a subcmds
+subcmds=('absolute:select file and edit' 'relative:select file by relative path and edit')
+_describe 'command' subcmds
