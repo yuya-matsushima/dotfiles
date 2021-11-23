@@ -10,6 +10,9 @@ Usage:
 Options:
     --help, -h   print help
 
+Configurable Environment Variables:
+  TODAYMD_DIR=path/to/default/save/dir
+
 Dependencies:
     tmux
     peco
@@ -17,11 +20,16 @@ EOF
 }
 
 function _ymt_todaymd() {
+  if [ -n "${TODAYMD_DIR}" ]; then
+    local default_dir=${TODAYMD_DIR}
+  else
+    local default_dir=`pwd`
+  fi
   read TODAYMD_FILENAME\?"Enter a file name: "
-  read TODAYMD_DIR\?"Enter the directory(`pwd`): "
+  read TODAYMD_DIR\?"Enter the directory(${default_dir}): "
 
   local filename=$TODAYMD_FILENAME
-  local dir=$(eval echo ${TODAYMD_DIR:-$(pwd)})
+  local dir=$(eval echo ${TODAYMD_DIR:-${default_dir}})
   local file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
   unset TODAYMD_FILENAME TODAYMD_DIR
 
