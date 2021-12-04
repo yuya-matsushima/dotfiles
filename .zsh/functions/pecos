@@ -41,14 +41,14 @@ function _ymt_pecos_commit_hash() {
     return 1
   fi
 
-  local hash=$(git log --pretty='%h %s (%an)' | peco --query "$LBUFFER" | cut -d ' ' -f 1)
+  local hash=$(git log --pretty='%h %s (%an)' | peco --prompt='commit >' --query "$LBUFFER" | cut -d ' ' -f 1)
   echo $hash | pbcopy
   echo $hash
 }
 
 function _ymt_pecos_docker_compose_template() {
   local json=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/docker-compose | jq '.[]')
-  local template=$(echo ${json} | jq '.name' | grep '.yml' | sed -e 's/"//g' | sed -e 's/\.yml$//' | peco)
+  local template=$(echo ${json} | jq '.name' | grep '.yml' | sed -e 's/"//g' | sed -e 's/\.yml$//' | peco --prompt='docker-compose >')
 
   if [ -z $template ]; then
     echo "failed to retrieve templates."
@@ -69,13 +69,13 @@ function _ymt_pecos_docker_compose_template() {
 }
 
 function _ymt_pecos_history() {
-  local selected=$(history 1 | sort -k1,1nr | perl -ne 'BEGIN { my @lines = (); } s/^\s*\d+\*?\s*//; $in=$_; if (!(grep {$in eq $_} @lines)) { push(@lines, $in); print $in; }' | peco --query "$LBUFFER")
+  local selected=$(history 1 | sort -k1,1nr | perl -ne 'BEGIN { my @lines = (); } s/^\s*\d+\*?\s*//; $in=$_; if (!(grep {$in eq $_} @lines)) { push(@lines, $in); print $in; }' | peco --prompt 'history >' --query "$LBUFFER")
   echo $selected
 }
 
 function _ymt_pecos_rails_template() {
   local json=$(curl --silent https://api.github.com/repos/fillin-inc/templates/contents/rails | jq '.[]')
-  local template=$(echo ${json} | jq '.name' | grep '.rb' | sed -e 's/"//g' | sed -e 's/\.rb$//' | peco)
+  local template=$(echo ${json} | jq '.name' | grep '.rb' | sed -e 's/"//g' | sed -e 's/\.rb$//' | peco --prompt='Rails >')
   if [ -z "$template" ]; then
     echo "failed to retrieve templates."
     return 1
@@ -130,7 +130,7 @@ case ${1} in
   ;;
 
   kill)
-    ps ax -o pid,lstart,command | peco --query "$LBUFFER" | awk '{ print $1 }' | xargs kill -TERM
+    ps ax -o pid,lstart,command | peco --prompt='process >' --query "$LBUFFER" | awk '{ print $1 }' | xargs kill -TERM
   ;;
 
   rails)
@@ -138,7 +138,7 @@ case ${1} in
   ;;
 
   search)
-    find . | grep -v "\/\." | cut -c 3- | peco --query "$LBUFFER"
+    find . | grep -v "\/\." | cut -c 3- | peco --prompt='find >' --query "$LBUFFER"
   ;;
 
   *)
