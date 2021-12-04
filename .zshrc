@@ -81,6 +81,9 @@ SAVEHIST=250000
 setopt hist_ignore_dups     # ignore duplication command history list
 setopt share_history        # share command history data
 
+# load extensions
+for file in `find $HOME/.zsh/extensions -type f`; do source $file; done
+
 # load functions
 fpath=($HOME/.zsh/functions $fpath)
 for file in `find $fpath[1] -type f -not -name '_*'`; do

@@ -10,6 +10,7 @@ function _ymt_pecos_usage() {
 pecos call useful command using peco.
 
 Usage:
+    pecos cdr              search cdr history and change directory
     pecos commit-hash      search git log and copy commit-hash
     pecos docker-compose   search and download docker-compose.yml
     pecos history          search history
@@ -24,6 +25,13 @@ Dependencies:
     peco
     git
 EOF
+}
+
+function _ymt_pecos_cdr() {
+  local selected_dir="$(cdr -l | sed 's/^[0-9]\+ \+//' | peco --prompt="cdr >" --query "$LBUFFER")"
+  if [ -n "$selected_dir" ]; then
+    cd $(eval echo ${selected_dir})
+  fi
 }
 
 function _ymt_pecos_commit_hash() {
@@ -103,6 +111,10 @@ function _ymt_pecos_rails_template() {
 case ${1} in
   -h|--help)
     _ymt_pecos_usage
+  ;;
+
+  cdr)
+    _ymt_pecos_cdr
   ;;
 
   commit-hash)

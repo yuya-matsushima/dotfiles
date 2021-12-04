@@ -2,3 +2,4 @@
 .vim/plugged/*
 .vim/sessions
 .vim/.netrwhist
+.zsh/caches/*

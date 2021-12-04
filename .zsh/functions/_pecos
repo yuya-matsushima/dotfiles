@@ -1,6 +1,7 @@
 #compdef pecos
 local -a subcmds
-subcmds=('commit-hash:search git log and copy commit-hash'\
+subcmds=('cdr:search cdr history and change directory'\
+         'commit-hash:search git log and copy commit-hash'\
          'docker-compose:search and download docker-compose.yml'\
          'history:search history'\
          'kill:select and kill process'\
