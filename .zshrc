@@ -83,7 +83,7 @@ setopt share_history        # share command history data
 
 # load functions
 fpath=($HOME/.zsh/functions $fpath)
-for file in `find $fpath[1] -type f`; do
+for file in `find $fpath[1] -type f -not -name '_*'`; do
   autoload -Uz $(echo $file | cut -d '/' -f 6)
 done
 # activate completion
