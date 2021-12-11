@@ -15,7 +15,6 @@ Configurable Environment Variables:
 
 Dependencies:
     tmux
-    peco
 EOF
 }
 

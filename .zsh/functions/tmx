@@ -31,7 +31,7 @@ case ${1} in
   ;;
 
   attach|a|switch|s)
-    local session="$(tmux list-sessions | peco | cut -d : -f 1)"
+    local session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
     if [ -n "$session" ]; then
       if [ -n "$TMUX" ]; then
         tmux switch -t $session
