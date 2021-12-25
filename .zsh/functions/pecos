@@ -95,7 +95,7 @@ function _ymt_pecos_rails_template() {
 
   # download defaulg Gemfile
   if [ ! -f "Gemfile" ]; then
-    curl -O --silent https://raw.githubusercontent.com/fillin-inc/templates/master/rails/example/Gemfile
+    curl -O --silent https://raw.githubusercontent.com/fillin-inc/templates/main/rails/example/Gemfile
   fi
 
   bundle config set without 'production'
