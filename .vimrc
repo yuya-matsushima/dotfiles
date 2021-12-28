@@ -112,13 +112,6 @@ set noundofile
 set noswapfile
 set nobackup
 
-" status line
-set wildmenu
-set cmdheight=2
-set showcmd
-set statusline=\%t\%=\[%l/%L]\[%{&filetype}]\[%{&fileencoding}]
-set laststatus=2
-
 " window split
 set splitbelow
 set splitright

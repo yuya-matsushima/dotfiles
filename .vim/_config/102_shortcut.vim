@@ -16,4 +16,7 @@ command! Sudow :w !sudo tee >/dev/null %
 if g:keyboard_type == 'US' || g:has_external_us_keyboard
   noremap ; :
   noremap : ;
+  if g:keyboard_type != 'US'
+    let g:keyboard_type = 'US'
+  endif
 endif
