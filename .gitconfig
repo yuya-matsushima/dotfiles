@@ -27,6 +27,7 @@
   co = "checkout"
   st = "status -sb"
   b  = "branch -a"
+  current = "rev-parse --abbrev-ref HEAD"
   list = "config --list"
   grep = "grep --color=auto"
   cached = "diff --cached"
