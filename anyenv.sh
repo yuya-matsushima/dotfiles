@@ -24,3 +24,11 @@ if [ ! -d $HOME/.anyenv/envs/nodenv/versions/$NODE_VERSION ]; then
   nodenv install $NODE_VERSION
   nodenv global $NODE_VERSION
 fi
+
+## anyenv-update
+if [ ! -d $(anyenv root)/plugins ]; then
+  mkdir -p $(anyenv root)/plugins
+fi
+if [ ! -d $(anyenv root)/plugins/anyenv-update ]; then
+  git clone https://github.com/znz/anyenv-update.git $(anyenv root)/plugins/anyenv-update
+fi
