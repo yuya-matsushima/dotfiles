@@ -94,7 +94,7 @@
   },
   "Initial Use Transparency" : true,
   "Only The Default BG Color Uses Transparency" : true,
-  "Columns" : 220,
+  "Columns" : 150,
   "Idle Code" : 0,
   "Ansi 13 Color" : {
     "Green Component" : 0.3333333432674408,
