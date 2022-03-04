@@ -1,5 +1,3 @@
-[ -n "$ZSH_PROFILE" ] && zmodload zsh/zprof && zprof
-
 typeset -U path
 typeset -U fpath
 

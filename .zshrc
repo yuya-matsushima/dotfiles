@@ -1,3 +1,4 @@
+[ -n "$ZSH_PROFILE" ] && zmodload zsh/zprof && zprof
 export LANG=ja_JP.UTF-8
 case ${UID} in
 0)
