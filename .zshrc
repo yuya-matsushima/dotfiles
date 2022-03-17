@@ -7,13 +7,19 @@ case ${UID} in
 esac
 
 local zshrc_path=$HOME/.zshrc
-# overwrite zshrc_path when .zshrc is symbolic link
+local zshenv_path=$HOME/.zshenv
+# overwrite path when symbolic link
 [ -L $zshrc_path ] && local zshrc_path=$(readlink $HOME/.zshrc)
+[ -L $zshenv_path ] && local zshenv_path=$(readlink $HOME/.zshenv)
 
 # compile zshrc
 if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
   zcompile $HOME/.zshrc
   echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
+fi
+if [ ! -e $HOME/.zshenv.zwc ] || [ $zshenv_path -nt $HOME/.zshenv.zwc ]; then
+  zcompile $HOME/.zshenv
+  echo "compiled the \$HOME/.zshenv file.: .zshenv is changed"
 fi
 
 source $HOME/.zshenv
@@ -188,4 +194,4 @@ if which less > /dev/null; then
 fi
 
 [ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
-[ -n "$ZSH_PROFILE" ] && zprof
+[ -n "$ZSH_PROFILE" ] && zprof | less
