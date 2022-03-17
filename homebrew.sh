@@ -6,7 +6,7 @@ brew tap homebrew/cask-fonts
 brew tap gjbae1212/gossm
 
 brew install \
-          anyenv \
+          asdf \
           awscli \
           awsume \
           colordiff \

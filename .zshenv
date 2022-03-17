@@ -9,12 +9,7 @@ export EDITOR=vim
 
 export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
 
-# anyenv
-if which anyenv > /dev/null; then
-  export PATH=$HOME/.anyenv/bin:$PATH
-  eval "$(anyenv init -)"
-fi
-
+which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
 which direnv > /dev/null && eval "$(direnv hook zsh)"
 which go > /dev/null && export GOPATH=$(go env GOPATH)
 which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
