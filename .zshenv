@@ -19,6 +19,9 @@ which direnv > /dev/null && eval "$(direnv hook zsh)"
 which go > /dev/null && export GOPATH=$(go env GOPATH)
 which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 
+# kubectl
+which kubectl > /dev/null && source <(kubectl completion zsh)
+
 # additional path
 local add_path_dirs=(
   /usr/local/sbin
