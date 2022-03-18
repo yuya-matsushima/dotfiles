@@ -4,6 +4,7 @@ set -e
 
 CURRENT_DIR=`pwd`
 TARGETS=( \
+         ".asdfrc" \
          ".gemrc" \
          ".git-templates" \
          ".gitconfig" \

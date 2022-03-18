@@ -8,10 +8,9 @@ requirements:
 ```sh
 # install homebrew libraries
 sh homebrew.sh
+sh asdf.sh
 # create synbolic links
 sh link.sh
-# install anyenv
-sh anyenv.sh
 # install plug.vim
 curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
