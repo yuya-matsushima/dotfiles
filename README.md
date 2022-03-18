@@ -8,6 +8,7 @@ requirements:
 ```sh
 # install homebrew libraries
 sh homebrew.sh
+sh asdf.sh
 # create synbolic links
 sh link.sh
 # install plug.vim

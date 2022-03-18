@@ -7,8 +7,8 @@ brew tap gjbae1212/gossm
 
 brew install \
           asdf \
-          awscli \
           awsume \
+          bison \
           colordiff \
           ctags \
           curl \
@@ -18,8 +18,6 @@ brew install \
           git-secrets \
           glow \
           gnu-sed \
-          go \
-          golangci-lint \
           gossm \
           grep \
           htop \
@@ -29,8 +27,6 @@ brew install \
           peco \
           plantuml \
           rename \
-          tfenv \
-          tflint \
           the_silver_searcher \
           tig \
           tldr \
