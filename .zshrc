@@ -127,7 +127,7 @@ which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 which git_root > /dev/null && alias root=git_root
 which go > /dev/null && export GOPATH=$(go env GOPATH)
 which kubectl > /dev/null && source <(kubectl completion zsh)
-[ -f $HOME/.zsh/asdf_completion.sh ] && source $HOME/.zsh/asdf_completion.sh
+[ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
