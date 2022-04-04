@@ -7,6 +7,7 @@ asdf plugin add golangci-lint
 asdf plugin add awscli
 asdf plugin add hugo
 asdf plugin add kubectl
+asdf plugin add kubectx
 asdf plugin add gcloud
 
 asdf install ruby 3.1.1
@@ -34,6 +35,8 @@ asdf global hugo 0.95.0
 
 asdf install kubectl 1.23.5
 asdf global kubectl 1.23.5
+asdf install kubectx latest
+asdf global kubectx latest
 
 asdf install gcloud latest
 asdf global gcloud latest
