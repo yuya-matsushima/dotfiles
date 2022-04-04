@@ -27,6 +27,7 @@ brew install \
           peco \
           plantuml \
           rename \
+          stern \
           the_silver_searcher \
           tig \
           tldr \
