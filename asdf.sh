@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 asdf plugin add ruby
 asdf plugin add nodejs
 asdf plugin add terraform
@@ -8,35 +10,37 @@ asdf plugin add awscli
 asdf plugin add hugo
 asdf plugin add kubectl
 asdf plugin add kubectx
+asdf plugin add kubeval
 asdf plugin add gcloud
 
-asdf install ruby 3.1.1
-asdf global ruby 3.1.1
+asdf install ruby latest
+asdf global ruby latest
 
 asdf install nodejs lts
 asdf global nodejs lts
 
-asdf install terraform 1.1.7
-asdf global terraform 1.1.7
+asdf install terraform latest
+asdf global terraform latest
+asdf install tflint latest
+asdf global tflint latest
 
-asdf install tflint 0.34.1
-asdf global tflint 0.34.1
-
-asdf install golang 1.18
-asdf global golang 1.18
-asdf install golangci-lint 1.44.2
-asdf global golangci-lint 1.44.2
+asdf install golang latest
+asdf global golang latest
+asdf install golangci-lint latest
+asdf global golangci-lint latest
 
 asdf install awscli latest
 asdf global awscli latest
 
-asdf install hugo 0.95.0
-asdf global hugo 0.95.0
+asdf install hugo latest
+asdf global hugo latest
 
-asdf install kubectl 1.23.5
-asdf global kubectl 1.23.5
+asdf install kubectl latest
+asdf global kubectl latest
 asdf install kubectx latest
 asdf global kubectx latest
+asdf install kubeval latest
+asdf global kubeval latest
 
 asdf install gcloud latest
 asdf global gcloud latest
