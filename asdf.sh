@@ -2,6 +2,7 @@
 
 asdf plugin add ruby
 asdf plugin add nodejs
+asdf plugin add python
 asdf plugin add terraform
 asdf plugin add tflint
 asdf plugin add golang
@@ -18,6 +19,9 @@ asdf global ruby latest
 
 asdf install nodejs lts
 asdf global nodejs lts
+
+asdf install python latest
+asdf global python latest
 
 asdf install terraform latest
 asdf global terraform latest

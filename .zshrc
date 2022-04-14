@@ -120,7 +120,6 @@ alias ll="ls -l"
 alias lt="ls -t"
 alias j="jobs -l"
 alias agless='ag --pager="less -R"'
-alias python="/usr/bin/python3"
 which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
 which awsume > /dev/null && alias awsume="source awsume"
 which direnv > /dev/null && eval "$(direnv hook zsh)"
