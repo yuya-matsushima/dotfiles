@@ -186,7 +186,9 @@ if [ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]; then
   ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}%{-%G%}"
   ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}%{+%G%}"
   ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}%{✔%G%}"
-  RPROMPT='$(git_super_status)'
+
+  # show git status & awsume profile
+  RPROMPT='$(git_super_status)${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
 fi
 
 if which less > /dev/null; then
