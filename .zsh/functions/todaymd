@@ -5,7 +5,8 @@ function _ymt_todaymd_usage() {
 todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
 Usage:
-    todaymd
+    todaymd         edit matkdown with CLI Editor
+    todaymd search  list and search markdown files with peco in TODAYMD_DIR
 
 Options:
     --help, -h   print help
@@ -14,7 +15,9 @@ Configurable Environment Variables:
   TODAYMD_DIR=path/to/default/save/dir
 
 Dependencies:
+    peco
     tmux
+    vim
 EOF
 }
 
@@ -50,12 +53,28 @@ function _ymt_todaymd() {
     echo "Create a markdown file: ${file_path}"
     echo "# $filename" > $file_path
   fi
-  vi $file_path
+
+  vim $file_path
+}
+
+function _ymt_todaymd_search() {
+  if [ -z "${TODAYMD_DIR}" ]; then
+    echo "TODAYMD_DIR is not set."
+    exit 1
+  fi
+  local file=$(ls ${TODAYMD_DIR} | peco --prompt='file >')
+  if [ -n $file ]; then
+    vim ${TODAYMD_DIR}/${file}
+  fi
 }
 
 case ${1} in
   -h|--help)
     _ymt_todaymd_usage
+  ;;
+
+  search)
+    _ymt_todaymd_search
   ;;
 
   *)
