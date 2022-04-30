@@ -60,7 +60,7 @@ function _ymt_todaymd() {
 function _ymt_todaymd_search() {
   if [ -z "${TODAYMD_DIR}" ]; then
     echo "TODAYMD_DIR is not set."
-    exit 1
+    return 1
   fi
   local file=$(ls ${TODAYMD_DIR} | peco --prompt='file >')
   if [ -n $file ]; then
