@@ -7,25 +7,25 @@ fi
 
 local cmd='volume'
 
-function _ymt_volume_usage() {
+_ymt_volume_usage() {
   cat <<EOF
 ${cmd} is a command to change the volume of your MacOS.
 
 Usage:
-    ${cmd} 50         set output volume to 50 (available:0-100)
-    ${cmd} status     print current volume status
-    ${cmd} mute       mute the volume
-    ${cmd} unmute     unmute the volume
+    ${cmd} 50        set output volume to 50 (available:0-100)
+    ${cmd} status    print current volume status
+    ${cmd} mute      mute the volume
+    ${cmd} unmute    unmute the volume
 
 Options:
-    --help, -h        print help
+    --help, -h       print help
 
 Dependencies:
     MacOS
 EOF
 }
 
-function _ymt_volume_status() {
+_ymt_volume_status() {
   local settings=$(osascript -e 'get volume settings')
   echo $settings | awk '{ print $2 }' | sed -e 's/,//'
   echo $settings | awk '{ print $8 }'

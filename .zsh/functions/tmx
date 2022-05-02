@@ -1,6 +1,6 @@
 #!bin/zsh
 
-function _ymt_tmx_usage() {
+_ymt_tmx_usage() {
   cat <<EOF
 tmx is a command to support tmux operations.
 
@@ -8,7 +8,8 @@ Usage:
     tmx                start base session
     tmx [name]         start [name] session
     tmx list           list sessions
-    tmx attach switch  attach/switch session
+    tmx attach         attach/switch session
+    tmx switch         attach/switch session
     tmx detach         detach session
     tmx kill [name]    kill [name] session
 

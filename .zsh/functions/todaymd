@@ -1,15 +1,15 @@
 #!/bin/zsh
 
-function _ymt_todaymd_usage() {
+_ymt_todaymd_usage() {
   cat <<EOF
 todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
 Usage:
-    todaymd         edit matkdown with CLI Editor
-    todaymd search  list and search markdown files with peco in TODAYMD_DIR
+    todaymd           edit matkdown with CLI Editor
+    todaymd search    list and search markdown files with peco in TODAYMD_DIR
 
 Options:
-    --help, -h   print help
+    --help, -h        print help
 
 Configurable Environment Variables:
   TODAYMD_DIR=path/to/default/save/dir
@@ -21,7 +21,7 @@ Dependencies:
 EOF
 }
 
-function _ymt_todaymd() {
+_ymt_todaymd() {
   if [ -n "${TODAYMD_DIR}" ]; then
     local default_dir=${TODAYMD_DIR}
   else
@@ -57,7 +57,7 @@ function _ymt_todaymd() {
   vim $file_path
 }
 
-function _ymt_todaymd_search() {
+_ymt_todaymd_search() {
   if [ -z "${TODAYMD_DIR}" ]; then
     echo "TODAYMD_DIR is not set."
     return 1

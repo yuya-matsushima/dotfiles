@@ -1,13 +1,13 @@
 #!/bin/zsh
 
-function _ymt_checkip_usage() {
+_ymt_checkip_usage() {
   cat <<EOF
 checkip displays the current IP address of the PC.
 
 Usage:
-    checkip           show your IP Address on AWS/GCP
-    checkip aws       show your IP Address on AWS
-    checkuo gcp       show your IP Address on GCP
+    checkip        show your IP Address on AWS/GCP
+    checkip aws    show your IP Address on AWS
+    checkuo gcp    show your IP Address on GCP
 
 Options:
     --help, -h        print help
@@ -24,7 +24,7 @@ case ${1} in
   ;;
 
   gcp)
-    echo $(curl -sS https://domains.google.com/checkip)
+    curl -sS https://domains.google.com/checkip
   ;;
 
   *)

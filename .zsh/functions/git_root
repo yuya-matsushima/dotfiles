@@ -1,12 +1,12 @@
 #!/bin/zsh
 
-function _ymt_git_root_usage() {
+_ymt_git_root_usage() {
   cat <<EOF
 git_root move current_directory to project root dir.
 
 Usage:
-    git_root        change directory to git project root
-    git_root show   show git project root
+    git_root         change directory to git project root
+    git_root show    show git project root
 
 Options:
     --help, -h      print help
@@ -16,7 +16,7 @@ Dependencies:
 EOF
 }
 
-function _ymt_git_root_dir() {
+_ymt_git_root_dir() {
   local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
   if [ -z $root_dir ]; then
     echo 'not under git control.'
@@ -25,7 +25,7 @@ function _ymt_git_root_dir() {
   echo $root_dir
 }
 
-function _ymt_git_root() {
+_ymt_git_root() {
   local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
   if [ -z $root_dir ]; then
     echo 'not under git control.'
