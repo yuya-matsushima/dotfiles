@@ -22,24 +22,20 @@ EOF
 }
 
 _ymt_todaymd() {
+  local filename file_path dir entered_dir create
+  local default_dir=$(pwd)
   if [ -n "${TODAYMD_DIR}" ]; then
-    local default_dir=${TODAYMD_DIR}
-  else
-    local default_dir=`pwd`
+    default_dir=${TODAYMD_DIR}
   fi
-  read TODAYMD_FILENAME\?"Enter a file name: "
-  read TODAYMD_DIR\?"Enter the directory(${default_dir}): "
 
-  local filename=$TODAYMD_FILENAME
-  local dir=$(eval echo ${TODAYMD_DIR:-${default_dir}})
-  local file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
-  unset TODAYMD_FILENAME TODAYMD_DIR
+  read -r filename\?"Enter a file name: "
+  read -r entered_dir\?"Enter the directory(${default_dir}): "
+
+  dir=$(eval echo ${entered_dir:-${default_dir}})
+  file_path="${dir}/$(date '+%Y%m%d')_$(echo $filename | sed -e 's/\s\+/_/g').md"
 
   if [ ! -d $dir ]; then
-    read -k 1 TODAYMD_CREATE\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
-    local create=$TODAYMD_CREATE
-    unset TODAYMD_CREATE
-
+    read -r -k 1 create\?"There is no directory: ${dir}. Do you want to create it?(y/n): "
     if [ $create != 'y' ]; then
       echo "\nStopped creating the file."
       return
@@ -58,12 +54,15 @@ _ymt_todaymd() {
 }
 
 _ymt_todaymd_search() {
+  local file
+
   if [ -z "${TODAYMD_DIR}" ]; then
     echo "TODAYMD_DIR is not set."
     return 1
   fi
-  local file=$(ls ${TODAYMD_DIR} | peco --prompt='file >')
-  if [ -n $file ]; then
+
+  file=$(ls ${TODAYMD_DIR} | peco --prompt='file >')
+  if [ -n "$file" ]; then
     vim ${TODAYMD_DIR}/${file}
   fi
 }

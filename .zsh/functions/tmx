@@ -22,6 +22,25 @@ Dependencies:
 EOF
 }
 
+_ymt_tmx_switch() {
+  local session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
+  if [ -n "$session" ]; then
+    if [ -n "$TMUX" ]; then
+      tmux switch -t $session
+    else
+      tmux attach -t $session
+    fi
+  fi
+}
+
+_ymt_tmx() {
+  local session=${1}
+  if [ -z $session ]; then
+    session='base'
+  fi
+  tmux new -A -s $session
+}
+
 case ${1} in
   -h|--help)
     _ymt_tmx_usage
@@ -32,14 +51,7 @@ case ${1} in
   ;;
 
   attach|a|switch|s)
-    local session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
-    if [ -n "$session" ]; then
-      if [ -n "$TMUX" ]; then
-        tmux switch -t $session
-      else
-        tmux attach -t $session
-      fi
-    fi
+    _ymt_tmx_switch
   ;;
 
   detach|d)
@@ -55,10 +67,6 @@ case ${1} in
   ;;
 
   *)
-    local session=${1}
-    if [ -z $session ]; then
-      local session='base'
-    fi
-    tmux new -A -s $session
+    _ymt_tmx ${1}
   ;;
 esac

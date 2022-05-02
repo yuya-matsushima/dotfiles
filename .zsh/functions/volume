@@ -5,17 +5,15 @@ if [[ $OSTYPE != 'darwin'* ]]; then
   return
 fi
 
-local cmd='volume'
-
 _ymt_volume_usage() {
   cat <<EOF
-${cmd} is a command to change the volume of your MacOS.
+volume is a command to change the volume of your MacOS.
 
 Usage:
-    ${cmd} 50        set output volume to 50 (available:0-100)
-    ${cmd} status    print current volume status
-    ${cmd} mute      mute the volume
-    ${cmd} unmute    unmute the volume
+    volume 50        set output volume to 50 (available:0-100)
+    volume status    print current volume status
+    volume mute      mute the volume
+    volume unmute    unmute the volume
 
 Options:
     --help, -h       print help

@@ -28,40 +28,30 @@ EOF
 }
 
 _ymt_docker_login_ecr() {
+  local aws_region=$AWS_REGION
+  local aws_ecr_repository=$AWS_ECR_REPOSITORY
+
   if [ -z "$AWS_REGION" ]; then
-    read AWS_REGION\?'Enter AWS Region: '
-    local aws_region=$AWS_REGION
-    unset AWS_REGION
-  else
-    local aws_region=$AWS_REGION
+    read -r aws_region\?'Enter AWS Region: '
   fi
 
   if [ -z "$AWS_ECR_REPOSITORY" ]; then
-    read AWS_ECR_REPOSITORY\?'Enter AWS ECR Reporitoy URL: '
-    local aws_ecr_repository=$AWS_ECR_REPOSITORY
-    unset AWS_ECR_REPOSITORY
-  else
-    local aws_ecr_repository=$AWS_ECR_REPOSITORY
+    read -r aws_ecr_repository\?'Enter AWS ECR Reporitoy URL: '
   fi
 
   aws ecr get-login-password --region $aws_region | docker login --username AWS --password-stdin $aws_ecr_repository
 }
 
 _ymt_docker_login_ghcr() {
+  local github_access_token=$CR_PAT
+  local github_account=$GITHUB_ACCOUNT
+
   if [ -z "$CR_PAT" ]; then
-    read CR_PAT\?'Enter GitHub Access Token: '
-    local github_access_token=$CR_PAT
-    unset CR_PAT
-  else
-    local github_access_token=$CR_PAT
+    read -r github_access_token\?'Enter GitHub Access Token: '
   fi
 
   if [ -z "$GITHUB_ACCOUNT" ]; then
-    read GITHUB_ACCOUNT\?'Enter GitHub Account: '
-    local github_account=$GITHUB_ACCOUNT
-    unset GITHUB_ACCOUNT
-  else
-    local github_account=$GITHUB_ACCOUNT
+    read -r github_account\?'Enter GitHub Account: '
   fi
 
   echo $github_access_token | docker login ghcr.io -u $github_account --password-stdin
