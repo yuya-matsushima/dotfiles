@@ -23,7 +23,12 @@ EOF
 }
 
 _ymt_tmx_switch() {
-  local session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
+  local session=${1}
+  if [ -z "${session}" ]; then
+    # 未指定の場合 peco から選択
+    session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
+  fi
+
   if [ -n "$session" ]; then
     if [ -n "$TMUX" ]; then
       tmux switch -t $session
@@ -31,6 +36,14 @@ _ymt_tmx_switch() {
       tmux attach -t $session
     fi
   fi
+}
+
+_ymt_tmx_kill() {
+  if [ -z "${1}" ]; then
+    echo 'Specify the session to be killed.'
+    return 1
+  fi
+  tmux kill-session -t ${1}
 }
 
 _ymt_tmx() {
@@ -51,7 +64,7 @@ case ${1} in
   ;;
 
   attach|a|switch|s)
-    _ymt_tmx_switch
+    _ymt_tmx_switch ${2}
   ;;
 
   detach|d)
@@ -59,11 +72,7 @@ case ${1} in
   ;;
 
   kill|k)
-    if [ -z "${2}" ]; then
-      echo 'Specify the session to be killed.'
-      return 1
-    fi
-    tmux kill-session -t ${2}
+    _ymt_tmx_kill ${2}
   ;;
 
   *)
