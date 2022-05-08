@@ -29,7 +29,10 @@ _ymt_todaymd() {
     default_dir=${TODAYMD_DIR}
   fi
 
-  read -r filename\?"Enter a file name: "
+  filename=$@
+  if [ -z "${filename}" ]; then
+    read -r filename\?"Enter a file name: "
+  fi
   read -r entered_dir\?"Enter the directory(${default_dir}): "
 
   dir=$(eval echo ${entered_dir:-${default_dir}})
@@ -91,6 +94,6 @@ case ${1} in
   ;;
 
   *)
-    _ymt_todaymd
+    _ymt_todaymd $@
   ;;
 esac
