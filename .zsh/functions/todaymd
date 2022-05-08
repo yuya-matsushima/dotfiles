@@ -6,7 +6,8 @@ todaymd creates a markdown file with a date prefix in the specified directory, a
 
 Usage:
     todaymd           edit matkdown with CLI Editor
-    todaymd search    list and search markdown files with peco in TODAYMD_DIR
+    todaymd list      list markdown files in TODAYMD_DIR
+    todaymd search    search markdown files with peco in TODAYMD_DIR
 
 Options:
     --help, -h        print help
@@ -53,6 +54,15 @@ _ymt_todaymd() {
   vim $file_path
 }
 
+_ymt_todaymd_list() {
+  if [ -z "${TODAYMD_DIR}" ]; then
+    echo "TODAYMD_DIR is not set."
+    return 1
+  fi
+
+  find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \;
+}
+
 _ymt_todaymd_search() {
   local file
 
@@ -61,7 +71,7 @@ _ymt_todaymd_search() {
     return 1
   fi
 
-  file=$(ls ${TODAYMD_DIR} | peco --prompt='file >')
+  file=$(find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \; | peco --prompt='file >')
   if [ -n "$file" ]; then
     vim ${TODAYMD_DIR}/${file}
   fi
@@ -70,6 +80,10 @@ _ymt_todaymd_search() {
 case ${1} in
   -h|--help)
     _ymt_todaymd_usage
+  ;;
+
+  list)
+    _ymt_todaymd_list
   ;;
 
   search)
