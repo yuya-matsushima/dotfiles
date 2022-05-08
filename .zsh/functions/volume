@@ -14,6 +14,8 @@ Usage:
     volume status    print current volume status
     volume mute      mute the volume
     volume unmute    unmute the volume
+    volume half      set output volume to 50
+    volume max       set output volume to 100
 
 Options:
     --help, -h       print help
@@ -48,8 +50,14 @@ case ${1} in
     _ymt_volume_status
   ;;
 
+  half)
+    osascript -e "set volume output volume 50"
+    _ymt_volume_status
+  ;;
+
   max)
     osascript -e "set volume output volume 100"
+    _ymt_volume_status
   ;;
 
   *)
