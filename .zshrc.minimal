@@ -1,3 +1,4 @@
+[ -n "$ZSH_PROFILE" ] && zmodload zsh/zprof && zprof
 export LANG=ja_JP.UTF-8
 case ${UID} in
 0)
@@ -71,6 +72,15 @@ alias la="ls -a"
 alias ll="ls -l"
 alias lt="ls -t"
 alias j="jobs -l"
+alias agless='ag --pager="less -R"'
+which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
+which awsume > /dev/null && alias awsume="source awsume"
+which direnv > /dev/null && eval "$(direnv hook zsh)"
+which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
+which git_root > /dev/null && alias root=git_root
+which go > /dev/null && export GOPATH=$(go env GOPATH)
+which kubectl > /dev/null && source <(kubectl completion zsh)
+[ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
 
 case "${TERM}" in
 screen)
@@ -90,3 +100,6 @@ xterm|xterm-color|xterm-256color)
 esac
 
 REPORTTIME=3
+
+[ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
+[ -n "$ZSH_PROFILE" ] && zprof | less
