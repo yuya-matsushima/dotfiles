@@ -6,7 +6,7 @@ tmx is a command to support tmux operations.
 
 Usage:
     tmx                start base session
-    tmx [name]         start [name] session
+    tmx [name]         start or switch [name] session
     tmx list           list sessions
     tmx attach         attach/switch session
     tmx switch         attach/switch session
@@ -51,7 +51,14 @@ _ymt_tmx() {
   if [ -z $session ]; then
     session='base'
   fi
-  tmux new -A -s $session
+  local sessions=($(tmux list-sessions | sed -r 's/^(.+): .+$/\1/'))
+
+  # 一致する session がある場合には switch
+  if [[ "${sessions[@]}" =~ "${session}" ]]; then
+    _ymt_tmx_switch $session
+  else
+    tmux new -A -s $session
+  fi
 }
 
 case ${1} in
