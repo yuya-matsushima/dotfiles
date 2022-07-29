@@ -7,6 +7,7 @@ asdf plugin add terraform
 asdf plugin add tflint
 asdf plugin add golang
 asdf plugin add golangci-lint
+asdf plugin add rust
 asdf plugin add awscli
 asdf plugin add hugo
 asdf plugin add kubectl
@@ -32,6 +33,9 @@ asdf install golang latest
 asdf global golang latest
 asdf install golangci-lint latest
 asdf global golangci-lint latest
+
+asdf install rust latest
+asdf global rust latest
 
 asdf install awscli latest
 asdf global awscli latest
