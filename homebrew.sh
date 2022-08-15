@@ -8,11 +8,13 @@ brew tap gjbae1212/gossm
 brew install \
           asdf \
           awsume \
+          bat \
           bison \
           colordiff \
           ctags \
           curl \
           direnv \
+          fd \
           gh \
           git \
           git-secrets \
@@ -27,6 +29,8 @@ brew install \
           peco \
           plantuml \
           rename \
+          ripgrep \
+          sd \
           stern \
           the_silver_searcher \
           tig \
