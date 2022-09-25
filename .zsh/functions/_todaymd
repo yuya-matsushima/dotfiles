@@ -1,5 +1,6 @@
 #compdef todaymd
 local -a subcmds
 subcmds=('list:list markdown files in TODAYMD_DIR'\
-         'search:search markdown files with peco in TODAYMD_DIR')
+         'search:search and open file with peco'\
+         'rm:search and remove file with peco')
 _describe 'command' subcmds
