@@ -63,7 +63,7 @@ _ymt_todaymd_list() {
     return 1
   fi
 
-  find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \;
+  find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \; | sort -r
 }
 
 _ymt_todaymd_search() {
@@ -74,7 +74,7 @@ _ymt_todaymd_search() {
     return 1
   fi
 
-  file=$(find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \; | peco --prompt='file >')
+  file=$(find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \; | sort -r | peco --prompt='file >')
   if [ -n "$file" ]; then
     vim ${TODAYMD_DIR}/${file}
   fi
