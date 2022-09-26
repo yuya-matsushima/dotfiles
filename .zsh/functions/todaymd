@@ -5,9 +5,9 @@ _ymt_todaymd_usage() {
 todaymd creates a markdown file with a date prefix in the specified directory, and makes it editable.
 
 Usage:
-    todaymd           edit matkdown with CLI Editor
+    todaymd           create matkdown with CLI Editor
     todaymd list      list markdown files in TODAYMD_DIR
-    todaymd search    search and open file with peco
+    todaymd edit      search and edit file with peco
     todaymd rm        search and remove file with peco
 
 Options:
@@ -67,7 +67,7 @@ _ymt_todaymd_list() {
   find ${TODAYMD_DIR} -name \*.md -type f -exec basename {} \; | sort -r
 }
 
-_ymt_todaymd_search() {
+_ymt_todaymd_edit() {
   local file
 
   if [ -z "${TODAYMD_DIR}" ]; then
@@ -104,8 +104,8 @@ case ${1} in
     _ymt_todaymd_list
   ;;
 
-  search)
-    _ymt_todaymd_search
+  edit)
+    _ymt_todaymd_edit
   ;;
 
   rm)
