@@ -119,7 +119,7 @@ alias la="ls -a"
 alias ll="ls -l"
 alias lt="ls -t"
 alias j="jobs -l"
-alias agless='ag --pager="less -R"'
+alias agless='ag --pager="less -XgmR"'
 which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
 which awsume > /dev/null && alias awsume="source awsume"
 which direnv > /dev/null && eval "$(direnv hook zsh)"
