@@ -120,6 +120,7 @@ alias ll="ls -l"
 alias lt="ls -t"
 alias j="jobs -l"
 alias agless='ag --pager="less -XgmR"'
+which colordiff > /dev/null && alias diff="colordiff -u"
 which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
 which awsume > /dev/null && alias awsume="source awsume"
 which direnv > /dev/null && eval "$(direnv hook zsh)"
