@@ -24,6 +24,7 @@ brew install \
           grep \
           htop \
           jq \
+          libpq \
           make \
           mysql-client \
           peco \
