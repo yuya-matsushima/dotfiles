@@ -44,7 +44,14 @@ brew install \
           zsh-git-prompt
 
 brew install --cask \
-          font-ricty-diminished \
+          font-biz-udgothic \
+          font-biz-udminchoaa \
+          font-biz-udpgothic \
+          font-biz-udpmincho \
+          font-jetbrains-mono \
+          font-jetbrains-mono-nerd-font \
+          font-noto-sans-cjk-jp \
+          font-noto-serif-cjk-jp \
           iterm2 \
           keycastr \
           macvim
