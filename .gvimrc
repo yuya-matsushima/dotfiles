@@ -1,5 +1,5 @@
 " font
-set guifont=RictyDiminishedDiscord-Regular:h18
+set guifont=JetBrainsMonoNerdFontCompleteM-Regular:h18
 
 " window
 set columns=100

@@ -349,8 +349,8 @@
     "Green Component" : 0.020368235185742378
   },
   "Blur" : false,
-  "Normal Font" : "RictyDiminishedDiscord-Regular 32",
-  "Vertical Spacing" : 1.1000000000000001,
+  "Normal Font" : "JetBrainsMonoNerdFontCompleteM-Regular 32",
+  "Vertical Spacing" : 1,
   "Ansi 7 Color" : {
     "Red Component" : 0.7810397744178772,
     "Color Space" : "sRGB",
@@ -392,7 +392,7 @@
   "Bound Hosts" : [
 
   ],
-  "Non Ascii Font" : "RictyDiminishedDiscord-Regular 16",
+  "Non Ascii Font" : "JetBrainsMonoNerdFontCompleteM-Regular 18",
   "Ansi 13 Color" : {
     "Red Component" : 1,
     "Color Space" : "sRGB",
