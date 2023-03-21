@@ -53,5 +53,6 @@ brew install --cask \
           font-noto-sans-cjk-jp \
           font-noto-serif-cjk-jp \
           iterm2 \
+          alacritty \
           keycastr \
           macvim

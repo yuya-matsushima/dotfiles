@@ -17,6 +17,7 @@ TARGETS=( \
          ".zsh" \
          ".zshrc" \
          ".zshenv" \
+         ".config/alacritty" \
        )
 
 for TARGET in ${TARGETS[@]}
