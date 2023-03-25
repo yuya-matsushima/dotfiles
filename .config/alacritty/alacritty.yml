@@ -12,7 +12,7 @@ window:
     y: 5
   dynamic_padding: false
   decorations: full
-  opacity: 0.9
+  opacity: 0.92
   startup_mode: Windowed
   dynamic_title: true
   decorations_theme_variant: None
