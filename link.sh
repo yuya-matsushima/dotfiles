@@ -18,6 +18,7 @@ TARGETS=( \
          ".zshrc" \
          ".zshenv" \
          ".config/alacritty" \
+         ".hammerspoon" \
        )
 
 for TARGET in ${TARGETS[@]}
