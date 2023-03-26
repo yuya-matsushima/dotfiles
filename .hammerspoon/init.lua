@@ -17,7 +17,7 @@ local alacritty = function()
   end
 end
 
--- for US keyboard
-hs.hotkey.bind({ "ctrl" }, "\\", alacritty)
+-- for US keyboard(HHKB)
+hs.hotkey.bind({ "ctrl" }, "`", alacritty)
 -- for JP keyboard
 -- hs.hotkey.bind({ "ctrl" }, "¥", alacritty)
