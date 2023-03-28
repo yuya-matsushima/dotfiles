@@ -24,8 +24,18 @@ TARGETS=( \
 for TARGET in ${TARGETS[@]}
 do
   if [ $TARGET = "gitignore" ]; then
-    ln -s $CURRENT_DIR/$TARGET $HOME/.$TARGET
+    if [ -e $HOME/.$TARGET ]; then
+      echo "exist: $HOME/.$TARGET"
+    else
+      echo "create: $HOME/.$TARGET"
+      ln -s $CURRENT_DIR/$TARGET $HOME/.$TARGET
+    fi
   else
-    ln -s $CURRENT_DIR/$TARGET $HOME/$TARGET
+    if [ -e $HOME/$TARGET ]; then
+      echo "exist: $HOME/$TARGET"
+    else
+      echo "create: $HOME/$TARGET"
+      ln -s $CURRENT_DIR/$TARGET $HOME/$TARGET
+    fi
   fi
 done
