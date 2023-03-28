@@ -23,7 +23,7 @@ link: ## Set symlinks for configuration file
 	sh ./bin/link.sh
 
 .PHONY: unlink
-unlink: ## Remove symblinks for configuration file
+unlink: ## Remove symlinks for configuration file
 	sh ./bin/link.sh unlink
 
 .PHONY: asdf_cloud
@@ -72,10 +72,10 @@ asdf_langs: asdf_nodejs asdf_ruby asdf_golang asdf_python asdf_rust ## Install L
 asdf: asdf_langs asdf_infra ## Install All asdf
 
 .PHONY: setup_develop
-setup_develop: homebrew cli app link asdf_ruby asdf_python asdf_cloud ## setup develop machine
+setup_develop: homebrew cli app link asdf_ruby asdf_python asdf_cloud ## *setup develop machine
 
 .PHONY: setup
-setup: homebrew cli app main_machine link asdf ## setup main machine
+setup: homebrew cli app main_machine link asdf ## *setup main machine
 
 help: ## HELP
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
