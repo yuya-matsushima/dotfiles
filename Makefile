@@ -19,8 +19,12 @@ main_machine: ## Install Option Apps
 	sh ./bin/homebrew/main_machine.sh
 
 .PHONY: link
-link: ## Set symbolic link for configuration file
+link: ## Set symlinks for configuration file
 	sh ./bin/link.sh
+
+.PHONY: unlink
+unlink: ## Remove symblinks for configuration file
+	sh ./bin/link.sh unlink
 
 .PHONY: asdf_cloud
 asdf_cloud: ## Install Cloud CLI Tools

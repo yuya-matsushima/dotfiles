@@ -2,6 +2,14 @@
 
 set -e
 
+MODE=$1
+if [[ $MODE == "" ]]; then
+  MODE="link"
+elif [[ $MODE != "unlink" ]]; then
+  echo "link.sh: Invalid Argument"
+  exit 1
+fi
+
 CURRENT_DIR=`pwd`
 TARGETS=( \
          ".asdfrc" \
@@ -30,10 +38,19 @@ do
     DEST=$HOME/${TARGET:1}
   fi
 
-  if [ -e $DEST ]; then
-    echo "exist: $DEST"
+  if [[ $MODE == "link" ]]; then
+    if [ -L $DEST ]; then
+      echo "exist: $DEST"
+    else
+      echo "link: $DEST"
+      ln -s $SOURCE $DEST
+    fi
   else
-    echo "create: $DEST"
-    ln -s $SOURCE $DEST
+    if [ -L $DEST ]; then
+      echo "unlink: $DEST"
+      unlink $DEST
+    else
+      echo "not-exist: $DEST"
+    fi
   fi
 done
