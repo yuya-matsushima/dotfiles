@@ -12,6 +12,7 @@ cli: ## Install CLI Tools
 .PHONY: app
 app: ## Install Apps
 	sh ./bin/homebrew/app.sh
+	sh ./bin/vim_plugin.sh
 
 .PHONY: main_machine
 main_machine: ## Install Option Apps
