@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -8,7 +8,7 @@ TARGETS=( \
          ".gemrc" \
          ".git-templates" \
          ".gitconfig" \
-         "gitignore" \
+         "_.gitignore" \
          ".tigrc" \
          ".tmux.conf" \
          ".vim" \
@@ -23,19 +23,17 @@ TARGETS=( \
 
 for TARGET in ${TARGETS[@]}
 do
-  if [ $TARGET = "gitignore" ]; then
-    if [ -e $HOME/.$TARGET ]; then
-      echo "exist: $HOME/.$TARGET"
-    else
-      echo "create: $HOME/.$TARGET"
-      ln -s $CURRENT_DIR/$TARGET $HOME/.$TARGET
-    fi
+  SOURCE=$CURRENT_DIR/$TARGET
+  DEST=$HOME/$TARGET
+  # _. 始まりのファイルは . 始まりに変換
+  if [[ ${TARGET:0:2} == "_." ]]; then
+    DEST=$HOME/${TARGET:1}
+  fi
+
+  if [ -e $DEST ]; then
+    echo "exist: $DEST"
   else
-    if [ -e $HOME/$TARGET ]; then
-      echo "exist: $HOME/$TARGET"
-    else
-      echo "create: $HOME/$TARGET"
-      ln -s $CURRENT_DIR/$TARGET $HOME/$TARGET
-    fi
+    echo "create: $DEST"
+    ln -s $SOURCE $DEST
   fi
 done
