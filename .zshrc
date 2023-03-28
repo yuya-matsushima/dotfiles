@@ -128,7 +128,6 @@ which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 which git_root > /dev/null && alias root=git_root
 which go > /dev/null && export GOPATH=$(go env GOPATH)
 which kubectl > /dev/null && source <(kubectl completion zsh)
-[ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
@@ -177,23 +176,16 @@ REPORTTIME=3
 
 # git-prompt
 if [ -f $HOME/.zsh/git-prompt.zsh ]; then
-  source $HOME/.zsh/prompt/git-prompt.sh
+  source $HOME/.zsh/config/git-prompt.sh
   source $HOME/.zsh/git-prompt.zsh
 elif [ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]; then
   # zsh-git-prompt: git-prompt がない場合に反映
-  source $HOME/.zsh/prompt/zsh-git-prompt.sh
+  source $HOME/.zsh/config/zsh-git-prompt.sh
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
 fi
 
-if which less > /dev/null; then
-  export LESS_TERMCAP_mb=$'\E[01;31m'
-  export LESS_TERMCAP_md=$'\E[01;34m'
-  export LESS_TERMCAP_me=$'\E[0m'
-  export LESS_TERMCAP_se=$'\E[0m'
-  export LESS_TERMCAP_so=$'\E[01;44;33m'
-  export LESS_TERMCAP_ue=$'\E[0m'
-  export LESS_TERMCAP_us=$'\E[01;32m'
-fi
+[ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
+which less > /dev/null && source $HOME/.zsh/config/less.zsh
 
 [ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
 [ -n "$ZSH_PROFILE" ] && zprof | less
