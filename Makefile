@@ -7,6 +7,7 @@ homebrew: ## Install Homebrew
 .PHONY: cli
 cli: ## Install CLI Tools
 	sh ./bin/homebrew/cli.sh
+	sh ./bin/zsh_plugin.sh
 
 .PHONY: app
 app: ## Install Apps
