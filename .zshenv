@@ -7,7 +7,13 @@ export GPG_TTY=$(tty)
 # Editor
 export EDITOR=vim
 
-export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
+
+if [ -f /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  export HOMEBREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
+else
+  export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
+fi
 
 # additional path
 local add_path_dirs=(
