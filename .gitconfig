@@ -2,7 +2,7 @@
 	name = Yuya Matsushima
 	email = yuyam@fillin-inc.com
 [core]
-  editor = /usr/local/bin/vim
+  editor = vim
   excludesfile = ~/.gitignore
   pager = less -x2 -R
   quotepath = false
