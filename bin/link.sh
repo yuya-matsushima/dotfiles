@@ -10,6 +10,10 @@ elif [[ $MODE != "unlink" ]]; then
   exit 1
 fi
 
+if [ ! -d $HOME/.config ]; then
+  mkdir -p $HOME/.config
+fi
+
 CURRENT_DIR=`pwd`
 TARGETS=( \
          ".asdfrc" \
