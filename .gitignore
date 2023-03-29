@@ -4,3 +4,6 @@
 .vim/.netrwhist
 .zsh/caches/*
 .zsh/git-prompt.zsh
+
+*.dylib
+.hammerspoon/hs/libspaces*dylib.dSYM/*
