@@ -6,7 +6,7 @@ brew tap homebrew/cask-fonts
 
 brew install --cask \
           font-biz-udgothic \
-          font-biz-udminchoaa \
+          font-biz-udmincho \
           font-biz-udpgothic \
           font-biz-udpmincho \
           font-jetbrains-mono \

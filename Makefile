@@ -4,8 +4,12 @@
 homebrew: ## Install Homebrew
 	sh ./bin/homebrew.sh
 
+.PHONY: font
+font: ## Install Fonts
+	sh ./bin/homebrew/font.sh
+
 .PHONY: cli
-cli: ## Install CLI Tools
+cli: font ## Install CLI Tools
 	sh ./bin/homebrew/cli.sh
 	sh ./bin/zsh_plugin.sh
 
