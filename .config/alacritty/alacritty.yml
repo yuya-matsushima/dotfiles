@@ -37,9 +37,6 @@ font:
   size: 16.0
   builtin_box_drawing: true
 
-# Bell
-#
-# The bell is rung every time the BEL control character is received.
 bell:
   duration: 0
 
@@ -56,3 +53,17 @@ cursor:
   thickness: 0.15
 
 live_config_reload: true
+
+hints:
+  enabled:
+   - regex: "(ipfs:|ipns:|magnet:|mailto:|gemini:|gopher:|https:|http:|news:|file:|git:|ssh:|ftp:)\
+             [^\u0000-\u001F\u007F-\u009F<>\"\\s{-}\\^⟨⟩`]+"
+     hyperlinks: true
+     command: open
+     post_processing: true
+     mouse:
+       enabled: true
+       mods: Control
+     binding:
+       key: U
+       mods: Control|Shift
