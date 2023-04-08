@@ -1,8 +1,8 @@
 local application = require("hs.application")
 local spaces = require("hs.spaces")
 
-local alacritty = function()
-  local appName = "Alacritty"
+-- App をショートカットで開閉
+local toggleApp = function(appName)
   local app = application.get(appName)
 
   if app == nil then
@@ -17,7 +17,9 @@ local alacritty = function()
   end
 end
 
--- for US keyboard(HHKB)
-hs.hotkey.bind({ "ctrl" }, "`", alacritty)
--- for JP keyboard
--- hs.hotkey.bind({ "ctrl" }, "¥", alacritty)
+-- US keyboard(HHKB)
+hs.hotkey.bind({ "ctrl" }, "`", function() toggleApp("Alacritty") end)
+-- US MacBook Pro
+hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
+-- JP keyboard
+-- hs.hotkey.bind({ "ctrl" }, "¥", function() toggleApp("Alacritty") end)
