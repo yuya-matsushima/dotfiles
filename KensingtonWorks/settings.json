@@ -1,0 +1,145 @@
+{
+  "devices": [
+    [
+      32792,
+      {
+        "*": {
+          "config": {
+            "acceleration": true,
+            "accelerationRate": 40,
+            "commands": [
+              [
+                1,
+                {
+                  "command": "mouse_leftClick",
+                  "params": null
+                }
+              ],
+              [
+                2,
+                {
+                  "command": "mouse_rightClick",
+                  "params": null
+                }
+              ],
+              [
+                3,
+                {
+                  "command": "missionControl_showDesktop",
+                  "params": {}
+                }
+              ],
+              [
+                4,
+                {
+                  "command": "missionControl_missionControl",
+                  "params": {}
+                }
+              ],
+              [
+                8,
+                {
+                  "command": "missionControl_launchpad",
+                  "params": {}
+                }
+              ],
+              [
+                12,
+                {
+                  "command": "missionControl_showDesktop",
+                  "params": {}
+                }
+              ],
+              [
+                16,
+                {
+                  "command": "mouse_button5Click",
+                  "params": null
+                }
+              ],
+              [
+                1073741824,
+                {
+                  "command": "navigation_scrollLeft",
+                  "params": null
+                }
+              ],
+              [
+                2147483648,
+                {
+                  "command": "navigation_scrollRight",
+                  "params": null
+                }
+              ]
+            ],
+            "customModifiers": "ctrl",
+            "customacceleration": true,
+            "customaccelerationRate": 20,
+            "customspeed": 50,
+            "id": 0,
+            "inertialScroll": false,
+            "inertialScrollFactor": 0,
+            "inertialScrollNullSteps": 0,
+            "inertialScrollTimer": 0,
+            "lockedAxisModifiers": "cmd",
+            "scrollInvert": false,
+            "scrollLines": 11,
+            "slowDivider": 0,
+            "slowModifiers": "",
+            "snapModifiers": "",
+            "snippets": [
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              },
+              {
+                "content": "",
+                "label": ""
+              }
+            ],
+            "speed": 70
+          },
+          "fileName": "",
+          "name": "*"
+        }
+      }
+    ]
+  ],
+  "platform": "darwin",
+  "timestamp": 1680779347,
+  "trayIcon": true,
+  "versionMajor": 2,
+  "versionMinor": 0
+}
