@@ -24,15 +24,32 @@ hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
 -- JP keyboard
 -- hs.hotkey.bind({ "ctrl" }, "¥", function() toggleApp("Alacritty") end)
 
--- 右 CMD で IME 切り替え
--- IME 切替キーを単一キーで押す
-local KEY_CMD_RIGHT = 54
-local toggleIME = function()
-  -- CMD + space で IME 変換設定を前提
-  hs.eventtap.keyStroke({ "cmd" }, "space", 800)
+-- IME の英字/ひらがなを右 cmd で切り替え
+local simpleCmd = false
+local map = hs.keycodes.map
+local function toggleIMESwitch(event)
+  local c = event:getKeyCode()
+  local f = event:getFlags()
+  if event:getType() == hs.eventtap.event.types.keyDown then
+    if f['cmd'] then
+      simpleCmd = true
+    end
+  elseif event:getType() == hs.eventtap.event.types.flagsChanged then
+    if not f['cmd'] then
+      if simpleCmd == false and c == map['rightcmd'] then
+        if hs.keycodes.currentMethod() == 'Romaji' then
+          hs.keycodes.setMethod('Hiragana')
+        else
+          hs.keycodes.setMethod('Romaji')
+        end
+      end
+      simpleCmd = false
+    end
+  end
 end
-hs.eventtap.new({hs.eventtap.event.types.flagsChanged}, function(e)
-	local c = e:getKeyCode()
-	local f = e:getFlags()
-	if f['cmd'] and c == KEY_CMD_RIGHT then toggleIME() end
-end):start()
+
+toggleIMESwitcher = hs.eventtap.new(
+  {hs.eventtap.event.types.keyDown, hs.eventtap.event.types.flagsChanged},
+  toggleIMESwitch
+)
+toggleIMESwitcher:start()
