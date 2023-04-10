@@ -17,12 +17,9 @@ local toggleApp = function(appName)
   end
 end
 
--- US keyboard(HHKB)
-hs.hotkey.bind({ "ctrl" }, "`", function() toggleApp("Alacritty") end)
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
--- JP keyboard
--- hs.hotkey.bind({ "ctrl" }, "¥", function() toggleApp("Alacritty") end)
+hs.hotkey.bind({ "ctrl" }, "`", function() toggleApp("Visual Studio Code") end)
 
 -- IME の英字/ひらがなを右 cmd で切り替え
 local simpleCmd = false
