@@ -33,7 +33,7 @@ local function toggleIMESwitch(event)
     end
   elseif event:getType() == hs.eventtap.event.types.flagsChanged then
     if not f['cmd'] then
-      if simpleCmd == false and c == map['rightcmd'] then
+      if simpleCmd == false then
         if hs.keycodes.currentMethod() == 'Romaji' then
           hs.keycodes.setMethod('Hiragana')
         else
