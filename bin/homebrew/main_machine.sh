@@ -4,6 +4,7 @@ set -e
 
 brew install --cask \
           1password \
+          1passsword-cli \
           adobe-creative-cloud \
           appcleaner \
           chromedriver \
