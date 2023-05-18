@@ -4,31 +4,31 @@ draw_bold_text_with_bright_colors: false
 colors:
   # Default colors
   primary:
-    background: '#050505'
-    foreground: '#aaaaaa'
+    background: '#0a0a0a'
+    foreground: '#969696'
 
   # Cursor colors
   cursor:
     custom_colors: true
-    text:   '#050505'
-    cursor: '#aaaaaa'
+    text:   '#0a0a0a'
+    cursor: '#969696'
 
   normal:
-    black:   '#050505'
-    red:     '#d41500'
-    green:   '#00a600'
-    yellow:  '#acac00'
-    blue:    '#025eef'
-    magenta: '#ae27ae'
-    cyan:    '#00b0bc'
-    white:   '#aaaaaa'
+    black:   '#0a0a0a'
+    red:     '#a81100'
+    green:   '#017301'
+    yellow:  '#919100'
+    blue:    '#023b96'
+    magenta: '#a605a6'
+    cyan:    '#01818a'
+    white:   '#969696'
 
   bright:
-    black:   '#080808'
-    red:     '#ff2a00'
-    green:   '#00cc00'
-    yellow:  '#e6e600'
-    blue:    '#0576ff'
-    magenta: '#d034d3'
-    cyan:    '#00dbdb'
-    white:   '#cccccc'
+    black:   '#0a0a0a'
+    red:     '#b81500'
+    green:   '#028002'
+    yellow:  '#baba00'
+    blue:    '#0340a0'
+    magenta: '#b009b0'
+    cyan:    '#028f94'
+    white:   '#adadad'
