@@ -72,8 +72,12 @@ asdf_infra: asdf_cloud asdf_k8s asdf_terraform ## Install Infra Tools
 .PHONY: asdf_langs
 asdf_langs: asdf_nodejs asdf_ruby asdf_golang asdf_python asdf_rust ## Install Languages
 
+.PHONY: asdf_update
+asdf_update: ## Update asdf plugins
+	sh ./bin/asdf/update.sh
+
 .PHONY: asdf
-asdf: asdf_langs asdf_infra ## Install All asdf
+asdf: asdf_update asdf_langs asdf_infra ## Install All asdf
 
 .PHONY: mac
 mac: ## Apply Macbook Setting
