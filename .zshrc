@@ -126,7 +126,10 @@ which awsume > /dev/null && alias awsume="source awsume"
 which direnv > /dev/null && eval "$(direnv hook zsh)"
 which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
 which git_root > /dev/null && alias root=git_root
-which go > /dev/null && export GOPATH=$(go env GOPATH)
+if which go > /dev/null; then
+  export GOPATH=$(go env GOPATH)
+  export GOBIN=${GOPATH}/bin
+fi
 which kubectl > /dev/null && source <(kubectl completion zsh)
 
 ## terminal configuration
