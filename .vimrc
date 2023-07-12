@@ -49,6 +49,7 @@ Plug 'kana/vim-smartchr'
 Plug 'vim-scripts/closetag.vim'
 Plug 'hashivim/vim-terraform', { 'for': 'terraform' }
 Plug 'editorconfig/editorconfig-vim'
+Plug 'github/copilot.vim'
 
 call plug#end()
 
