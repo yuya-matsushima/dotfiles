@@ -129,6 +129,7 @@ which git_root > /dev/null && alias root=git_root
 if which go > /dev/null; then
   export GOPATH=$(go env GOPATH)
   export GOBIN=${GOPATH}/bin
+  export ASDF_GOLANG_MOD_VERSION_ENABLED=true
 fi
 which kubectl > /dev/null && source <(kubectl completion zsh)
 
