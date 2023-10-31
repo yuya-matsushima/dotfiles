@@ -12,6 +12,7 @@ brew install --cask \
           google-drive \
           google-drive-file-stream \
           graphiql \
+          hhkb \
           inkdrop \
           keycastr \
           microsoft-auto-update \
