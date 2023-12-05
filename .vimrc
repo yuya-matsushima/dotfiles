@@ -60,7 +60,7 @@ au!
 syntax on
 
 let g:keyboard_type = 'US'
-let g:has_external_us_keyboard = strlen(system('ioreg -n IOUSB -l | grep HHKB')) > 0
+let g:has_external_us_keyboard = strlen(system('ioreg -n IOUSB -l | grep -E "(HHKB|Keychron Q11)"')) > 0
 colorscheme e2esound
 
 filetype indent on
