@@ -26,6 +26,7 @@ brew install \
           make \
           mysql-client \
           peco \
+          qrencode \
           ripgrep \
           sd \
           stern \
