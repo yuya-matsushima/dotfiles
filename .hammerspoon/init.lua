@@ -22,6 +22,7 @@ hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
 hs.hotkey.bind({ "ctrl" }, "`", function() toggleApp("Visual Studio Code") end)
 
 -- IME の英字/ひらがなを右 cmd で切り替え
+-- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
 local simpleCmd = false
 local map = hs.keycodes.map
 local function toggleIMESwitch(event)
