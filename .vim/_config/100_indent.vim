@@ -8,6 +8,7 @@ augroup tabSetting
   autocmd FileType javascript setlocal tabstop=2 shiftwidth=2
   autocmd FileType markdown setlocal tabstop=2 shiftwidth=2
   autocmd FileType slim,haml setlocal tabstop=2 shiftwidth=2
-  autocmd FileType php setlocal tabstop=4 shiftwidth=4
+  autocmd filetype php setlocal tabstop=4 shiftwidth=4
+  autocmd filetype python setlocal tabstop=4 shiftwidth=4
   autocmd FileType go setlocal noexpandtab tabstop=2 shiftwidth=2
 augroup END
