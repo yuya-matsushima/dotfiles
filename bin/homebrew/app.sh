@@ -10,7 +10,6 @@ brew install --cask \
           hammerspoon \
           macvim \
           microsoft-edge \
-          pgadmin4 \
           sequel-pro \
           slack \
           visual-studio-code

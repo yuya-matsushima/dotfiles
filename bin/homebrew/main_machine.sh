@@ -8,11 +8,6 @@ brew install --cask \
           adobe-creative-cloud \
           appcleaner \
           chromedriver \
-          discord \
-          google-drive \
-          google-drive-file-stream \
-          graphiql \
-          hhkb \
           inkdrop \
           keycastr \
           microsoft-auto-update \

@@ -22,6 +22,7 @@ brew install \
           grep \
           htop \
           jq \
+          jnv \
           libpq \
           make \
           mysql-client \
