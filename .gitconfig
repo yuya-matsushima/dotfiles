@@ -18,6 +18,8 @@
   tool = vimdiff
 [pull]
   rebase = true
+[rerere]
+  enabled = true
 [alias]
   h = "log --graph --all --pretty='format:%C(yellow)%h%Creset %s %Cgreen(%an)%Creset %Cred%d%Creset'"
   l = "log --pretty='format:%C(yellow)%h%Creset %s %Cgreen(%an)%Creset %Cred%d%Creset'"
