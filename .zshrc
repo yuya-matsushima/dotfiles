@@ -132,7 +132,7 @@ if which go > /dev/null; then
   export ASDF_GOLANG_MOD_VERSION_ENABLED=true
 fi
 which kubectl > /dev/null && source <(kubectl completion zsh)
-which qrencode > /dev/null && alias qr="qrencode -t UTF8"
+which qr > /dev/null && alias qr="qrencode -t UTF8"
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
