@@ -32,14 +32,40 @@
               [
                 4,
                 {
-                  "command": "missionControl_missionControl",
-                  "params": {}
+                  "command": "keyboard_shortcut",
+                  "params": {
+                    "keyCode": 43,
+                    "label": "<",
+                    "modifiers": "shift"
+                  }
+                }
+              ],
+              [
+                5,
+                {
+                  "command": "keyboard_shortcut",
+                  "params": {
+                    "keyCode": 53,
+                    "label": "Escape",
+                    "modifiers": ""
+                  }
                 }
               ],
               [
                 8,
                 {
-                  "command": "missionControl_launchpad",
+                  "command": "keyboard_shortcut",
+                  "params": {
+                    "keyCode": 47,
+                    "label": ">",
+                    "modifiers": "shift"
+                  }
+                }
+              ],
+              [
+                10,
+                {
+                  "command": "missionControl_missionControl",
                   "params": {}
                 }
               ],
@@ -81,7 +107,7 @@
             "inertialScrollFactor": 0,
             "inertialScrollNullSteps": 0,
             "inertialScrollTimer": 0,
-            "lockedAxisModifiers": "cmd",
+            "lockedAxisModifiers": "shift",
             "scrollInvert": false,
             "scrollLines": 11,
             "slowDivider": 0,
@@ -129,7 +155,7 @@
                 "label": ""
               }
             ],
-            "speed": 70
+            "speed": 80
           },
           "fileName": "",
           "name": "*"
@@ -138,7 +164,7 @@
     ]
   ],
   "platform": "darwin",
-  "timestamp": 1680779347,
+  "timestamp": 1713569958,
   "trayIcon": true,
   "versionMajor": 2,
   "versionMinor": 0
