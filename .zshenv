@@ -19,6 +19,7 @@ fi
 local add_path_dirs=(
   /usr/local/sbin
   $GOPATH/bin
+  $HOME/.local/share/vim-lsp-settings/servers/bash-language-server
   $HOMEBREW_PREFIX/opt/python/libexec/bin
   $HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin
   $HOMEBREW_PREFIX/opt/curl/bin
