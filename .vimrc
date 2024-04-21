@@ -41,6 +41,7 @@ Plug 'mattn/vim-molder'
 Plug 'mattn/vim-molder-operations'
 
 " colorschme
+Plug 'morhetz/gruvbox'
 Plug 'cocopon/iceberg.vim'
 
 " others
