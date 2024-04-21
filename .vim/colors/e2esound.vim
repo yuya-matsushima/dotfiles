@@ -135,7 +135,4 @@ hi link htmlEndTag      Identifier
 hi link javaScriptNumber      Number
 
 " pupup
-highlight PMenu ctermbg=0
-highlight PMenuSel ctermbg=4
-highlight PMenuSbar ctermbg=0
-highlight PMenuThumb ctermbg=0
+hi PMenu ctermbg=235
