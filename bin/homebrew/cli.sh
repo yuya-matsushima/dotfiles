@@ -11,6 +11,7 @@ brew install \
           colordiff \
           ctags \
           curl \
+          diff-pdf \
           direnv \
           fd \
           gh \
