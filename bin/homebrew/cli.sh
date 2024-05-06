@@ -32,9 +32,9 @@ brew install \
           ripgrep \
           sd \
           stern \
+          tealdeer \
           the_silver_searcher \
           tig \
-          tldr \
           tmux \
           tree \
           wget \

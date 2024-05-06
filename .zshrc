@@ -133,6 +133,8 @@ if which go > /dev/null; then
 fi
 which kubectl > /dev/null && source <(kubectl completion zsh)
 which qr > /dev/null && alias qr="qrencode -t UTF8"
+# tealdeer: tldr client
+which tldr > /dev/null && alias tldr="tldr --language=en"
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
