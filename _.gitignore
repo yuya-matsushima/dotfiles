@@ -6,7 +6,7 @@
 # development
 .envrc
 .vscode
-.tool-versions
+#.tool-versions
 
 # Icon must end with two \r
 Icon
