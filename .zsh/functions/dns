@@ -1,0 +1,115 @@
+#!/bin/zsh
+
+_ymt_dns_usage() {
+  cat <<EOF
+dns change dns resolver.
+
+Usage:
+  dns services                     show network services
+  dns resolvers                    show available dns resolvers
+  dns show [service]               show current dns resolver
+  dns change [service] [resolver]  change dns resolver
+  dns reset [service]              reset dns resolver
+
+Options:
+  --help, -h                       print help
+EOF
+}
+
+typeset -A resolvers
+# name: IP Address
+resolvers=( google "8.8.8.8" cloudflare "1.1.1.1" )
+
+_ymt_dns_services() {
+  networksetup -listallnetworkservices | grep -v 'disabled.'
+}
+
+_ymt_dns_resolvers() {
+  for key value in ${(kv)resolvers}; do
+    echo "$key: $value"
+  done
+}
+
+_ymt_dns_show() {
+  local service=$2
+  local IFS=$'\n'
+  local services=($(_ymt_dns_services))
+  if [[ ! $services[(r)$service] ]]; then
+    echo "service not found"
+    return 1
+  fi
+
+  # ip に一致する key を $resolvers から取得
+  local ip=$(networksetup -getdnsservers $service)
+  local resolver
+  for key value in ${(kv)resolvers}; do
+    if [[ $value == $ip ]]; then
+      resolver=$key
+      break
+    fi
+  done
+
+  if [[ -z $resolver ]]; then
+    echo $ip
+  else
+    echo $resolver
+  fi
+}
+
+_ymt_dns_change() {
+  local service=$2
+  local resolver=$3
+  local IFS=$'\n'
+  local services=($(_ymt_dns_services))
+  if [[ ! $services[(r)$service] ]]; then
+    echo "service not found"
+    return 1
+  fi
+  local ip=$resolvers[$resolver]
+  if [[ -z ip ]]; then
+    echo "resolver not found"
+    return 1
+  fi
+  networksetup -setdnsservers $service $ip
+}
+
+_ymt_dns_reset() {
+  local service=$2
+  local IFS=$'\n'
+  local services=($(_ymt_dns_services))
+  if [[ ! $services[(r)$service] ]]; then
+    echo "service not found"
+    return 1
+  fi
+  networksetup -setdnsservers $service empty
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_dns_usage
+  ;;
+
+  services)
+    _ymt_dns_services
+  ;;
+
+  resolvers)
+    _ymt_dns_resolvers
+  ;;
+
+  change)
+    _ymt_dns_change $@
+  ;;
+
+  reset)
+    _ymt_dns_reset $@
+  ;;
+
+  show)
+    _ymt_dns_show $@
+  ;;
+
+  *)
+    _ymt_dns_usage
+  ;;
+esac
