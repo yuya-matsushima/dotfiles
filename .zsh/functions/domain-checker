@@ -1,0 +1,132 @@
+#!/bin/zsh
+
+_ymt_dc_usage() {
+  cat <<EOF
+domain-checker is a simple tool to check DNS records for a domain.
+
+Usage:
+  domain-checker <domain>          show all DNS records for a domain
+  domain-checker a <domain>        show A records for a domain
+  domain-checker mx <domain>       show MX records for a domain
+  domain-checker spf <domain>      show SPF record for a domain
+  domain-checker dkim <domain>     show DKIM record for a domain
+  domain-checker dmarc <domain>    show DMARC record for a domain
+
+Options:
+  -h, --help                       print help
+
+Dependencies:
+  awk
+  dig
+EOF
+}
+
+_ymt_dc_a() {
+  local DOMAIN=$1
+  local A_RECORDS=$(dig a +short $DOMAIN)
+
+  echo "## A records for $DOMAIN:\n"
+  if [ -z "$A_RECORDS" ]; then
+    echo "* No A records found."
+  else
+
+    echo $A_RECORDS | awk '{print "* " $0}'
+  fi
+}
+
+_ymt_dc_mx() {
+  local DOMAIN=$1
+  local MX_RECORDS=$(dig mx +short $DOMAIN)
+
+  echo "## MX records for $DOMAIN:\n"
+  if [ -z "$MX_RECORDS" ]; then
+    echo "* No MX records found."
+  else
+    echo $MX_RECORDS | awk '{print $0}' | sort -n | awk '{print "* " $0}'
+  fi
+}
+
+_ymt_dc_spf() {
+  local DOMAIN=$1
+  local SPF_RECORDS=$(dig txt +short $DOMAIN | grep 'v=spf')
+
+  echo "## SPF record for $DOMAIN:\n"
+  if [ -z "$SPF_RECORDS" ]; then
+    echo "* No SPF record found."
+  else
+    echo $SPF_RECORDS | awk '{print "* " $0}'
+  fi
+}
+
+_ymt_dc_dkim() {
+  local DOMAIN=$1
+  local SELECTORS=("google" "default" "selector1" "selector2" "amazonses" "s1" "s2" "k1" "zoho")
+  local DKIM_FOUND=false
+
+  echo "## DKIM record for $DOMAIN:\n"
+  for selector in $SELECTORS; do
+    DKIM_RECORD=$(dig txt +short $selector._domainkey.$DOMAIN | grep 'v=DKIM')
+    if [[ -n $DKIM_RECORD ]]; then
+      echo "* $DKIM_RECORD"
+      DKIM_FOUND=true
+    fi
+  done
+  if [[ $DKIM_FOUND == false ]]; then
+    echo "* No DKIM records found."
+  fi
+}
+
+_ymt_dc_dmarc() {
+  local DOMAIN=$1
+  local DMARC_RECORD=$(dig txt +short _dmarc.$DOMAIN | grep 'v=DMARC')
+
+  echo "## DMARC record for $DOMAIN:\n"
+  if [ -z "$DMARC_RECORD" ]; then
+    echo "* No DMARC record found."
+  else
+    echo "* $DMARC_RECORD"
+  fi
+}
+
+_ymt_dc_all() {
+  DOMAIN=$1
+  _ymt_dc_a $DOMAIN
+  echo ""
+  _ymt_dc_mx $DOMAIN
+  echo ""
+  _ymt_dc_spf $DOMAIN
+  echo ""
+  _ymt_dc_dkim $DOMAIN
+  echo ""
+  _ymt_dc_dmarc $DOMAIN
+}
+
+case $1 in
+  -h|--help)
+    _ymt_dc_usage
+  ;;
+
+  a)
+    _ymt_dc_a $2
+  ;;
+
+  mx)
+    _ymt_dc_mx $2
+  ;;
+
+  spf)
+    _ymt_dc_spf $2
+  ;;
+
+  dkim)
+    _ymt_dc_dkim $2
+  ;;
+
+  dmarc)
+    _ymt_dc_dmarc $2
+  ;;
+
+  *)
+    _ymt_dc_all $1
+  ;;
+esac
