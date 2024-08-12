@@ -9,3 +9,6 @@ silent! nmap <unique>qq <Plug>(quickrun)
 
 " editorconfig.vim
 au FileType gitcommit,hgcommit let b:EditorConfig_disable = 1
+
+" rust.vim
+let g:rustfmt_autosave = 1

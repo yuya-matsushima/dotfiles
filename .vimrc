@@ -30,6 +30,9 @@ Plug 'tpope/vim-endwise'
 Plug 'slim-template/vim-slim'
 Plug 'tpope/vim-haml'
 
+" Rust
+Plug 'rust-lang/rust.vim'
+
 " Go
 Plug 'mattn/vim-goimports'
 
