@@ -1,6 +1,6 @@
 set foldenable
 set foldmethod=indent
-set fillchars=vert:\1
+set fillchars=vert:\|
 
 augroup folding
   autocmd!
