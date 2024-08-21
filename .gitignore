@@ -3,6 +3,9 @@
 .vim/plugged/*
 .vim/sessions
 .vim/.netrwhist
+.config/nvim/autoload/plug.vim
+.config/nvim/autoload/plug.vim.old
+.config/nvim/plugged/*
 .zsh/caches/*
 .zsh/git-prompt.zsh
 
