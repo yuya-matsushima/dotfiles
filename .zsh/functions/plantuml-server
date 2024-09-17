@@ -1,0 +1,66 @@
+#!/bin/zsh
+
+PORT=9876
+CONTAINER_NAME=plantuml-server
+
+_ymt_plantumlserver_usage() {
+  cat <<EOF
+plantuml-server is a command for managing the local PlantUML Server.
+
+Usage:
+    plantuml-server start    start plantuml-server at http://localhost:$PORT
+    plantuml-server stop     stop plantuml-server
+    plantuml-server status   check current plantuml-server status
+
+Options:
+    --help, -h               print help
+
+Dependencies:
+    Docker for Mac
+EOF
+}
+
+_ymt_is_container_running() {
+  docker ps -q -f name=$CONTAINER_NAME
+}
+
+_ymt_plantumlserver_start() {
+  if [ $(_ymt_is_container_running) ]; then
+    echo "PlantUML Server is already running"
+  else
+    CONTAINER_ID=$(docker run -d --name $CONTAINER_NAME -p $PORT:8080 plantuml/plantuml-server:jetty)
+    echo  "PlantUML Server started at http://localhost:$PORT, container ID: $CONTAINER_ID"
+  fi
+}
+
+_ymt_plantumlserver_stop() {
+  if [ $(_ymt_is_container_running) ]; then
+    docker stop $CONTAINER_NAME > /dev/null 2>&1
+    docker rm $CONTAINER_NAME > /dev/null 2>&1
+    echo "PlantUML Server stopped"
+  else
+    echo "PlantUML Server is not running"
+  fi
+}
+
+_ymt_plantumlserver_status() {
+  docker ps -f name=plantuml-server --format "table {{.ID}}\t{{.Image}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}"
+}
+
+case ${1} in
+  --help|-h)
+    _ymt_plantumlserver_usage
+  ;;
+
+  start)
+    _ymt_plantumlserver_start
+  ;;
+
+  stop)
+    _ymt_plantumlserver_stop
+  ;;
+
+  status)
+    _ymt_plantumlserver_status
+  ;;
+esac

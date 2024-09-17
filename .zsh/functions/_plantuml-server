@@ -1,0 +1,6 @@
+#compdef plantuml-server
+local -a subcmds
+subcmds=('start:start plantuml-server at http://localhost:9876'\
+         'stop:stop plantuml-server'\
+         'status:check current plantuml-server status')
+_describe 'command' subcmds
