@@ -34,6 +34,10 @@ unlink: ## Remove symlinks for configuration file
 asdf_cloud: ## Install Cloud CLI Tools
 	sh ./bin/asdf/cloud.sh
 
+.PHONY: asdf_java
+asdf_java: ## Install Java
+	sh ./bin/asdf/java.sh
+
 .PHONY: asdf_k8s
 asdf_k8s: ## Install k8s Tools
 	sh ./bin/asdf/kubernetes.sh
