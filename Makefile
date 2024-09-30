@@ -30,6 +30,10 @@ link: ## Set symlinks for configuration file
 unlink: ## Remove symlinks for configuration file
 	sh ./bin/link.sh unlink
 
+.PHONY: asdf_aws_sam
+asdf_aws_sam: ## Install AWS SAM CLI
+	sh ./bin/asdf/aws/sam.sh
+
 .PHONY: asdf_cloud
 asdf_cloud: ## Install Cloud CLI Tools
 	sh ./bin/asdf/cloud.sh
