@@ -11,5 +11,6 @@ brew install --cask \
           macvim \
           microsoft-edge \
           sequel-pro \
+          dbeaver-community \
           slack \
           visual-studio-code
