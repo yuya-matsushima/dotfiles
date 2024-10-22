@@ -1,5 +1,6 @@
 #!/bin/zsh
 
+IMAGE_NAME=plantuml/plantuml-server:jetty
 PORT=9876
 CONTAINER_NAME=plantuml-server
 
@@ -28,8 +29,13 @@ _ymt_plantumlserver_start() {
   if [ $(_ymt_is_container_running) ]; then
     echo "PlantUML Server is already running"
   else
-    CONTAINER_ID=$(docker run -d --name $CONTAINER_NAME -p $PORT:8080 plantuml/plantuml-server:jetty)
-    echo  "PlantUML Server started at http://localhost:$PORT, container ID: $CONTAINER_ID"
+    # plantuml-server stop で停止しなかった場合に対応
+    if [ $(docker ps -a --format "table {{.Names}}" | grep $CONTAINER_NAME | wc -l) -eq 1 ]; then
+      docker start $CONTAINER_NAME > /dev/null 2>&1
+    else
+      docker run -d --name $CONTAINER_NAME -p $PORT:8080 $IMAGE_NAME > /dev/null 2>&1
+    fi
+    echo "PlantUML Server started at http://localhost:$PORT"
   fi
 }
 
