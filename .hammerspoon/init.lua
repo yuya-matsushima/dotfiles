@@ -11,15 +11,16 @@ local toggleApp = function(appName)
     app:hide()
   else
     local active_space = spaces.focusedSpace()
-    local alacritty_win = app:focusedWindow()
-    spaces.moveWindowToSpace(alacritty_win, active_space)
+    local win = app:focusedWindow()
+    spaces.moveWindowToSpace(win, active_space)
     app:setFrontmost()
   end
 end
 
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
-hs.hotkey.bind({ "ctrl" }, "`", function() toggleApp("Visual Studio Code") end)
+hs.hotkey.bind({ "ctrl" }, "\\", function() toggleApp("Visual Studio Code") end)
+hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Inkdrop") end)
 
 -- IME の英字/ひらがなを右 cmd で切り替え
 -- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
