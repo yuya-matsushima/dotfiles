@@ -29,6 +29,7 @@ TARGETS=( \
          ".zsh" \
          ".zshrc" \
          ".zshenv" \
+         ".psqlrc" \
          ".config/alacritty" \
          ".hammerspoon" \
        )
