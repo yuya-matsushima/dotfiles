@@ -137,15 +137,16 @@ which qr > /dev/null && alias qr="qrencode -t UTF8"
 which tldr > /dev/null && alias tldr="tldr --language=en"
 if which fzf > /dev/null; then
   source <(fzf --zsh)
-  export FZF_DEFAULT_OPTS='--height 50% --reverse --border'
   export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_CTRL_T_OPTS="--preview '[[ -d {} ]] && tree -C {} || bat --style=numbers --color=always {}' \
-    --preview-window=right:40%:wrap"
+  export FZF_DEFAULT_OPTS='--height 50% --reverse --border --preview-window=right:50%'
+  export FZF_PREVIEW_COMMAND="[[ -d {} ]] && tree -C {} || bat --style=numbers --color=always {}"
+  export FZF_COMPLETION_OPTS="--preview '${FZF_PREVIEW_COMMAND}'"
+  export FZF_CTRL_R_OPTS="\
+    --preview \"echo {} | awk '{\$1=\\\"\\\"; sub(/^ /, \\\"\\\"); print}'\" \
+    --preview-window=right:50%:wrap"
 
   # Alt+C support
   bindkey "ç" fzf-cd-widget
-  export FZF_ALT_C_OPTS="--preview 'tree -C {}'"
 fi
 
 ## terminal configuration
