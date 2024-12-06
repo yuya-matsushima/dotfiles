@@ -21,6 +21,7 @@ brew install \
           gnu-sed \
           gossm \
           grep \
+          fzf \
           htop \
           jq \
           jnv \

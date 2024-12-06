@@ -135,6 +135,18 @@ which kubectl > /dev/null && source <(kubectl completion zsh)
 which qr > /dev/null && alias qr="qrencode -t UTF8"
 # tealdeer: tldr client
 which tldr > /dev/null && alias tldr="tldr --language=en"
+if which fzf > /dev/null; then
+  source <(fzf --zsh)
+  export FZF_DEFAULT_OPTS='--height 50% --reverse --border'
+  export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_CTRL_T_OPTS="--preview '[[ -d {} ]] && tree -C {} || bat --style=numbers --color=always {}' \
+    --preview-window=right:40%:wrap"
+
+  # Alt+C support
+  bindkey "ç" fzf-cd-widget
+  export FZF_ALT_C_OPTS="--preview 'tree -C {}'"
+fi
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
