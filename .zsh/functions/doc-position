@@ -1,0 +1,72 @@
+#!/bin/zsh
+
+if [[ $OSTYPE != 'darwin'* ]]; then
+  echo "This command is only available in macOS (Darwin) environment."
+  return
+fi
+
+_ymt_doc_position_usage() {
+  cat <<EOF
+doc-position is a command to change the position and visibility of the Dock on macOS.
+
+Usage:
+    doc-position left           Set Dock position to the left of the screen.
+    doc-position bottom         Set Dock position to the bottom of the screen.
+    doc-position right          Set Dock position to the right of the screen.
+    doc-position autohide       Enable Dock auto-hide.
+    doc-position show           Disable Dock auto-hide.
+    doc-position status         Print current Dock position and auto-hide status.
+
+Options:
+    --help, -h                  Print this help message.
+
+Dependencies:
+    macOS
+EOF
+}
+
+_ymt_doc_position_status() {
+  local position=$(defaults read com.apple.dock orientation)
+  local autohide=$(defaults read com.apple.dock autohide)
+  echo "Dock Position: $position"
+  echo "Auto-hide: $( [[ $autohide -eq 1 ]] && echo Enabled || echo Disabled )"
+}
+
+case ${1} in
+  --help|-h)
+    _ymt_doc_position_usage
+  ;;
+
+  status)
+    _ymt_doc_position_status
+  ;;
+
+  left)
+    defaults write com.apple.dock orientation -string left && killall Dock
+    echo "Dock position set to the left."
+  ;;
+
+  bottom)
+    defaults write com.apple.dock orientation -string bottom && killall Dock
+    echo "Dock position set to the bottom."
+  ;;
+
+  right)
+    defaults write com.apple.dock orientation -string right && killall Dock
+    echo "Dock position set to the right."
+  ;;
+
+  autohide)
+    defaults write com.apple.dock autohide -bool true && killall Dock
+    echo "Dock auto-hide enabled."
+  ;;
+
+  show)
+    defaults write com.apple.dock autohide -bool false && killall Dock
+    echo "Dock auto-hide disabled."
+  ;;
+
+  *)
+    echo "Invalid command. Use --help or -h to see usage."
+  ;;
+esac

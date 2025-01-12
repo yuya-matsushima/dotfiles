@@ -1,0 +1,13 @@
+#compdef doc-position
+
+local -a subcmds
+subcmds=(
+  'status:show current Dock position and auto-hide status'
+  'left:set Dock position to the left'
+  'bottom:set Dock position to the bottom'
+  'right:set Dock position to the right'
+  'autohide:enable Dock auto-hide'
+  'show:disable Dock auto-hide'
+)
+
+_describe 'command' subcmds
