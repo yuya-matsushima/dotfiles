@@ -1,0 +1,11 @@
+#compdef display
+
+local -a subcmds
+subcmds=(
+  'save:Save the current display configuration'
+  'load:Load a saved display configuration using fuzzy finder'
+  'list:Show the list of saved configurations as config-name: description'
+  'current:Show the matched configuration from config.json or the current display configuration'
+)
+
+_describe 'command' subcmds

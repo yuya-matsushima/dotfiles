@@ -1,0 +1,168 @@
+#!/bin/zsh
+
+# 設定ファイルのパス
+DISPLAY_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/display/config.json"
+
+# 初期化: 設定ファイルが存在しない場合に作成
+if [[ ! -f "$DISPLAY_CONFIG_FILE" ]]; then
+  mkdir -p "$(dirname "$DISPLAY_CONFIG_FILE")"
+  echo '{"configs":[]}' > "$DISPLAY_CONFIG_FILE"
+fi
+
+# ヘルプを表示
+_ymt_display_usage() {
+  cat <<EOF
+display is a command-line tool to manage and switch display configurations using displayplacer.
+
+Usage:
+    display save        Save the current display configuration (interactive).
+    display load        Load a saved display configuration using fuzzy finder (fzf required).
+    display list        Show the list of saved configurations as 'number: name : description'.
+    display current     Show the matched configuration from config.json or the current display configuration.
+
+Options:
+    --help, -h          Show this help message.
+
+Dependencies:
+    displayplacer
+    jq
+    fzf
+EOF
+}
+
+# 現在の設定を保存（インタラクティブ）
+_ymt_display_save() {
+  local current_config
+  current_config=$(displayplacer list | tail -n 1)
+
+  if [[ -z $current_config ]]; then
+    echo "Error: Could not retrieve current display configuration."
+    return 1
+  fi
+
+  echo -n "Enter name: "
+  read config_name
+
+  if [[ -z $config_name ]]; then
+    echo "Error: Name cannot be empty."
+    return 1
+  fi
+
+  echo -n "Enter description: "
+  read description
+
+  if [[ -z $description ]]; then
+    echo "Error: Description cannot be empty."
+    return 1
+  fi
+
+  # バックアップファイルの作成
+  local timestamp backup_file
+  timestamp=$(date +"%Y%m%d%H%M%S")
+  backup_file="${DISPLAY_CONFIG_FILE}.${timestamp}.json"
+  cp "$DISPLAY_CONFIG_FILE" "$backup_file"
+
+  echo "Backup created at: $backup_file"
+
+  # 新しい設定を JSON 配列に追加
+  jq --arg name "$config_name" --arg description "$description" --arg config "$current_config" \
+    '.configs += [{"name": $name, "description": $description, "config": $config}]' \
+    "$DISPLAY_CONFIG_FILE" > "$DISPLAY_CONFIG_FILE.tmp"
+
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Failed to save configuration."
+    rm -f "$DISPLAY_CONFIG_FILE.tmp"
+    return 1
+  fi
+
+  mv "$DISPLAY_CONFIG_FILE.tmp" "$DISPLAY_CONFIG_FILE"
+  echo "Display configuration saved as '$config_name'."
+}
+
+# 保存済みの設定を読み込む
+_ymt_display_load() {
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "Error: fzf is not installed."
+    return 1
+  fi
+
+  if [[ ! -s "$DISPLAY_CONFIG_FILE" ]]; then
+    echo "No configurations found. Use 'display save' to add configurations."
+    return 1
+  fi
+
+  local selected_entry
+  selected_entry=$(jq -r '.configs | to_entries[] | "\(.key): \(.value.name) - \(.value.description)"' "$DISPLAY_CONFIG_FILE" | fzf --prompt="Select configuration: ")
+
+  if [[ -z $selected_entry ]]; then
+    echo "No configuration selected."
+    return 1
+  fi
+
+  local selected_index
+  selected_index=$(echo "$selected_entry" | cut -d':' -f1)
+
+  local config_value
+  config_value=$(jq -r --argjson index "$selected_index" '.configs[$index].config' "$DISPLAY_CONFIG_FILE")
+
+  if [[ -z $config_value ]]; then
+    echo "Error: Configuration with index '$selected_index' not found."
+    return 1
+  fi
+
+  eval "$config_value"
+  echo "Display configuration loaded (Index: $selected_index)."
+}
+
+# 設定リストを表示
+_ymt_display_list() {
+  if [[ ! -s "$DISPLAY_CONFIG_FILE" ]]; then
+    echo "No configurations found. Use 'display save' to add configurations."
+    return 1
+  fi
+
+  jq -r '.configs | to_entries[] | "\(.key): \(.value.name) - \(.value.description)"' "$DISPLAY_CONFIG_FILE"
+}
+
+# 現在の設定を簡易表示または一致検索
+_ymt_display_current() {
+  local current_config
+  current_config=$(displayplacer list | tail -n 1)
+
+  local match
+  match=$(jq -r --arg current "$current_config" \
+    '.configs | to_entries[] | select(.value.config == $current) | "\(.key): \(.value.name) - \(.value.description)"' \
+    "$DISPLAY_CONFIG_FILE")
+
+  if [[ -n $match ]]; then
+    echo "Matched configuration:"
+    echo "$match"
+  else
+    echo "No matching configuration found. Showing current display configuration:"
+    echo "$current_config"
+  fi
+}
+
+# メインの display コマンド
+display() {
+  case $1 in
+    save)
+      _ymt_display_save
+      ;;
+    load)
+      _ymt_display_load
+      ;;
+    list)
+      _ymt_display_list
+      ;;
+    current)
+      _ymt_display_current
+      ;;
+    --help|-h)
+      _ymt_display_usage
+      ;;
+    *)
+      echo "Invalid command. Use --help or -h for usage information."
+      ;;
+  esac
+}
