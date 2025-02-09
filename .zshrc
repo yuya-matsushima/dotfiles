@@ -133,8 +133,6 @@ if which go > /dev/null; then
 fi
 which kubectl > /dev/null && source <(kubectl completion zsh)
 which qr > /dev/null && alias qr="qrencode -t UTF8"
-# tealdeer: tldr client
-which tldr > /dev/null && alias tldr="tldr --language=en"
 if which fzf > /dev/null; then
   source <(fzf --zsh)
   export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
