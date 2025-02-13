@@ -8,6 +8,7 @@ brew install --cask \
           adobe-creative-cloud \
           appcleaner \
           chromedriver \
+          deskpad \
           inkdrop \
           keycastr \
           microsoft-auto-update \
