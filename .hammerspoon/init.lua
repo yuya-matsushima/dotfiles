@@ -26,22 +26,32 @@ hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Inkdrop") end)
 -- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
 local simpleCmd = false
 local map = hs.keycodes.map
+local hiraganaMode = 'Hiragana'
+local romajiMode = 'Romaji'
+
 local function toggleIMESwitch(event)
-  local c = event:getKeyCode()
+  local t = event:getType()
   local f = event:getFlags()
-  if event:getType() == hs.eventtap.event.types.keyDown then
-    if f['cmd'] then
+  local c = event:getKeyCode()
+
+  if t == hs.eventtap.event.types.flagsChanged then
+    -- cmdが押された瞬間、他の修飾キーがなければsimpleCmdをtrue
+    if f['cmd'] and not f['shift'] and not f['alt'] and not f['ctrl'] then
       simpleCmd = true
-    end
-  elseif event:getType() == hs.eventtap.event.types.flagsChanged then
-    if not f['cmd'] then
-      if simpleCmd == false and (c == map['cmd'] or c == map['rightcmd'])then
-        if hs.keycodes.currentMethod() == 'Romaji' then
-          hs.keycodes.setMethod('Hiragana')
-        else
-          hs.keycodes.setMethod('Romaji')
-        end
+    -- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
+    elseif not f['cmd'] and simpleCmd then
+      if hs.keycodes.currentMethod() == 'Romaji' then
+        hs.keycodes.setMethod(hiraganaMode)
+      else
+        hs.keycodes.setMethod(romajiMode)
       end
+      simpleCmd = false
+    else
+      simpleCmd = false
+    end
+  elseif t == hs.eventtap.event.types.keyDown then
+    -- cmd以外のキーが押されたらsimpleCmdをfalse
+    if simpleCmd and not (c == map['cmd'] or c == map['rightcmd']) then
       simpleCmd = false
     end
   end
