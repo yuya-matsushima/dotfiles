@@ -7,6 +7,7 @@ local toggleApp = function(appName)
 
   if app == nil then
     application.launchOrFocus(appName)
+    -- アプリがインストールされていない場合何もしない
   elseif app:isFrontmost() then
     app:hide()
   else
@@ -19,8 +20,8 @@ end
 
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
-hs.hotkey.bind({ "ctrl" }, "\\", function() toggleApp("Visual Studio Code") end)
 hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Inkdrop") end)
+hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
 
 -- IME の英字/ひらがなを右 cmd で切り替え
 -- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
