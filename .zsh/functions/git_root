@@ -18,20 +18,17 @@ EOF
 
 _ymt_git_root_dir() {
   local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
-  if [ -z $root_dir ]; then
-    echo 'not under git control.'
+  if [[ -z "$root_dir" ]]; then
+    echo 'not under git control.' >&2
     return 1
   fi
-  echo $root_dir
+  echo "$root_dir"
 }
 
 _ymt_git_root() {
-  local root_dir=$(git rev-parse --show-toplevel 2>/dev/null)
-  if [ -z $root_dir ]; then
-    echo 'not under git control.'
-    return 1
-  fi
-  cd $root_dir
+  local root_dir
+  root_dir=$(_ymt_git_root_dir) || return 1
+  cd "$root_dir"
 }
 
 case ${1} in

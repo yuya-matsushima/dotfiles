@@ -75,7 +75,11 @@ _ymt_display_save() {
     return 1
   fi
 
-  mv "$DISPLAY_CONFIG_FILE.tmp" "$DISPLAY_CONFIG_FILE"
+  if ! mv "$DISPLAY_CONFIG_FILE.tmp" "$DISPLAY_CONFIG_FILE"; then
+    echo "Error: Failed to update configuration file." >&2
+    rm -f "$DISPLAY_CONFIG_FILE.tmp"
+    return 1
+  fi
   echo "Display configuration saved as '$config_name'."
 }
 
@@ -110,7 +114,15 @@ _ymt_display_load() {
     return 1
   fi
 
-  eval "$config_value"
+  # Validate and execute config_value
+  if ! command -v "${config_value%% *}" >/dev/null 2>&1; then
+    echo "Error: Configuration command '$config_value' is not valid or executable." >&2
+    return 1
+  fi
+  if ! eval "$config_value"; then
+    echo "Error: Failed to apply display configuration." >&2
+    return 1
+  fi
   echo "Display configuration loaded (Index: $selected_index)."
 }
 
@@ -143,26 +155,24 @@ _ymt_display_current() {
   fi
 }
 
-# メインの display コマンド
-display() {
-  case $1 in
-    save)
-      _ymt_display_save
-      ;;
-    load)
-      _ymt_display_load
-      ;;
-    list)
-      _ymt_display_list
-      ;;
-    current)
-      _ymt_display_current
-      ;;
-    --help|-h)
-      _ymt_display_usage
-      ;;
-    *)
-      echo "Invalid command. Use --help or -h for usage information."
-      ;;
-  esac
-}
+case ${1} in
+  save)
+    _ymt_display_save
+    ;;
+  load)
+    _ymt_display_load
+    ;;
+  list)
+    _ymt_display_list
+    ;;
+  current)
+    _ymt_display_current
+    ;;
+  --help|-h)
+    _ymt_display_usage
+    ;;
+  *)
+    echo "Error: Invalid command. Use --help or -h for usage information." >&2
+    return 1
+    ;;
+esac

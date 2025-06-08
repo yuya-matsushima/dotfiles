@@ -11,3 +11,6 @@
 
 *.dylib
 .hammerspoon/hs/libspaces*dylib.dSYM/*
+
+# Claude Code
+.claude

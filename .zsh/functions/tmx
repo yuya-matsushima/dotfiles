@@ -1,4 +1,4 @@
-#!bin/zsh
+#!/bin/zsh
 
 _ymt_tmx_usage() {
   cat <<EOF
@@ -31,9 +31,9 @@ _ymt_tmx_switch() {
 
   if [ -n "$session" ]; then
     if [ -n "$TMUX" ]; then
-      tmux switch -t $session
+      tmux switch -t "$session"
     else
-      tmux attach -t $session
+      tmux attach -t "$session"
     fi
   fi
 }
@@ -51,13 +51,13 @@ _ymt_tmx() {
   if [ -z $session ]; then
     session='base'
   fi
-  local sessions=($(tmux list-sessions | sed -r 's/^(.+): .+$/\1/'))
+  local sessions=($(tmux list-sessions | sed -E 's/^(.+): .+$/\1/'))
 
   # 一致する session がある場合には switch
-  if [[ "${sessions[@]}" =~ "${session}" ]]; then
-    _ymt_tmx_switch $session
+  if (( ${sessions[(Ie)$session]} )); then
+    _ymt_tmx_switch "$session"
   else
-    tmux new -A -s $session
+    tmux new -A -s "$session"
   fi
 }
 
@@ -71,7 +71,7 @@ case ${1} in
   ;;
 
   attach|a|switch|s)
-    _ymt_tmx_switch ${2}
+    _ymt_tmx_switch "${2}"
   ;;
 
   detach|d)
@@ -79,10 +79,10 @@ case ${1} in
   ;;
 
   kill|k)
-    _ymt_tmx_kill ${2}
+    _ymt_tmx_kill "${2}"
   ;;
 
   *)
-    _ymt_tmx ${1}
+    _ymt_tmx "${1}"
   ;;
 esac

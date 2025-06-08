@@ -5,9 +5,7 @@ _ymt_checkip_usage() {
 checkip displays the current IP address of the PC.
 
 Usage:
-    checkip        show your IP Address on AWS/GCP
-    checkip aws    show your IP Address on AWS
-    checkuo gcp    show your IP Address on GCP
+    checkip        show your IP Address
 
 Options:
     --help, -h        print help
@@ -19,16 +17,7 @@ case ${1} in
     _ymt_checkip_usage
   ;;
 
-  aws)
-    curl -sS https://checkip.amazonaws.com/
-  ;;
-
-  gcp)
-    curl -sS https://domains.google.com/checkip
-  ;;
-
   *)
-    echo "AWS: $(curl -sS https://checkip.amazonaws.com/)"
-    echo "GCP: $(curl -sS https://domains.google.com/checkip)"
+    curl -sS --max-time 10 https://checkip.amazonaws.com/ || echo "Error: Failed to get IP" >&2
   ;;
 esac

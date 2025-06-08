@@ -7,22 +7,14 @@ case ${UID} in
 esac
 
 local zshrc_path=$HOME/.zshrc
-local zshenv_path=$HOME/.zshenv
 # overwrite path when symbolic link
 [ -L $zshrc_path ] && local zshrc_path=$(readlink $HOME/.zshrc)
-[ -L $zshenv_path ] && local zshenv_path=$(readlink $HOME/.zshenv)
 
-# compile zshrc
+# compile zshrc (silent unless DEBUG is set)
 if [ ! -e $HOME/.zshrc.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.zwc ]; then
   zcompile $HOME/.zshrc
-  echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
+  [ -n "$DEBUG_ZSHRC" ] && echo "compiled the \$HOME/.zshrc file.: .zshrc is changed"
 fi
-if [ ! -e $HOME/.zshenv.zwc ] || [ $zshenv_path -nt $HOME/.zshenv.zwc ]; then
-  zcompile $HOME/.zshenv
-  echo "compiled the \$HOME/.zshenv file.: .zshenv is changed"
-fi
-
-source $HOME/.zshenv
 
 autoload colors && colors
 
@@ -60,6 +52,9 @@ setopt noautoremoveslash
 setopt nolistbeep
 setopt nobeep
 
+# enable extended globbing
+setopt extendedglob
+
 
 # Keybind configuration
 bindkey -d
@@ -89,13 +84,19 @@ setopt hist_ignore_dups     # ignore duplication command history list
 setopt share_history        # share command history data
 
 # load extensions
-for file in `find $HOME/.zsh/extensions -type f`; do source $file; done
+if [[ -d $HOME/.zsh/extensions ]]; then
+  for file in $HOME/.zsh/extensions/*(.N); do
+    [[ -r "$file" ]] && source "$file"
+  done
+fi
 
 # load functions
 fpath=($HOME/.zsh/functions $fpath)
-for file in `find $fpath[1] -type f -not -name '_*'`; do
-  autoload -Uz $(echo $file | cut -d '/' -f 6)
-done
+if [[ -d $HOME/.zsh/functions ]]; then
+  for file in $HOME/.zsh/functions/^_*(.N); do
+    [[ -r "$file" && ${file:t} != *.zsh ]] && autoload -Uz ${file:t}
+  done
+fi
 # activate completion
 autoload bashcompinit && bashcompinit
 autoload -Uz compinit && compinit -u
@@ -120,21 +121,25 @@ alias ll="ls -l"
 alias lt="ls -t"
 alias j="jobs -l"
 alias agless='ag --pager="less -XgmR"'
-which colordiff > /dev/null && alias diff="colordiff -u"
-which asdf > /dev/null && . $(brew --prefix asdf)/libexec/asdf.sh
-which awsume > /dev/null && alias awsume="source awsume"
-which direnv > /dev/null && eval "$(direnv hook zsh)"
-which ggrep > /dev/null && alias grep="$HOMEBREW_PREFIX/bin/ggrep"
-which git_root > /dev/null && alias root=git_root
-if which go > /dev/null; then
+(( $+commands[colordiff] )) && alias diff="colordiff -u"
+if (( $+commands[asdf] )); then
+  local asdf_path="$(brew --prefix asdf 2>/dev/null)/libexec/asdf.sh"
+  [[ -f "$asdf_path" ]] && . "$asdf_path"
+fi
+(( $+commands[awsume] )) && alias awsume="source awsume"
+(( $+commands[direnv] )) && eval "$(direnv hook zsh)"
+# Use GNU grep if available (for personal use only)
+(( $+commands[ggrep] )) && alias ggrep="$HOMEBREW_PREFIX/bin/ggrep"
+(( $+commands[git_root] )) && alias root=git_root
+if (( $+commands[go] )); then
   export GOPATH=$(go env GOPATH)
   export GOBIN=${GOPATH}/bin
   export ASDF_GOLANG_MOD_VERSION_ENABLED=true
 fi
-which kubectl > /dev/null && source <(kubectl completion zsh)
-which qr > /dev/null && alias qr="qrencode -t UTF8"
-if which fzf > /dev/null; then
-  source <(fzf --zsh)
+(( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
+(( $+commands[qr] )) && alias qr="qrencode -t UTF8"
+if (( $+commands[fzf] )); then
+  source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
   export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
   export FZF_DEFAULT_OPTS='--height 50% --reverse --border --preview-window=right:50%'
   export FZF_PREVIEW_COMMAND="[[ -d {} ]] && tree -C {} || bat --style=numbers --color=always {}"
@@ -178,7 +183,7 @@ cons25)
     unset LANG
     export LSCOLORS=ExFxCxdxBxegedabagacad
 
-    export PATH=/usr/bin/vim
+    # Remove incorrect PATH assignment (was: export PATH=/usr/bin/vim)
     export LS_COLORS='di=01;34:ln=01;35:so=01;32:ex=01;31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
     zstyle ':completion:*' list-colors 'di=;34;1' 'ln=;35;1' 'so=;32;1' 'ex=31;1' 'bd=46;34' 'cd=43;34'
     ;;
@@ -192,14 +197,12 @@ esac
 # report process
 REPORTTIME=3
 
-# git-prompt
-if [ -f $HOME/.zsh/git-prompt.zsh ]; then
-  source $HOME/.zsh/config/git-prompt.sh
-  source $HOME/.zsh/git-prompt.zsh
-elif [ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]; then
-  # zsh-git-prompt: git-prompt がない場合に反映
-  source $HOME/.zsh/config/zsh-git-prompt.sh
+# git-prompt (zsh-git-prompt)
+if [[ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]]; then
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
+  [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
+else
+  echo "Warning: zsh-git-prompt not found. Install with: brew install zsh-git-prompt" >&2
 fi
 
 [ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh

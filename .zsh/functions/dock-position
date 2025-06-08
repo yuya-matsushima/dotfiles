@@ -1,21 +1,21 @@
 #!/bin/zsh
 
 if [[ $OSTYPE != 'darwin'* ]]; then
-  echo "This command is only available in macOS (Darwin) environment."
-  return
+  echo "Error: This command is only available on macOS" >&2
+  return 1
 fi
 
-_ymt_doc_position_usage() {
+_ymt_dock_position_usage() {
   cat <<EOF
-doc-position is a command to change the position and visibility of the Dock on macOS.
+dock-position is a command to change the position and visibility of the Dock on macOS.
 
 Usage:
-    doc-position left           Set Dock position to the left of the screen.
-    doc-position bottom         Set Dock position to the bottom of the screen.
-    doc-position right          Set Dock position to the right of the screen.
-    doc-position autohide       Enable Dock auto-hide.
-    doc-position show           Disable Dock auto-hide.
-    doc-position status         Print current Dock position and auto-hide status.
+    dock-position left          Set Dock position to the left of the screen.
+    dock-position bottom        Set Dock position to the bottom of the screen.
+    dock-position right         Set Dock position to the right of the screen.
+    dock-position autohide      Enable Dock auto-hide.
+    dock-position show          Disable Dock auto-hide.
+    dock-position status        Print current Dock position and auto-hide status.
 
 Options:
     --help, -h                  Print this help message.
@@ -25,48 +25,86 @@ Dependencies:
 EOF
 }
 
-_ymt_doc_position_status() {
-  local position=$(defaults read com.apple.dock orientation)
-  local autohide=$(defaults read com.apple.dock autohide)
+_ymt_dock_position_status() {
+  local position autohide
+  if ! position=$(defaults read com.apple.dock orientation 2>/dev/null); then
+    echo "Error: Failed to read Dock orientation" >&2
+    return 1
+  fi
+  if ! autohide=$(defaults read com.apple.dock autohide 2>/dev/null); then
+    echo "Error: Failed to read Dock autohide setting" >&2
+    return 1
+  fi
   echo "Dock Position: $position"
   echo "Auto-hide: $( [[ $autohide -eq 1 ]] && echo Enabled || echo Disabled )"
 }
 
 case ${1} in
   --help|-h)
-    _ymt_doc_position_usage
+    _ymt_dock_position_usage
   ;;
 
   status)
-    _ymt_doc_position_status
+    _ymt_dock_position_status
   ;;
 
   left)
-    defaults write com.apple.dock orientation -string left && killall Dock
+    if ! defaults write com.apple.dock orientation -string left 2>/dev/null; then
+      echo "Error: Failed to set Dock orientation" >&2
+      return 1
+    fi
+    if ! killall Dock 2>/dev/null; then
+      echo "Warning: Failed to restart Dock" >&2
+    fi
     echo "Dock position set to the left."
   ;;
 
   bottom)
-    defaults write com.apple.dock orientation -string bottom && killall Dock
+    if ! defaults write com.apple.dock orientation -string bottom 2>/dev/null; then
+      echo "Error: Failed to set Dock orientation" >&2
+      return 1
+    fi
+    if ! killall Dock 2>/dev/null; then
+      echo "Warning: Failed to restart Dock" >&2
+    fi
     echo "Dock position set to the bottom."
   ;;
 
   right)
-    defaults write com.apple.dock orientation -string right && killall Dock
+    if ! defaults write com.apple.dock orientation -string right 2>/dev/null; then
+      echo "Error: Failed to set Dock orientation" >&2
+      return 1
+    fi
+    if ! killall Dock 2>/dev/null; then
+      echo "Warning: Failed to restart Dock" >&2
+    fi
     echo "Dock position set to the right."
   ;;
 
   autohide)
-    defaults write com.apple.dock autohide -bool true && killall Dock
+    if ! defaults write com.apple.dock autohide -bool true 2>/dev/null; then
+      echo "Error: Failed to enable Dock auto-hide" >&2
+      return 1
+    fi
+    if ! killall Dock 2>/dev/null; then
+      echo "Warning: Failed to restart Dock" >&2
+    fi
     echo "Dock auto-hide enabled."
   ;;
 
   show)
-    defaults write com.apple.dock autohide -bool false && killall Dock
+    if ! defaults write com.apple.dock autohide -bool false 2>/dev/null; then
+      echo "Error: Failed to disable Dock auto-hide" >&2
+      return 1
+    fi
+    if ! killall Dock 2>/dev/null; then
+      echo "Warning: Failed to restart Dock" >&2
+    fi
     echo "Dock auto-hide disabled."
   ;;
 
   *)
-    echo "Invalid command. Use --help or -h to see usage."
+    echo "Error: Invalid command. Use --help or -h to see usage." >&2
+    return 1
   ;;
 esac
