@@ -1,8 +1,17 @@
+# Compile this file for faster loading
+local zshenv_path=$HOME/.zshenv
+# Overwrite path when symbolic link
+[[ -L $zshenv_path ]] && local zshenv_path=$(readlink $HOME/.zshenv)
+if [[ ! -e $HOME/.zshenv.zwc ]] || [[ $zshenv_path -nt $HOME/.zshenv.zwc ]]; then
+  zcompile $HOME/.zshenv
+  [[ -n "$DEBUG_ZSHENV" ]] && echo "compiled $HOME/.zshenv"
+fi
+
 typeset -U path
 typeset -U fpath
 
-# GPG
-export GPG_TTY=$(tty)
+# GPG (only for interactive shells)
+[[ -t 0 ]] && export GPG_TTY=$(tty)
 
 # Editor
 export EDITOR=vim
@@ -11,14 +20,17 @@ export EDITOR=vim
 if [ -f /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   export HOMEBREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
-else
+elif [ -f /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
   export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
+else
+  echo "Error: Homebrew not found in /opt/homebrew or /usr/local" >&2
+  exit 1
 fi
 
 # additional path
 local add_path_dirs=(
   /usr/local/sbin
-  $GOPATH/bin
   $HOME/.local/share/vim-lsp-settings/servers/bash-language-server
   $HOMEBREW_PREFIX/opt/python/libexec/bin
   $HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin
@@ -26,8 +38,10 @@ local add_path_dirs=(
   $HOMEBREW_PREFIX/opt/mysql-client/bin
   $HOMEBREW_PREFIX/opt/libpq/bin
 )
+# Add GOPATH/bin only if GOPATH is defined
+[[ -n "$GOPATH" && -d "$GOPATH/bin" ]] && add_path_dirs+=("$GOPATH/bin")
 for dir in $add_path_dirs; do
-  [ -d $dir ] && export PATH=$dir:$PATH
+  [[ -d "$dir" ]] && export PATH="$dir:$PATH"
 done
 
 # additional fpath
@@ -37,5 +51,5 @@ local add_fpath_dirs=(
   $HOME/.awsume/zsh-autocomplete
 )
 for dir in $add_fpath_dirs; do
-  [ -d $dir ] && fpath=($dir $fpath)
+  [[ -d "$dir" ]] && fpath=("$dir" $fpath)
 done
