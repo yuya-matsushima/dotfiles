@@ -1,5 +1,16 @@
 #!/bin/zsh
 
+# Check dependencies
+if ! command -v dig >/dev/null 2>&1; then
+  echo "Error: dig command not found. Please install bind-tools or dnsutils." >&2
+  return 1
+fi
+
+if ! command -v whois >/dev/null 2>&1; then
+  echo "Error: whois command not found. Please install whois." >&2
+  return 1
+fi
+
 _ymt_dc_usage() {
   cat <<EOF
 domain-checker is a simple tool to check DNS records for a domain.
@@ -23,59 +34,68 @@ EOF
 }
 
 _ymt_dc_a() {
-  local DOMAIN=$1
-  local A_RECORDS=$(dig a +short $DOMAIN)
+  local DOMAIN="$1"
+  local A_RECORDS
+  if ! A_RECORDS=$(dig a +short "$DOMAIN" 2>/dev/null); then
+    echo "Error: Failed to query A records for $DOMAIN" >&2
+    return 1
+  fi
 
   echo "## A records for $DOMAIN:\n"
-  if [ -z "$A_RECORDS" ]; then
+  if [[ -z "$A_RECORDS" ]]; then
     echo "* No A records found."
   else
-    # A_RECORDS を改行で分割し whois 情報を取得し表示
-    echo $A_RECORDS | awk '{print $0}' | while read -r line; do
-      local orgName=$(whois $line | grep 'OrgName:' | awk '{print $2}')
-      if [ -z "$orgName" ]; then
-        orgName="OrgName not found"
-      fi
-      echo "* $line ($orgName)"
+    # A_RECORDS を改行で分割し表示（whoisは重いので略）
+    echo "$A_RECORDS" | while IFS= read -r line; do
+      [[ -n "$line" ]] && echo "* $line"
     done
   fi
 }
 
 _ymt_dc_mx() {
-  local DOMAIN=$1
-  local MX_RECORDS=$(dig mx +short $DOMAIN)
+  local DOMAIN="$1"
+  local MX_RECORDS
+  if ! MX_RECORDS=$(dig mx +short "$DOMAIN" 2>/dev/null); then
+    echo "Error: Failed to query MX records for $DOMAIN" >&2
+    return 1
+  fi
 
   echo "## MX records for $DOMAIN:\n"
-  if [ -z "$MX_RECORDS" ]; then
+  if [[ -z "$MX_RECORDS" ]]; then
     echo "* No MX records found."
   else
-    echo $MX_RECORDS | awk '{print $0}' | sort -n | awk '{print "* " $0}'
+    echo "$MX_RECORDS" | sort -n | awk '{print "* " $0}'
   fi
 }
 
 _ymt_dc_spf() {
-  local DOMAIN=$1
-  local SPF_RECORDS=$(dig txt +short $DOMAIN | grep 'v=spf')
+  local DOMAIN="$1"
+  local SPF_RECORDS
+  if ! SPF_RECORDS=$(dig txt +short "$DOMAIN" 2>/dev/null | grep -E 'v=spf|v=SPF'); then
+    SPF_RECORDS=""
+  fi
 
   echo "## SPF record for $DOMAIN:\n"
-  if [ -z "$SPF_RECORDS" ]; then
+  if [[ -z "$SPF_RECORDS" ]]; then
     echo "* No SPF record found."
   else
-    echo $SPF_RECORDS | awk '{print "* " $0}'
+    echo "$SPF_RECORDS" | awk '{print "* " $0}'
   fi
 }
 
 _ymt_dc_dkim() {
-  local DOMAIN=$1
+  local DOMAIN="$1"
   local SELECTORS=("google" "default" "selector1" "selector2" "amazonses" "s1" "s2" "k1" "zoho")
   local DKIM_FOUND=false
+  local DKIM_RECORD
 
   echo "## DKIM record for $DOMAIN:\n"
-  for selector in $SELECTORS; do
-    DKIM_RECORD=$(dig txt +short $selector._domainkey.$DOMAIN | grep 'v=DKIM')
-    if [[ -n $DKIM_RECORD ]]; then
-      echo "* $DKIM_RECORD"
-      DKIM_FOUND=true
+  for selector in "${SELECTORS[@]}"; do
+    if DKIM_RECORD=$(dig txt +short "$selector._domainkey.$DOMAIN" 2>/dev/null | grep -E 'v=DKIM|v=dkim'); then
+      if [[ -n "$DKIM_RECORD" ]]; then
+        echo "* $selector: $DKIM_RECORD"
+        DKIM_FOUND=true
+      fi
     fi
   done
   if [[ $DKIM_FOUND == false ]]; then
@@ -84,11 +104,14 @@ _ymt_dc_dkim() {
 }
 
 _ymt_dc_dmarc() {
-  local DOMAIN=$1
-  local DMARC_RECORD=$(dig txt +short _dmarc.$DOMAIN | grep 'v=DMARC')
+  local DOMAIN="$1"
+  local DMARC_RECORD
+  if ! DMARC_RECORD=$(dig txt +short "_dmarc.$DOMAIN" 2>/dev/null | grep -E 'v=DMARC|v=dmarc'); then
+    DMARC_RECORD=""
+  fi
 
   echo "## DMARC record for $DOMAIN:\n"
-  if [ -z "$DMARC_RECORD" ]; then
+  if [[ -z "$DMARC_RECORD" ]]; then
     echo "* No DMARC record found."
   else
     echo "* $DMARC_RECORD"
@@ -96,16 +119,16 @@ _ymt_dc_dmarc() {
 }
 
 _ymt_dc_all() {
-  DOMAIN=$1
-  _ymt_dc_a $DOMAIN
+  local DOMAIN="$1"
+  _ymt_dc_a "$DOMAIN"
   echo ""
-  _ymt_dc_mx $DOMAIN
+  _ymt_dc_mx "$DOMAIN"
   echo ""
-  _ymt_dc_spf $DOMAIN
+  _ymt_dc_spf "$DOMAIN"
   echo ""
-  _ymt_dc_dkim $DOMAIN
+  _ymt_dc_dkim "$DOMAIN"
   echo ""
-  _ymt_dc_dmarc $DOMAIN
+  _ymt_dc_dmarc "$DOMAIN"
 }
 
 case $1 in
@@ -114,26 +137,31 @@ case $1 in
   ;;
 
   a)
-    _ymt_dc_a $2
+    _ymt_dc_a "$2"
   ;;
 
   mx)
-    _ymt_dc_mx $2
+    _ymt_dc_mx "$2"
   ;;
 
   spf)
-    _ymt_dc_spf $2
+    _ymt_dc_spf "$2"
   ;;
 
   dkim)
-    _ymt_dc_dkim $2
+    _ymt_dc_dkim "$2"
   ;;
 
   dmarc)
-    _ymt_dc_dmarc $2
+    _ymt_dc_dmarc "$2"
   ;;
 
   *)
-    _ymt_dc_all $1
+    if [[ -z "$1" ]]; then
+      echo "Error: Please specify a domain" >&2
+      _ymt_dc_usage
+      return 1
+    fi
+    _ymt_dc_all "$1"
   ;;
 esac

@@ -1,5 +1,16 @@
 #!/bin/zsh
 
+# Check dependencies and OS
+if [[ $OSTYPE != 'darwin'* ]]; then
+  echo "Error: This command is only available on macOS" >&2
+  return 1
+fi
+
+if ! command -v networksetup >/dev/null 2>&1; then
+  echo "Error: networksetup command not found" >&2
+  return 1
+fi
+
 _ymt_dns_usage() {
   cat <<EOF
 dns change dns resolver.
@@ -21,7 +32,10 @@ typeset -A resolvers
 resolvers=( google "8.8.8.8" cloudflare "1.1.1.1" )
 
 _ymt_dns_services() {
-  networksetup -listallnetworkservices | grep -v 'disabled.'
+  if ! networksetup -listallnetworkservices 2>/dev/null | grep -v 'disabled.'; then
+    echo "Error: Failed to get network services" >&2
+    return 1
+  fi
 }
 
 _ymt_dns_resolvers() {
@@ -35,12 +49,16 @@ _ymt_dns_show() {
   local IFS=$'\n'
   local services=($(_ymt_dns_services))
   if [[ ! $services[(r)$service] ]]; then
-    echo "service not found"
+    echo "Error: service not found" >&2
     return 1
   fi
 
   # ip に一致する key を $resolvers から取得
-  local ip=$(networksetup -getdnsservers $service)
+  local ip
+  if ! ip=$(networksetup -getdnsservers "$service" 2>/dev/null); then
+    echo "Error: Failed to get DNS servers for '$service'" >&2
+    return 1
+  fi
   local resolver
   for key value in ${(kv)resolvers}; do
     if [[ $value == $ip ]]; then
@@ -49,10 +67,10 @@ _ymt_dns_show() {
     fi
   done
 
-  if [[ -z $resolver ]]; then
-    echo $ip
+  if [[ -z "$resolver" ]]; then
+    echo "$ip"
   else
-    echo $resolver
+    echo "$resolver"
   fi
 }
 
@@ -62,15 +80,18 @@ _ymt_dns_change() {
   local IFS=$'\n'
   local services=($(_ymt_dns_services))
   if [[ ! $services[(r)$service] ]]; then
-    echo "service not found"
+    echo "Error: service not found" >&2
     return 1
   fi
-  local ip=$resolvers[$resolver]
-  if [[ -z ip ]]; then
-    echo "resolver not found"
+  local ip="$resolvers[$resolver]"
+  if [[ -z "$ip" ]]; then
+    echo "Error: resolver '$resolver' not found" >&2
     return 1
   fi
-  networksetup -setdnsservers $service $ip
+  if ! sudo networksetup -setdnsservers "$service" "$ip" 2>/dev/null; then
+    echo "Error: Failed to set DNS servers. Please check sudo privileges." >&2
+    return 1
+  fi
 }
 
 _ymt_dns_reset() {
@@ -78,10 +99,13 @@ _ymt_dns_reset() {
   local IFS=$'\n'
   local services=($(_ymt_dns_services))
   if [[ ! $services[(r)$service] ]]; then
-    echo "service not found"
+    echo "Error: service not found" >&2
     return 1
   fi
-  networksetup -setdnsservers $service empty
+  if ! sudo networksetup -setdnsservers "$service" empty 2>/dev/null; then
+    echo "Error: Failed to reset DNS servers. Please check sudo privileges." >&2
+    return 1
+  fi
 }
 
 case ${1} in
@@ -98,15 +122,15 @@ case ${1} in
   ;;
 
   change)
-    _ymt_dns_change $@
+    _ymt_dns_change "$@"
   ;;
 
   reset)
-    _ymt_dns_reset $@
+    _ymt_dns_reset "$@"
   ;;
 
   show)
-    _ymt_dns_show $@
+    _ymt_dns_show "$@"
   ;;
 
   *)

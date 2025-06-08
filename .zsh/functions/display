@@ -75,7 +75,11 @@ _ymt_display_save() {
     return 1
   fi
 
-  mv "$DISPLAY_CONFIG_FILE.tmp" "$DISPLAY_CONFIG_FILE"
+  if ! mv "$DISPLAY_CONFIG_FILE.tmp" "$DISPLAY_CONFIG_FILE"; then
+    echo "Error: Failed to update configuration file." >&2
+    rm -f "$DISPLAY_CONFIG_FILE.tmp"
+    return 1
+  fi
   echo "Display configuration saved as '$config_name'."
 }
 
@@ -110,7 +114,11 @@ _ymt_display_load() {
     return 1
   fi
 
-  eval "$config_value"
+  # eval の代わりに直接実行
+  if ! $config_value; then
+    echo "Error: Failed to apply display configuration." >&2
+    return 1
+  fi
   echo "Display configuration loaded (Index: $selected_index)."
 }
 
@@ -143,8 +151,8 @@ _ymt_display_current() {
   fi
 }
 
-# メインの display コマンド
-display() {
+# メインの _ymt_display コマンド
+_ymt_display_main() {
   case $1 in
     save)
       _ymt_display_save
@@ -162,7 +170,11 @@ display() {
       _ymt_display_usage
       ;;
     *)
-      echo "Invalid command. Use --help or -h for usage information."
+      echo "Error: Invalid command. Use --help or -h for usage information." >&2
+      return 1
       ;;
   esac
 }
+
+# autoload用のエントリーポイント
+_ymt_display_main "$@"

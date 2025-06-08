@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 if [[ $OSTYPE != 'darwin'* ]]; then
-  echo "This command is only available in MacOS (Darwin) environment."
-  return
+  echo "Error: This command is only available on macOS" >&2
+  return 1
 fi
 
 _ymt_volume_usage() {
@@ -26,9 +26,13 @@ EOF
 }
 
 _ymt_volume_status() {
-  local settings=$(osascript -e 'get volume settings')
-  echo $settings | awk '{ print $2 }' | sed -e 's/,//'
-  echo $settings | awk '{ print $8 }'
+  local settings
+  if ! settings=$(osascript -e 'get volume settings' 2>/dev/null); then
+    echo "Error: Failed to get volume settings" >&2
+    return 1
+  fi
+  echo "$settings" | awk '{ print $2 }' | sed -e 's/,//'
+  echo "$settings" | awk '{ print $8 }'
 }
 
 case ${1} in
@@ -41,31 +45,47 @@ case ${1} in
   ;;
 
   mute)
-    osascript -e 'set volume output muted true'
+    if ! osascript -e 'set volume output muted true' 2>/dev/null; then
+      echo "Error: Failed to mute volume" >&2
+      return 1
+    fi
     _ymt_volume_status
   ;;
 
   unmute)
-    osascript -e 'set volume output muted false'
+    if ! osascript -e 'set volume output muted false' 2>/dev/null; then
+      echo "Error: Failed to unmute volume" >&2
+      return 1
+    fi
     _ymt_volume_status
   ;;
 
   half)
-    osascript -e "set volume output volume 50"
+    if ! osascript -e "set volume output volume 50" 2>/dev/null; then
+      echo "Error: Failed to set volume" >&2
+      return 1
+    fi
     _ymt_volume_status
   ;;
 
   max)
-    osascript -e "set volume output volume 100"
+    if ! osascript -e "set volume output volume 100" 2>/dev/null; then
+      echo "Error: Failed to set volume" >&2
+      return 1
+    fi
     _ymt_volume_status
   ;;
 
   *)
     if [[ $1 =~ ^(100|[0-9]{1,2})$ ]]; then
-      osascript -e "set volume output volume $1"
+      if ! osascript -e "set volume output volume $1" 2>/dev/null; then
+        echo "Error: Failed to set volume to $1" >&2
+        return 1
+      fi
       _ymt_volume_status
     else
-      echo "Plead specify a number between 0 and 100."
+      echo "Please specify a number between 0 and 100." >&2
+      return 1
     fi
   ;;
 esac
