@@ -151,30 +151,24 @@ _ymt_display_current() {
   fi
 }
 
-# メインの _ymt_display コマンド
-_ymt_display_main() {
-  case $1 in
-    save)
-      _ymt_display_save
-      ;;
-    load)
-      _ymt_display_load
-      ;;
-    list)
-      _ymt_display_list
-      ;;
-    current)
-      _ymt_display_current
-      ;;
-    --help|-h)
-      _ymt_display_usage
-      ;;
-    *)
-      echo "Error: Invalid command. Use --help or -h for usage information." >&2
-      return 1
-      ;;
-  esac
-}
-
-# autoload用のエントリーポイント
-_ymt_display_main "$@"
+case ${1} in
+  save)
+    _ymt_display_save
+    ;;
+  load)
+    _ymt_display_load
+    ;;
+  list)
+    _ymt_display_list
+    ;;
+  current)
+    _ymt_display_current
+    ;;
+  --help|-h)
+    _ymt_display_usage
+    ;;
+  *)
+    echo "Error: Invalid command. Use --help or -h for usage information." >&2
+    return 1
+    ;;
+esac
