@@ -33,15 +33,10 @@
 
 ## .zsh/config/ の問題点
 
-### git-prompt.sh
-- [ ] gitprompt関数が定義されていない
-- [ ] colorsモジュールへの依存性チェックがない
-- [ ] RPROMPTの設定が重複している（zsh-git-prompt.shと競合）
-
 ### zsh-git-prompt.sh
-- [ ] git_super_status関数が定義されていない
-- [ ] Unicode文字（✔）が全ての端末で表示されない可能性
-- [ ] git-prompt.shとの設定重複
+- [x] git_super_status関数が定義されていない
+- ~~[ ] Unicode文字（✔）が全ての端末で表示されない可能性~~ (タスク除外)
+- [x] git-prompt.shとの設定重複
 
 ### less.zsh
 - [x] LESSコマンドの存在確認がない

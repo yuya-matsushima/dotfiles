@@ -194,14 +194,12 @@ esac
 # report process
 REPORTTIME=3
 
-# git-prompt
-if [[ -f $HOME/.zsh/git-prompt.zsh ]]; then
-  [[ -f $HOME/.zsh/config/git-prompt.sh ]] && source $HOME/.zsh/config/git-prompt.sh
-  source $HOME/.zsh/git-prompt.zsh
-elif [[ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]]; then
-  # zsh-git-prompt: git-prompt がない場合に反映
+# git-prompt (zsh-git-prompt)
+if [[ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]]; then
   [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
+else
+  echo "Warning: zsh-git-prompt not found. Install with: brew install zsh-git-prompt" >&2
 fi
 
 [ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh

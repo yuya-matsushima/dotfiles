@@ -9,4 +9,5 @@ ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}%{+%G%}"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}%{✔%G%}"
 
 # show git status & awsume profile
-RPROMPT='$(git_super_status)${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+# Note: git_super_status function is provided by zsh-git-prompt
+RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
