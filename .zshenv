@@ -25,7 +25,11 @@ elif [ -f /usr/local/bin/brew ]; then
   export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
 else
   echo "Error: Homebrew not found in /opt/homebrew or /usr/local" >&2
-  exit 1
+  if [[ -t 0 ]]; then
+    exit 1
+  else
+    return 1
+  fi
 fi
 
 # additional path
