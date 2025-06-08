@@ -114,8 +114,12 @@ _ymt_display_load() {
     return 1
   fi
 
-  # eval の代わりに直接実行
-  if ! $config_value; then
+  # Validate and execute config_value
+  if ! command -v "${config_value%% *}" >/dev/null 2>&1; then
+    echo "Error: Configuration command '$config_value' is not valid or executable." >&2
+    return 1
+  fi
+  if ! eval "$config_value"; then
     echo "Error: Failed to apply display configuration." >&2
     return 1
   fi
