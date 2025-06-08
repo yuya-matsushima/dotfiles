@@ -36,10 +36,14 @@ _ymt_docker_login_ecr() {
   fi
 
   if [ -z "$AWS_ECR_REPOSITORY" ]; then
-    read -r aws_ecr_repository\?'Enter AWS ECR Reporitoy URL: '
+    read -r aws_ecr_repository\?'Enter AWS ECR Repository URL: '
   fi
 
-  aws ecr get-login-password --region $aws_region | docker login --username AWS --password-stdin $aws_ecr_repository
+  if [[ -z "$aws_region" || -z "$aws_ecr_repository" ]]; then
+    echo "Error: AWS region and ECR repository URL are required" >&2
+    return 1
+  fi
+  aws ecr get-login-password --region "$aws_region" | docker login --username AWS --password-stdin "$aws_ecr_repository"
 }
 
 _ymt_docker_login_ghcr() {
@@ -54,7 +58,11 @@ _ymt_docker_login_ghcr() {
     read -r github_account\?'Enter GitHub Account: '
   fi
 
-  echo $github_access_token | docker login ghcr.io -u $github_account --password-stdin
+  if [[ -z "$github_access_token" || -z "$github_account" ]]; then
+    echo "Error: GitHub access token and account are required" >&2
+    return 1
+  fi
+  printf '%s' "$github_access_token" | docker login ghcr.io -u "$github_account" --password-stdin
 }
 
 case ${1} in
