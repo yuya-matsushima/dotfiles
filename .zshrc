@@ -93,8 +93,8 @@ fi
 # load functions
 fpath=($HOME/.zsh/functions $fpath)
 if [[ -d $HOME/.zsh/functions ]]; then
-  for file in $HOME/.zsh/functions/^_*(.N); do
-    [[ ${file:t} != *.zsh ]] && autoload -Uz ${file:t}
+  for file in $HOME/.zsh/functions/^_*.zsh(.N); do
+    [[ -r "$file" ]] && autoload -Uz ${file:t}
   done
 fi
 # activate completion
