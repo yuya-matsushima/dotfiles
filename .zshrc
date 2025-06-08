@@ -199,8 +199,8 @@ REPORTTIME=3
 
 # git-prompt (zsh-git-prompt)
 if [[ -f $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh ]]; then
-  [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
+  [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
 else
   echo "Warning: zsh-git-prompt not found. Install with: brew install zsh-git-prompt" >&2
 fi
