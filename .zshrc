@@ -52,6 +52,9 @@ setopt noautoremoveslash
 setopt nolistbeep
 setopt nobeep
 
+# enable extended globbing
+setopt extendedglob
+
 
 # Keybind configuration
 bindkey -d
