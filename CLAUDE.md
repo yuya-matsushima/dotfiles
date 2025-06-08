@@ -20,3 +20,28 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 
 * 設定ファイルを変更した場合, そのツールの設定として問題ないか必ず確認してください。
     * 例えば `.zshrc` の場合 zsh 上で `source ~/.zshrc` を実行しエラーがないことを確認する必要があります。
+
+## コミットメッセージのフォーマット
+
+Claude Code使用時は以下のフォーマットを使用してください:
+
+```
+タイトル (50文字以内)
+
+- 変更内容の詳細説明
+- 箇条書きで記載
+
+🤖 Generated with Claude Code
+```
+
+## Claude Code の推奨設定
+
+新しい環境でClaude Codeをセットアップする際は以下の設定を推奨:
+
+```bash
+# ターミナルベル通知を有効化
+claude config set --global preferredNotifChannel terminal_bell
+
+# Vimモードを有効化
+claude config set --global editorMode vim
+```
