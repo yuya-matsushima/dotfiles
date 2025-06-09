@@ -1,4 +1,4 @@
-set fileencodings=utf-8,ucs-bom,euc-jp,iso-2022-jp,sjis,cp932,utf-16,utf-16le
+set fileencodings=utf-8,ucs-bom,sjis,cp932,utf-16,utf-16le
 
 "set verbosefile=~/vimlog
 
