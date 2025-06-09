@@ -1,3 +1,8 @@
+" Smart character input settings
+if empty(globpath(&rtp, 'autoload/smartchr.vim'))
+  finish
+endif
+
 augroup smartchr
   autocmd!
   autocmd Filetype php,ruby,eruby,slim,javascript,typescript,coffee,python,perl,c inoremap <expr> = smartchr#one_of(' = ',' == ',' === ','=')
