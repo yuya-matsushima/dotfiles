@@ -18,4 +18,3 @@ function! SwitchColorScheme()
     execute 'set background=' . scheme.mode
 endfunction
 
-nnoremap <F2> :call SwitchColorScheme()<CR>
