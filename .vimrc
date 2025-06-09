@@ -16,28 +16,28 @@ Plug 'hrsh7th/vim-vsnip'
 Plug 'hrsh7th/vim-vsnip-integ'
 
 " JavaScript/TypeScript
-Plug 'pangloss/vim-javascript'
-Plug 'leafgarland/typescript-vim'
-Plug 'leafOfTree/vim-vue-plugin'
-Plug 'MaxMEllon/vim-jsx-pretty'
-Plug 'peitalin/vim-jsx-typescript'
-Plug 'styled-components/vim-styled-components'
-Plug 'jparise/vim-graphql'
+Plug 'pangloss/vim-javascript', { 'for': ['javascript', 'javascriptreact'] }
+Plug 'leafgarland/typescript-vim', { 'for': ['typescript', 'typescriptreact'] }
+Plug 'leafOfTree/vim-vue-plugin', { 'for': 'vue' }
+Plug 'MaxMEllon/vim-jsx-pretty', { 'for': ['javascript', 'javascriptreact', 'typescript', 'typescriptreact'] }
+Plug 'peitalin/vim-jsx-typescript', { 'for': ['typescript', 'typescriptreact'] }
+Plug 'styled-components/vim-styled-components', { 'for': ['javascript', 'javascriptreact', 'typescript', 'typescriptreact'] }
+Plug 'jparise/vim-graphql', { 'for': ['graphql', 'javascript', 'typescript'] }
 
 " Ruby/Ruby on Rails
-Plug 'tpope/vim-rails'
-Plug 'tpope/vim-endwise'
-Plug 'slim-template/vim-slim'
-Plug 'tpope/vim-haml'
+Plug 'tpope/vim-rails', { 'for': 'ruby' }
+Plug 'tpope/vim-endwise', { 'for': ['ruby', 'vim'] }
+Plug 'slim-template/vim-slim', { 'for': 'slim' }
+Plug 'tpope/vim-haml', { 'for': 'haml' }
 
 " Rust
-Plug 'rust-lang/rust.vim'
+Plug 'rust-lang/rust.vim', { 'for': 'rust' }
 
 " Go
-Plug 'mattn/vim-goimports'
+Plug 'mattn/vim-goimports', { 'for': 'go' }
 
 " Docker
-Plug 'ekalinin/Dockerfile.vim'
+Plug 'ekalinin/Dockerfile.vim', { 'for': 'dockerfile' }
 
 " filer
 Plug 'mattn/vim-molder'
