@@ -60,7 +60,6 @@ call plug#end()
 filetype on
 
 " base
-au!
 syntax on
 
 let g:keyboard_type = 'US'
