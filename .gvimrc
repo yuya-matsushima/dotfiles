@@ -1,19 +1,45 @@
-" font
-set guifont=JetBrainsMonoNerdFontCompleteM-Regular:h18
+" Font settings
+if has('gui_macvim')
+  " MacVim specific font setting
+  set guifont=JetBrainsMonoNerdFontCompleteM-Regular:h18
+  " Enable font ligatures if available
+  set macligatures
+else
+  " Generic GUI font setting
+  set guifont=JetBrains\ Mono\ 18
+endif
 
-" window
-set columns=100
-set lines=50
+" Window settings
+set columns=120         " Default window width
+set lines=40           " Default window height
 
-" mouse
-set mouse=a
-set nomousefocus
-set mousehide
+" MacVim specific settings
+if has('gui_macvim')
+  " Enable native full screen
+  set fuoptions=maxhorz,maxvert
+  " Use Command key for Meta
+  set macmeta
+  " Smooth scrolling
+  set guioptions+=k
+endif
 
-" hide toolbar
-set guioptions-=T
+" Mouse settings
+set mouse=a            " Enable mouse in all modes
+set nomousefocus       " Don't focus window on mouse over
+set mousehide          " Hide mouse when typing
 
-" printing
+" GUI options
+set guioptions-=T      " Hide toolbar
+set guioptions-=r      " Hide right scrollbar
+set guioptions-=L      " Hide left scrollbar
+set guioptions+=e      " Use GUI tabs
+
+" Transparency (MacVim only)
+if has('gui_macvim')
+  set transparency=5   " Slight transparency (0-100)
+endif
+
+" Printing settings
 set printheader=%F%=%N\ /\ %{line('$')/73+1}
 set printoptions=wrap:y
 set printoptions=number:y
@@ -21,7 +47,7 @@ set printoptions=portrait:y
 set printoptions+=paper:A4
 set printoptions=duplex:off
 
-" load ~/.vimrc_local if exists
+" Load local GUI settings if exists
 if filereadable($HOME . '/.gvimrc_local')
   source $HOME/.gvimrc_local
 endif
