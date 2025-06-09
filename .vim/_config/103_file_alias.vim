@@ -2,12 +2,10 @@ augroup alias
   autocmd!
   autocmd BufRead,BufNewFile *.md,*.md.erb setlocal filetype=markdown
   autocmd BufRead,BufNewFile *.scala.html setlocal filetype=scala
-  autocmd FileType js setlocal ft=javascript
-  autocmd BufRead,BufNewFile *.ts set filetype=typescript
-  autocmd FileType rb,watchr,vagrantfile,Guardfile setlocal ft=ruby
-  autocmd FileType smarty,tpl,ciunit,ctp setlocal ft=php
+  autocmd BufRead,BufNewFile *.ts setlocal filetype=typescript
+  autocmd BufRead,BufNewFile Vagrantfile,Guardfile setlocal filetype=ruby
+  autocmd BufRead,BufNewFile *.envrc setlocal filetype=sh
   autocmd FileType sql setlocal ft=mysql
-  autocmd FileTYpe scss.css setlocal ft=scss
-  autocmd FileType .envrc setlocal ft=sh
+  autocmd FileType scss.css setlocal ft=scss
 augroup END
 
