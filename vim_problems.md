@@ -30,7 +30,7 @@
   - プラグインの遅延読み込みが設定されていない
   - `vim-plug` の遅延読み込み機能が活用されていない（terraformのみ使用）
 
-- [ ] **モダンなVim機能の未使用**
+- [x] **モダンなVim機能の未使用**
   - Vim8の新機能（terminal、popup windowなど）が使われていない
   - 古いプラグインに依存している（例：`vim-scripts/closetag.vim`）
 

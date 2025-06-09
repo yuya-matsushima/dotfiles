@@ -50,7 +50,7 @@ Plug 'cocopon/iceberg.vim'
 " others
 Plug 'thinca/vim-quickrun'
 Plug 'kana/vim-smartchr'
-Plug 'vim-scripts/closetag.vim'
+Plug 'alvan/vim-closetag'
 Plug 'hashivim/vim-terraform', { 'for': 'terraform' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'github/copilot.vim'
