@@ -316,7 +316,7 @@ function! IsCopilotEnabled()
 endfunction
 
 " Custom status line
-" Format: filename [modified] ... [line/total] [filetype] [encoding] [keyboard] [copilot]
+" Format: filename[modified] ... [line/total][filetype][encoding][US/JIS][AI]
 set statusline=
 set statusline+=%f                                  " File path
 set statusline+=%m                                  " Modified flag [+]
