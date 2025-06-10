@@ -376,12 +376,6 @@ endif
 
 if !empty(globpath(&rtp, 'autoload/vsnip.vim'))
   let g:vsnip_snippet_dir=$HOME . '/.vim/vsnip'
-
-  " Jump forward or backward
-  imap <expr> <Tab>   vsnip#jumpable(1)  ? '<Plug>(vsnip-jump-next)' : '<Tab>'
-  smap <expr> <Tab>   vsnip#jumpable(1)  ? '<Plug>(vsnip-jump-next)' : '<Tab>'
-  imap <expr> <S-Tab> vsnip#jumpable(-1) ? '<Plug>(vsnip-jump-prev)' : '<S-Tab>'
-  smap <expr> <S-Tab> vsnip#jumpable(-1) ? '<Plug>(vsnip-jump-prev)' : '<S-Tab>'
 endif
 
 " ============================================================================
@@ -397,9 +391,42 @@ if !empty(globpath(&rtp, 'autoload/copilot.vim'))
         \ 'markdown': v:true,
         \ }
 
-  " Key mappings for Copilot
-  imap <silent><script><expr> <C-L> copilot#Accept("\<CR>")
+  " Disable default tab mapping
   let g:copilot_no_tab_map = v:true
+endif
+
+" ============================================================================
+" TAB KEY CONFIGURATION
+" ============================================================================
+
+" Smart Tab function that handles both Copilot and vsnip
+function! SmartTab()
+  " Check if Copilot suggestion is available
+  if exists('*copilot#GetDisplayedSuggestion')
+    let suggestion = copilot#GetDisplayedSuggestion()
+    if !empty(suggestion.text)
+      return copilot#Accept("\<Tab>")
+    endif
+  endif
+  
+  " Check if vsnip is jumpable
+  if exists('*vsnip#jumpable') && vsnip#jumpable(1)
+    return "\<Plug>(vsnip-jump-next)"
+  endif
+  
+  " Default Tab behavior
+  return "\<Tab>"
+endfunction
+
+" Key mappings
+imap <expr> <Tab> SmartTab()
+smap <expr> <Tab> vsnip#jumpable(1) ? '<Plug>(vsnip-jump-next)' : '<Tab>'
+imap <expr> <S-Tab> vsnip#jumpable(-1) ? '<Plug>(vsnip-jump-prev)' : '<S-Tab>'
+smap <expr> <S-Tab> vsnip#jumpable(-1) ? '<Plug>(vsnip-jump-prev)' : '<S-Tab>'
+
+" Keep C-L as alternative for Copilot accept
+if !empty(globpath(&rtp, 'autoload/copilot.vim'))
+  imap <silent><script><expr> <C-L> copilot#Accept("\<CR>")
 endif
 
 " ============================================================================
