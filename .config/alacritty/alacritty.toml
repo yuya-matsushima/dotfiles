@@ -12,7 +12,7 @@ blinking = "Off"
 shape = "Block"
 
 [env]
-TERM = "xterm-256color"
+TERM = "alacritty-direct"
 
 [font]
 builtin_box_drawing = true
@@ -45,7 +45,7 @@ key = "U"
 mods = "Control|Shift"
 
 [hints.enabled.mouse]
-enabled = false
+enabled = true
 mods = "Control"
 
 [scrolling]
@@ -53,7 +53,7 @@ history = 10000
 multiplier = 5
 
 [selection]
-save_to_clipboard = false
+save_to_clipboard = true
 semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
 
 [window]
@@ -62,7 +62,7 @@ decorations_theme_variant = "None"
 dynamic_padding = false
 dynamic_title = true
 opacity = 0.92
-option_as_alt = "None"
+option_as_alt = "Both"
 resize_increments = false
 startup_mode = "Windowed"
 
