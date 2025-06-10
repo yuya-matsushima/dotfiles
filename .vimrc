@@ -408,12 +408,12 @@ function! SmartTab()
       return copilot#Accept("\<Tab>")
     endif
   endif
-  
+
   " Check if vsnip is jumpable
   if exists('*vsnip#jumpable') && vsnip#jumpable(1)
     return "\<Plug>(vsnip-jump-next)"
   endif
-  
+
   " Default Tab behavior
   return "\<Tab>"
 endfunction
