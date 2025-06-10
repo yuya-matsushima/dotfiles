@@ -308,7 +308,7 @@ set laststatus=2    " Always show status line
 
 " Helper function for Copilot status
 function! IsCopilotEnabled()
-  if exists('g:copilot_enabled') && g:copilot_enabled == 1
+  if exists('*copilot#Enabled') && copilot#Enabled()
     return '[AI]'
   else
     return ''
