@@ -309,7 +309,7 @@ set laststatus=2    " Always show status line
 " Helper function for Copilot status
 function! IsCopilotEnabled()
   if exists('g:copilot_enabled') && g:copilot_enabled == 1
-    return ' [AI]'
+    return '[AI]'
   else
     return ''
   endif
@@ -325,7 +325,7 @@ set statusline+=[%l/%L]                             " Current line / Total lines
 set statusline+=[%{&filetype}]                      " File type
 set statusline+=[%{&fileencoding?&fileencoding:&encoding}]    " File encoding
 set statusline+=[%{g:keyboard_type}]                " Keyboard type (US/JIS)
-set statusline+=%{IsCopilotEnabled()}               " Copilot status
+set statusline+=%#CopilotStatus#%{IsCopilotEnabled()}%#StatusLine#  " Copilot status
 
 " ============================================================================
 " LSP SETTINGS
