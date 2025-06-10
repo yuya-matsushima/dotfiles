@@ -398,7 +398,7 @@ if !empty(globpath(&rtp, 'autoload/copilot.vim'))
         \ }
 
   " Key mappings for Copilot
-  imap <silent><script><expr> <C-J> copilot#Accept("\<CR>")
+  imap <silent><script><expr> <C-L> copilot#Accept("\<CR>")
   let g:copilot_no_tab_map = v:true
 endif
 
