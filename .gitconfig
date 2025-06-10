@@ -16,8 +16,11 @@
 [merge]
   ff = false
   tool = vimdiff
+  conflictstyle = diff3
 [pull]
   rebase = true
+[fetch]
+  prune = true
 [rerere]
   enabled = true
 [alias]
@@ -37,15 +40,13 @@
 [credential]
 	helper = osxkeychain
 [push]
-	default = simple
+	default = current
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	required = true
 	trustExitCode = true
 	process = git-lfs filter-process
-[diff]
-	compactionHeuristic = true
 [http]
 	sslVerify = true
 [secrets]
