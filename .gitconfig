@@ -45,7 +45,7 @@
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	required = true
-	trustexitcode = true
+	trustExitCode = true
 	process = git-lfs filter-process
 [http]
 	sslVerify = true
