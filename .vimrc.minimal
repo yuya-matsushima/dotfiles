@@ -6,7 +6,6 @@ filetype plugin on
 set iminsert=0
 set imsearch=0
 set number
-set signcolumn=yes
 set listchars=eol:$,tab:>\ ,extends:<
 set ambiwidth=double
 set showmatch
