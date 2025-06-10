@@ -62,7 +62,7 @@ decorations_theme_variant = "None"
 dynamic_padding = false
 dynamic_title = true
 opacity = 0.92
-option_as_alt = "None"
+option_as_alt = "Both"
 resize_increments = false
 startup_mode = "Windowed"
 
