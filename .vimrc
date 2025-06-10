@@ -322,9 +322,9 @@ set statusline+=%f                                  " File path
 set statusline+=%m                                  " Modified flag [+]
 set statusline+=%=                                  " Switch to right side
 set statusline+=[%l/%L]                             " Current line / Total lines
-set statusline+=\ [%{&filetype}]                    " File type
-set statusline+=\ [%{&fileencoding?&fileencoding:&encoding}]  " File encoding
-set statusline+=\ [%{g:keyboard_type}]              " Keyboard type (US/JIS)
+set statusline+=[%{&filetype}]                      " File type
+set statusline+=[%{&fileencoding?&fileencoding:&encoding}]    " File encoding
+set statusline+=[%{g:keyboard_type}]                " Keyboard type (US/JIS)
 set statusline+=%{IsCopilotEnabled()}               " Copilot status
 
 " ============================================================================
