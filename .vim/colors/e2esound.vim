@@ -136,3 +136,9 @@ hi link javaScriptNumber      Number
 
 " pupup
 hi PMenu ctermbg=235
+
+" GitGutter - diff-like colors
+hi GitGutterAdd         guifg=#00ff00     guibg=NONE        gui=NONE      ctermfg=2           ctermbg=NONE        cterm=NONE
+hi GitGutterChange      guifg=#ffff00     guibg=NONE        gui=NONE      ctermfg=3           ctermbg=NONE        cterm=NONE
+hi GitGutterDelete      guifg=#ff0000     guibg=NONE        gui=NONE      ctermfg=1           ctermbg=NONE        cterm=NONE
+hi GitGutterChangeDelete guifg=#ff8800    guibg=NONE        gui=NONE      ctermfg=9           ctermbg=NONE        cterm=NONE

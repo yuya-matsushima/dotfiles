@@ -64,6 +64,16 @@ Plug 'hashivim/vim-terraform', { 'for': 'terraform' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'github/copilot.vim'
 
+" fzf
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+" Git integration
+Plug 'airblade/vim-gitgutter'
+
+" Markdown
+Plug 'preservim/vim-markdown', { 'for': 'markdown' }
+
 call plug#end()
 
 " ============================================================================
@@ -416,6 +426,13 @@ au FileType gitcommit,hgcommit let b:EditorConfig_disable = 1
 
 " rust.vim
 let g:rustfmt_autosave = 1
+
+" vim-markdown
+let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_new_list_item_indent = 2
+
+" vim-gitgutter
+let g:gitgutter_diff_base = 'HEAD'
 
 " ============================================================================
 " COLOR SCHEME SETTINGS
