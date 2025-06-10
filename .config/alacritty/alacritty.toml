@@ -53,7 +53,7 @@ history = 10000
 multiplier = 5
 
 [selection]
-save_to_clipboard = false
+save_to_clipboard = true
 semantic_escape_chars = ",│`|:\"' ()[]{}<>\t"
 
 [window]
