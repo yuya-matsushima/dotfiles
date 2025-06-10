@@ -1,6 +1,4 @@
-set fileencodings=utf-8,ucs-bom,euc-jp,iso-2022-jp,sjis,cp932,utf-16,utf-16le
-
-au!
+set fileencodings=utf-8,ucs-bom,sjis,cp932,utf-16,utf-16le
 filetype on
 syntax on
 filetype indent on
@@ -8,7 +6,6 @@ filetype plugin on
 set iminsert=0
 set imsearch=0
 set number
-set signcolumn=yes
 set listchars=eol:$,tab:>\ ,extends:<
 set ambiwidth=double
 set showmatch
@@ -40,7 +37,7 @@ set nobackup
 set wildmenu
 set cmdheight=2
 set showcmd
-set statusline=\%t\%=\[%l/%L]\[%{&filetype}]\[%{&fileencoding}]
+set statusline=%f%m%=[%l/%L][%{&filetype}][%{&fileencoding?&fileencoding:&encoding}]
 set laststatus=2
 set splitbelow
 set splitright
@@ -51,13 +48,20 @@ set shiftwidth=2
 set expandtab
 augroup tabSetting
   autocmd!
+  autocmd FileType html,css setlocal tabstop=2 shiftwidth=2
+  autocmd FileType javascript,typescript setlocal tabstop=2 shiftwidth=2
+  autocmd FileType markdown setlocal tabstop=2 shiftwidth=2
+  autocmd FileType slim,haml setlocal tabstop=2 shiftwidth=2
   autocmd FileType php setlocal tabstop=4 shiftwidth=4
+  autocmd FileType python setlocal tabstop=4 shiftwidth=4
   autocmd FileType go setlocal noexpandtab tabstop=2 shiftwidth=2
 augroup END
 
-set foldenable
-set foldmethod=indent
-set fillchars=vert:\1
+if has('folding')
+  set foldenable
+  set foldmethod=indent
+  set fillchars=vert:\|
+endif
 augroup folding
   autocmd!
   autocmd FileType gitcommit,hgcommit setlocal nofoldenable
@@ -78,26 +82,50 @@ augroup END
 
 command! Sudow :w !sudo tee >/dev/null %
 
-" for US Keyboard
-" noremap ; :
-" noremap : ;
+" Dynamic keyboard type detection and mapping
+let g:keyboard_type = 'US'
+let g:has_external_us_keyboard = strlen(system('ioreg -n IOUSB -l | grep -E "(HHKB|Keychron Q11)"')) > 0
+
+" replace the colon and semicolon when a US keyboard
+" or external US keyboard is connected.
+if g:keyboard_type == 'US' || g:has_external_us_keyboard
+  noremap ; :
+  noremap : ;
+  if g:keyboard_type != 'US'
+    let g:keyboard_type = 'US'
+  endif
+endif
 
 augroup alias
   autocmd!
   autocmd BufRead,BufNewFile *.md,*.md.erb setlocal filetype=markdown
-  autocmd FileType js setlocal ft=javascript
-  autocmd BufRead,BufNewFile *.ts set filetype=typescript
-  autocmd FileType smarty,tpl,ciunit,ctp setlocal ft=php
-  autocmd FileType sql setlocal ft=mysql
-  autocmd FileTYpe scss.css setlocal ft=scss
-  autocmd FileType .envrc setlocal ft=sh
+  autocmd BufRead,BufNewFile *.scala.html setlocal filetype=scala
+  autocmd BufRead,BufNewFile *.ts setlocal filetype=typescript
+  autocmd BufRead,BufNewFile Vagrantfile,Guardfile setlocal filetype=ruby
+  autocmd BufRead,BufNewFile *.envrc setlocal filetype=sh
+  autocmd FileType sql setlocal filetype=mysql
+  autocmd FileType scss.css setlocal filetype=scss
 augroup END
+
+" Auto change directory function
+function! s:ChangeDir()
+  if exists('*lcd#changeDir')
+    call lcd#changeDir()
+  else
+    if fnameescape(expand('%:p:h')) != "quickrun:"
+      execute 'lcd ' fnameescape(expand('%:p:h'))
+    endif
+  endif
+endfunction
 
 augroup bufferEvent
   autocmd!
-  " CD.vim
-  autocmd BufEnter * call lcd#changeDir()
-  autocmd BufWritePre [:;][wq]* try | echoerr 'Forbidden file name: ' . expand('<afile>') | endtry
+  " Auto CD to file directory
+  autocmd BufEnter * call s:ChangeDir()
+
+  " Simple trailing whitespace removal
+  autocmd BufWritePre * %s/\s\+$//e
+  autocmd BufWritePre [:;]* try | echoerr 'Forbidden file name: ' . expand('<afile>') | endtry
   " autocmd BufWritePre *.php,*.js,*.jsx,*.tsx,*.ts,*.rb,*.c setlocal fenc=utf-8
 augroup END
 
