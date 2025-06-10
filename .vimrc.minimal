@@ -103,8 +103,8 @@ augroup alias
   autocmd BufRead,BufNewFile *.ts setlocal filetype=typescript
   autocmd BufRead,BufNewFile Vagrantfile,Guardfile setlocal filetype=ruby
   autocmd BufRead,BufNewFile *.envrc setlocal filetype=sh
-  autocmd FileType sql setlocal ft=mysql
-  autocmd FileType scss.css setlocal ft=scss
+  autocmd FileType sql setlocal filetype=mysql
+  autocmd FileType scss.css setlocal filetype=scss
 augroup END
 
 " Auto change directory function
