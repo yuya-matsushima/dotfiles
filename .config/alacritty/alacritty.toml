@@ -45,7 +45,7 @@ key = "U"
 mods = "Control|Shift"
 
 [hints.enabled.mouse]
-enabled = false
+enabled = true
 mods = "Control"
 
 [scrolling]
