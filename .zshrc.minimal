@@ -86,7 +86,10 @@ fi
 (( $+commands[direnv] )) && eval "$(direnv hook zsh)"
 # Use GNU grep if available (for personal use only)
 (( $+commands[ggrep] )) && alias ggrep="$HOMEBREW_PREFIX/bin/ggrep"
-(( $+commands[git_root] )) && alias root=git_root
+if (( $+commands[git] )); then
+  alias root_path='git rev-parse --show-toplevel 2>/dev/null || echo .'
+  alias root='cd $(root_path)'
+fi
 if (( $+commands[go] )); then
   export GOPATH=$(go env GOPATH)
   export GOBIN=${GOPATH}/bin
