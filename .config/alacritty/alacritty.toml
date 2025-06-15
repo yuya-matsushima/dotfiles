@@ -3,12 +3,12 @@ live_config_reload = true
 import = ["/Users/yuya.matsushima/.config/alacritty/e2esound.toml"]
 
 [bell]
-duration = 0
+duration = 100
 
 [cursor]
 thickness = 0.15
 unfocused_hollow = true
-vi_mode_style = "None"
+vi_mode_style = "Block"
 
 [cursor.style]
 blinking = "Off"
@@ -19,7 +19,7 @@ TERM = "alacritty-direct"
 
 [font]
 builtin_box_drawing = true
-size = 16.0
+size = 14.0
 
 [font.bold]
 family = "JetbrainsMono Nerd Font"
@@ -52,7 +52,7 @@ enabled = true
 mods = "Control"
 
 [scrolling]
-history = 10000
+history = 50000
 multiplier = 5
 
 [selection]
@@ -76,3 +76,20 @@ lines = 50
 [window.padding]
 x = 5
 y = 5
+
+# tmux を併用するためコメントアウト
+# [[keyboard.bindings]]
+# key = "V"
+# mods = "Command"
+# action = "Paste"
+
+# [[keyboard.bindings]]
+# key = "C"
+# mods = "Command"
+# action = "Copy"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Command"
+action = "SpawnNewInstance"
+
