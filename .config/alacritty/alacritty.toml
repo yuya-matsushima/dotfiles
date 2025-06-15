@@ -1,7 +1,7 @@
 
 [general]
 live_config_reload = true
-import = ["/Users/yuya.matsushima/.config/alacritty/e2esound.toml"]
+import = ["~/.config/alacritty/e2esound.toml"]
 
 [bell]
 duration = 0
