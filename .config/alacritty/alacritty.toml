@@ -1,9 +1,12 @@
 
+[general]
 live_config_reload = true
 import = ["/Users/yuya.matsushima/.config/alacritty/e2esound.toml"]
 
 [bell]
-duration = 100
+duration = 0
+animation = "EaseOutExpo"
+color = "#404040"
 
 [cursor]
 thickness = 0.15
