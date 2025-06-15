@@ -7,8 +7,8 @@ todaymd creates a markdown file with a date prefix in the specified directory, a
 Usage:
     todaymd           create matkdown with CLI Editor
     todaymd list      list markdown files in TODAYMD_DIR
-    todaymd edit      search and edit file with peco
-    todaymd rm        search and remove file with peco
+    todaymd edit      search and edit file with fzf
+    todaymd rm        search and remove file with fzf
 
 Options:
     --help, -h        print help
@@ -17,7 +17,7 @@ Configurable Environment Variables:
   TODAYMD_DIR=path/to/default/save/dir
 
 Dependencies:
-    peco
+    fzf
     tmux
     vim
 EOF
@@ -79,7 +79,7 @@ _ymt_todaymd_edit() {
     return 1
   fi
 
-  file=$(find "${TODAYMD_DIR}" -name \*.md -type f -exec basename {} \; | sort -r | peco --prompt='file >')
+  file=$(find "${TODAYMD_DIR}" -name \*.md -type f -exec basename {} \; | sort -r | fzf --prompt='file >')
   if [[ -n "$file" ]]; then
     if ! command -v vim >/dev/null 2>&1; then
       echo "Error: vim is not installed" >&2
@@ -97,7 +97,7 @@ _ymt_todaymd_rm() {
     return 1
   fi
 
-  file=$(find "${TODAYMD_DIR}" -name \*.md -type f -exec basename {} \; | sort -r | peco --prompt='file >')
+  file=$(find "${TODAYMD_DIR}" -name \*.md -type f -exec basename {} \; | sort -r | fzf --prompt='file >')
   if [[ -n "$file" ]]; then
     rm -i "${TODAYMD_DIR}/${file}"
   fi

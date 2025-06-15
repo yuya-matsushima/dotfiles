@@ -18,15 +18,15 @@ Options:
 
 Dependencies:
     tmux
-    peco
+    fzf
 EOF
 }
 
 _ymt_tmx_switch() {
   local session=${1}
   if [ -z "${session}" ]; then
-    # 未指定の場合 peco から選択
-    session="$(tmux list-sessions | peco --prompt='session >' | cut -d : -f 1)"
+    # 未指定の場合 fzf から選択
+    session="$(tmux list-sessions | fzf --prompt='session >' | cut -d : -f 1)"
   fi
 
   if [ -n "$session" ]; then
