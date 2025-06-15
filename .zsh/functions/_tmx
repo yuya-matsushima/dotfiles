@@ -1,13 +1,46 @@
 #compdef tmx
-local -a subcmds
-subcmds=('l:list sessions'\
-         'list:list sessions'\
-         'a:attach/switch session'\
-         'attach:attach/switch session'\
-         's:attach/switch session'\
-         'switch:attach/switch session'\
-         'd:detach session'\
-         'detach:detach session'\
-         'k:kill session'\
-         'kill:kill session')
-_describe 'command' subcmds
+
+_tmx() {
+  local -a subcmds sessions
+  local curcontext="$curcontext" state line
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :->command' \
+    '2: :->session'
+
+  case $state in
+    command)
+      subcmds=('l:list sessions'\
+               'list:list sessions'\
+               'a:attach/switch session'\
+               'attach:attach/switch session'\
+               's:attach/switch session'\
+               'switch:attach/switch session'\
+               'd:detach session'\
+               'detach:detach session'\
+               'k:kill session'\
+               'kill:kill session')
+      _describe 'command' subcmds
+      
+      # セッション名の直接指定も補完
+      sessions=(${(f)"$(tmux list-sessions 2>/dev/null | cut -d: -f1)"})
+      if [[ -n "$sessions" ]]; then
+        _values 'sessions' $sessions
+      fi
+      ;;
+    session)
+      case $line[1] in
+        a|attach|s|switch|k|kill)
+          # セッション名の補完
+          sessions=(${(f)"$(tmux list-sessions 2>/dev/null | cut -d: -f1)"})
+          if [[ -n "$sessions" ]]; then
+            _values 'sessions' $sessions
+          fi
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_tmx "$@"
