@@ -34,6 +34,14 @@ Claude Code使用時は以下のフォーマットを使用してください:
 🤖 Generated with Claude Code
 ```
 
+## Pull Request 作成時の設定
+
+Claude Code で PR を作成する際は、GitHub Copilot をレビュワーとして追加してください:
+
+```bash
+gh pr create --title "タイトル" --body "本文" --reviewer Copilot
+```
+
 ## Claude Code の推奨設定
 
 新しい環境でClaude Codeをセットアップする際は以下の設定を推奨:
