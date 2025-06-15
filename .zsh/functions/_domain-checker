@@ -1,0 +1,32 @@
+#compdef domain-checker
+
+_domain-checker() {
+  local -a subcmds
+  local curcontext="$curcontext" state line
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :->command' \
+    '2: :->domain'
+
+  case $state in
+    command)
+      subcmds=(
+        'a:show A records for a domain'
+        'mx:show MX records for a domain'
+        'spf:show SPF record for a domain'
+        'dkim:show DKIM record for a domain'
+        'dmarc:show DMARC record for a domain'
+      )
+      _describe 'command' subcmds
+      # ドメイン名も直接指定可能
+      _message 'domain name'
+      ;;
+    domain)
+      # ドメイン名の入力
+      _message 'domain name'
+      ;;
+  esac
+}
+
+_domain-checker "$@"

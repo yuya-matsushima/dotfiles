@@ -1,0 +1,47 @@
+#compdef dns
+
+_dns() {
+  local -a subcmds services resolvers
+  local curcontext="$curcontext" state line
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :->command' \
+    '2: :->arg1' \
+    '3: :->arg2'
+
+  case $state in
+    command)
+      subcmds=(
+        'services:show network services'
+        'resolvers:show available dns resolvers'
+        'show:show current dns resolver'
+        'change:change dns resolver'
+        'reset:reset dns resolver'
+      )
+      _describe 'command' subcmds
+      ;;
+    arg1)
+      case $line[1] in
+        show|change|reset)
+          # ネットワークサービスの補完
+          services=(${(f)"$(networksetup -listallnetworkservices 2>/dev/null | grep -v 'disabled.')"})
+          if [[ -n "$services" ]]; then
+            _values 'network service' $services
+          fi
+          ;;
+      esac
+      ;;
+    arg2)
+      case $line[1] in
+        change)
+          # リゾルバーの補完 (google, cloudflare)
+          resolvers=(google cloudflare)
+          _values 'dns resolver' $resolvers
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_dns "$@"

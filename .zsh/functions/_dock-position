@@ -1,4 +1,4 @@
-#compdef doc-position
+#compdef dock-position
 
 local -a subcmds
 subcmds=(
