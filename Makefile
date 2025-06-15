@@ -50,6 +50,10 @@ asdf_k8s: ## Install k8s Tools
 asdf_terraform: asdf_cloud ## Install Terraform Tools
 	sh ./bin/asdf/terraform.sh
 
+.PHONY: claude_code
+claude_code: ## Install Claude Code CLI
+	sh ./bin/claude_code.sh
+
 .PHONY: asdf_nodejs
 asdf_nodejs: ## Install NodeJS
 	sh ./bin/asdf/nodejs.sh

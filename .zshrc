@@ -141,6 +141,7 @@ if (( $+commands[go] )); then
 fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
+(( $+commands[claude] )) && alias claude-yolo="claude --dangerous-disable-safety"
 if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
   export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
