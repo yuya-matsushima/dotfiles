@@ -12,11 +12,24 @@ fi
 # Install Claude CLI globally
 npm install -g @anthropic-ai/claude-cli
 
-# Verify installation
+# Verify Claude CLI installation
 if command -v claude >/dev/null 2>&1; then
     echo "Claude CLI installed successfully!"
     claude --version
 else
     echo "Error: Claude CLI installation failed."
+    exit 1
+fi
+
+# Install ccusage tool
+echo "Installing ccusage (Claude Code usage tracker)..."
+npm install -g ccusage@latest
+
+# Verify ccusage installation
+if command -v ccusage >/dev/null 2>&1; then
+    echo "ccusage installed successfully!"
+    ccusage --version
+else
+    echo "Error: ccusage installation failed."
     exit 1
 fi
