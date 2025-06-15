@@ -384,12 +384,18 @@ endif
 
 " GitHub Copilot settings
 if !empty(globpath(&rtp, 'autoload/copilot.vim'))
-  " Enable Copilot for specific filetypes
-  let g:copilot_filetypes = {
-        \ '*': v:true,
-        \ 'gitcommit': v:true,
-        \ 'markdown': v:true,
-        \ }
+  " Check if Copilot should be disabled via environment variable
+  if exists('$DISABLE_COPILOT') && $DISABLE_COPILOT ==# '1'
+    let g:copilot_enabled = v:false
+    let g:copilot_filetypes = { '*': v:false }
+  else
+    " Enable Copilot for specific filetypes
+    let g:copilot_filetypes = {
+          \ '*': v:true,
+          \ 'gitcommit': v:true,
+          \ 'markdown': v:true,
+          \ }
+  endif
 
   " Disable default tab mapping
   let g:copilot_no_tab_map = v:true
