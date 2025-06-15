@@ -55,7 +55,7 @@ enabled = true
 mods = "Control"
 
 [scrolling]
-history = 50000
+history = 5000  # tmux使用のため最小限に設定
 multiplier = 5
 
 [selection]
