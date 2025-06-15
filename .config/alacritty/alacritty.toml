@@ -1,4 +1,7 @@
 
+live_config_reload = true
+import = ["/Users/yuya.matsushima/.config/alacritty/e2esound.toml"]
+
 [bell]
 duration = 0
 
@@ -73,7 +76,3 @@ lines = 50
 [window.padding]
 x = 5
 y = 5
-
-[general]
-live_config_reload = true
-import = ["/Users/yuya.matsushima/.config/alacritty/e2esound.toml"]
