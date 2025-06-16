@@ -142,6 +142,10 @@ fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerous-disable-safety'
+# tinyvim: vim with minimal configuration
+if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
+  alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
+fi
 if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
   export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
