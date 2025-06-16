@@ -25,6 +25,7 @@ TARGETS=( \
          ".tmux.conf" \
          ".vim" \
          ".vimrc" \
+         ".vimrc.minimal" \
          ".gvimrc" \
          ".zsh" \
          ".zshrc" \
