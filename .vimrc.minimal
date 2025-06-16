@@ -1,6 +1,14 @@
 set fileencodings=utf-8,ucs-bom,sjis,cp932,utf-16,utf-16le
 filetype on
 syntax on
+
+" Load colorscheme if available
+try
+  colorscheme e2esound
+catch /^Vim\%((\a\+)\)\=:E185/
+  " Colorscheme not found, use default
+endtry
+
 filetype indent on
 filetype plugin on
 set iminsert=0
