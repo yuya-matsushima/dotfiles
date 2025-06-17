@@ -22,6 +22,7 @@ end
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
 hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Inkdrop") end)
 hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
+hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
 
 -- IME の英字/ひらがなを右 cmd で切り替え
 -- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
