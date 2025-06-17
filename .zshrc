@@ -219,7 +219,7 @@ which less > /dev/null && source $HOME/.zsh/config/less.zsh
 [ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
 
 # start tmux via tmx for Alacritty only
-if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ "$TERM" == "alacritty-direct" ]]; then
+if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ "$TERM" == alacritty* ]]; then
   tmx
 fi
 
