@@ -62,7 +62,7 @@ Claude Code で PR を作成する際は、以下の設定を行ってくださ�
 * label に `Claude Code` を追加
 
 ```bash
-gh pr create --title "タイトル" --body "本文" --reviewer Copilot --assignee @me --label "Claude Code"
+gh pr create --title "タイトル" --body "本文" --reviewer @copilot --assignee @me --label "Claude Code"
 ```
 
 ## Claude Code の推奨設定
