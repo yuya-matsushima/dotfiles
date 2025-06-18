@@ -65,7 +65,7 @@ asdf_ruby: asdf_nodejs ## Install Ruby
 .PHONY: asdf_golang
 asdf_golang: ## Install Golang
 	sh ./bin/asdf/golang.sh
-	sh ./bin/languates/golang.sh
+	sh ./bin/languages/golang.sh
 
 .PHONY: asdf_python
 asdf_python: ## Install Python
