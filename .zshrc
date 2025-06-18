@@ -141,7 +141,7 @@ if (( $+commands[go] )); then
 fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
-(( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerous-disable-safety'
+(( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerously-skip-permissions'
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
