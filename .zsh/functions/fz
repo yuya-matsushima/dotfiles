@@ -152,20 +152,26 @@ _ymt_fz_history() {
     --header "Press Enter to execute command")
   
   if [ -n "$selected_command" ]; then
-    # 履歴に追加してから実行
-    print -s "$selected_command"
-    eval "$selected_command"
+    # コマンドラインに入力するのみ（実行はユーザーに委ねる）
+    print -z "$selected_command"
   fi
 }
 
 # 環境変数検索・表示
 _ymt_fz_env() {
   local selected_env
-  selected_env=$(env | sort | fzf \
-    --preview 'echo {} | cut -d= -f2-' \
-    --preview-window=right:50%:wrap \
-    --header "Environment variables" \
-    $(if (( $+commands[pbcopy] )); then echo '--bind ctrl-y:execute-silent(echo {} | pbcopy)'; fi))
+  if (( $+commands[pbcopy] )); then
+    selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
+      --preview 'echo {} | cut -d= -f2-' \
+      --preview-window=right:50%:wrap \
+      --header "Environment variables (Press CTRL-Y to copy)" \
+      --bind='ctrl-y:execute(echo {} | pbcopy)')
+  else
+    selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
+      --preview 'echo {} | cut -d= -f2-' \
+      --preview-window=right:50%:wrap \
+      --header "Environment variables")
+  fi
   
   if [ -n "$selected_env" ]; then
     echo "$selected_env"
@@ -176,9 +182,9 @@ _ymt_fz_env() {
 _ymt_fz_cd() {
   local selected_dir
   
-  # dirsコマンドの出力から選択
+  # dirsコマンドの出力から選択（~を展開してプレビュー）
   selected_dir=$(dirs -p | tail -n +2 | awk '!seen[$0]++' | fzf \
-    --preview 'ls -la {}' \
+    --preview 'eval ls -la --color=always {}' \
     --preview-window=right:50% \
     --header "Directory history")
   
