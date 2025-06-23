@@ -31,6 +31,18 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
+        history)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        env)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        cd)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
         help)
           # helpサブコマンドに引数はない
           ;;
@@ -46,6 +58,9 @@ _fz_subcommands() {
     'log:Git commit履歴検索'
     'kill:プロセス検索・kill'
     'docker:Docker container接続'
+    'history:コマンド履歴検索・実行'
+    'env:環境変数検索・表示'
+    'cd:ディレクトリ履歴から移動'
     'help:ヘルプを表示'
   )
   _describe -t subcommands 'fz subcommand' subcommands

@@ -57,6 +57,9 @@ Subcommands:
   log       Git commit履歴検索
   kill      プロセス検索・kill
   docker    Docker container接続
+  history   コマンド履歴検索・実行
+  env       環境変数検索・表示
+  cd        ディレクトリ履歴から移動
   help      このヘルプを表示
 
 Examples:
@@ -64,6 +67,9 @@ Examples:
   fz log        # Git logを検索（Ctrl+Yでhash copy）
   fz kill       # プロセスを選択してkill
   fz docker     # Docker containerを選択して接続
+  fz history    # コマンド履歴を検索して実行
+  fz env        # 環境変数を検索・表示
+  fz cd         # ディレクトリ履歴から選択して移動
 EOF
 }
 
@@ -137,6 +143,51 @@ _ymt_fz_docker() {
   fi
 }
 
+# コマンド履歴検索・実行
+_ymt_fz_history() {
+  local selected_command
+  selected_command=$(fc -ln 1 | awk '!seen[$0]++' | fzf --tac --no-sort \
+    --preview 'echo {}' \
+    --preview-window=down:3:wrap \
+    --header "Press Enter to execute command")
+  
+  if [ -n "$selected_command" ]; then
+    # 履歴に追加してから実行
+    print -s "$selected_command"
+    eval "$selected_command"
+  fi
+}
+
+# 環境変数検索・表示
+_ymt_fz_env() {
+  local selected_env
+  selected_env=$(env | sort | fzf \
+    --preview 'echo {} | cut -d= -f2-' \
+    --preview-window=right:50%:wrap \
+    --header "Environment variables" \
+    $(if (( $+commands[pbcopy] )); then echo '--bind ctrl-y:execute-silent(echo {} | pbcopy)'; fi))
+  
+  if [ -n "$selected_env" ]; then
+    echo "$selected_env"
+  fi
+}
+
+# ディレクトリ履歴から移動
+_ymt_fz_cd() {
+  local selected_dir
+  
+  # dirsコマンドの出力から選択
+  selected_dir=$(dirs -p | tail -n +2 | awk '!seen[$0]++' | fzf \
+    --preview 'ls -la {}' \
+    --preview-window=right:50% \
+    --header "Directory history")
+  
+  if [ -n "$selected_dir" ]; then
+    cd "$selected_dir"
+    pwd
+  fi
+}
+
 # 依存関係をチェック
 if ! _ymt_fz_check_dependencies 2>/dev/null; then
   _ymt_fz_check_dependencies
@@ -160,6 +211,18 @@ case "${1:-help}" in
   docker)
     shift
     _ymt_fz_docker "$@"
+    ;;
+  history)
+    shift
+    _ymt_fz_history "$@"
+    ;;
+  env)
+    shift
+    _ymt_fz_env "$@"
+    ;;
+  cd)
+    shift
+    _ymt_fz_cd "$@"
     ;;
   help|--help|-h)
     _ymt_fz_usage
