@@ -1,0 +1,168 @@
+#!/usr/bin/env zsh
+# fz - fzf wrapper command
+
+# 依存コマンドのチェック
+_ymt_fz_check_dependencies() {
+  local missing_deps=()
+  
+  # 基本的な依存
+  if ! (( $+commands[fzf] )); then
+    missing_deps+=("fzf")
+  fi
+  
+  if ! (( $+commands[git] )); then
+    missing_deps+=("git")
+  fi
+  
+  # オプショナルな依存（警告のみ）
+  local optional_deps=()
+  if ! (( $+commands[fd] )); then
+    optional_deps+=("fd (better file search)")
+  fi
+  
+  if ! (( $+commands[bat] )); then
+    optional_deps+=("bat (syntax highlighting)")
+  fi
+  
+  if ! (( $+commands[tree] )); then
+    optional_deps+=("tree (directory preview)")
+  fi
+  
+  # 必須コマンドが不足している場合はエラー
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    echo "Error: Missing required dependencies:" >&2
+    printf "  - %s\n" "${missing_deps[@]}" >&2
+    echo "Please install them first." >&2
+    return 1
+  fi
+  
+  # オプショナルコマンドの警告
+  if [[ ${#optional_deps[@]} -gt 0 ]]; then
+    echo "Warning: Missing optional dependencies for better experience:" >&2
+    printf "  - %s\n" "${optional_deps[@]}" >&2
+  fi
+  
+  return 0
+}
+
+# サブコマンドのヘルプ
+_ymt_fz_usage() {
+  cat <<EOF
+fz - fzf wrapper command
+
+Usage: fz <subcommand> [options]
+
+Subcommands:
+  branch    Git branch切り替え
+  log       Git commit履歴検索
+  kill      プロセス検索・kill
+  docker    Docker container接続
+  help      このヘルプを表示
+
+Examples:
+  fz branch     # Git branchを選択して切り替え
+  fz log        # Git logを検索（Ctrl+Yでhash copy）
+  fz kill       # プロセスを選択してkill
+  fz docker     # Docker containerを選択して接続
+EOF
+}
+
+# Git branch切り替え
+_ymt_fz_branch() {
+  # Git リポジトリチェック
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
+    return 1
+  fi
+  
+  local branches branch
+  branches=$(git branch --all | grep -v HEAD) &&
+  branch=$(echo "$branches" | fzf -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+  git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+}
+
+# Git commit履歴検索
+_ymt_fz_log() {
+  # Git リポジトリチェック
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
+    return 1
+  fi
+  
+  # macOSでのみpbcopyが使える
+  local copy_cmd=""
+  if (( $+commands[pbcopy] )); then
+    copy_cmd="ctrl-y:execute-silent(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | pbcopy)+abort"
+  fi
+  
+  git log --graph --color=always \
+    --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+  fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
+    ${copy_cmd:+--bind "$copy_cmd"} \
+    --header "${copy_cmd:+Press CTRL-Y to copy commit hash}" \
+    --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
+    --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+}
+
+# プロセスkill
+_ymt_fz_kill() {
+  local pid
+  pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+  if [ "x$pid" != "x" ]; then
+    echo $pid | xargs kill -${1:-9}
+  fi
+}
+
+# Docker container選択
+_ymt_fz_docker() {
+  if ! (( $+commands[docker] )); then
+    echo "Error: docker command not found" >&2
+    return 1
+  fi
+  
+  # Docker daemonが起動しているかチェック
+  if ! docker ps > /dev/null 2>&1; then
+    echo "Error: Docker daemon is not running or permission denied" >&2
+    return 1
+  fi
+  
+  local container
+  container=$(docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}" | sed 1d | fzf | awk '{print $1}')
+  if [ -n "$container" ]; then
+    docker exec -it $container /bin/bash || docker exec -it $container /bin/sh
+  fi
+}
+
+# 依存関係をチェック
+if ! _ymt_fz_check_dependencies 2>/dev/null; then
+  _ymt_fz_check_dependencies
+  return 1
+fi
+
+# メイン処理
+case "${1:-help}" in
+  branch)
+    shift
+    _ymt_fz_branch "$@"
+    ;;
+  log)
+    shift
+    _ymt_fz_log "$@"
+    ;;
+  kill)
+    shift
+    _ymt_fz_kill "$@"
+    ;;
+  docker)
+    shift
+    _ymt_fz_docker "$@"
+    ;;
+  help|--help|-h)
+    _ymt_fz_usage
+    ;;
+  *)
+    echo "Error: Unknown subcommand '$1'" >&2
+    echo "Run 'fz help' for usage." >&2
+    return 1
+    ;;
+esac
