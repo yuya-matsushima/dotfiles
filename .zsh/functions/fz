@@ -214,13 +214,26 @@ _ymt_fz_pr() {
   local selected_pr
   selected_pr=$(gh pr list --limit 100 --json number,title,author,state,createdAt,headRefName \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}] {{.headRefName}}{{"\n"}}{{end}}' |
-    fzf --preview 'gh pr view {1} --comments' \
-        --preview-window=right:60%:wrap \
-        --header "Select PR to view details")
+    fzf \
+        --header "Select PR (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh pr view % --web)')
   
   if [ -n "$selected_pr" ]; then
     local pr_number=$(echo "$selected_pr" | cut -d'#' -f2 | cut -d' ' -f1)
-    gh pr view "$pr_number" --web
+    if (( $+commands[glow] )); then
+      # glow でMarkdownをレンダリング
+      {
+        gh pr view "$pr_number" --json number,title,author,state,createdAt,url | jq -r '"# PR #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**URL:** \(.url)\n\n---\n"'
+        gh pr view "$pr_number" --json body -q ".body" | sed "s/<[^>]*>//g"
+      } | glow -p -
+    else
+      # glowがない場合は通常表示
+      if [ -n "$PAGER" ]; then
+        gh pr view "$pr_number" | $PAGER
+      else
+        gh pr view "$pr_number" | less -R
+      fi
+    fi
   fi
 }
 
@@ -240,13 +253,26 @@ _ymt_fz_issue() {
   local selected_issue
   selected_issue=$(gh issue list --limit 100 --json number,title,author,state,createdAt,labels \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}]{{if .labels}} {{range .labels}}[{{.name}}]{{end}}{{end}}{{"\n"}}{{end}}' |
-    fzf --preview 'gh issue view {1} --comments' \
-        --preview-window=right:60%:wrap \
-        --header "Select issue to view details")
+    fzf \
+        --header "Select issue (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh issue view % --web)')
   
   if [ -n "$selected_issue" ]; then
     local issue_number=$(echo "$selected_issue" | cut -d'#' -f2 | cut -d' ' -f1)
-    gh issue view "$issue_number" --web
+    if (( $+commands[glow] )); then
+      # glow でMarkdownをレンダリング
+      {
+        gh issue view "$issue_number" --json number,title,author,state,createdAt,url,labels | jq -r '"# Issue #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**Labels:** \(.labels | map(.name) | join(", "))  \n**URL:** \(.url)\n\n---\n"'
+        gh issue view "$issue_number" --json body -q ".body" | sed "s/<[^>]*>//g"
+      } | glow -p -
+    else
+      # glowがない場合は通常表示
+      if [ -n "$PAGER" ]; then
+        gh issue view "$issue_number" | $PAGER
+      else
+        gh issue view "$issue_number" | less -R
+      fi
+    fi
   fi
 }
 
