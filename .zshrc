@@ -150,16 +150,7 @@ if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
 fi
 if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
-  export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
-  export FZF_DEFAULT_OPTS='--height 50% --reverse --border --preview-window=right:50%'
-  export FZF_PREVIEW_COMMAND="[[ -d {} ]] && tree -C {} || bat --style=numbers --color=always {}"
-  export FZF_COMPLETION_OPTS="--preview '${FZF_PREVIEW_COMMAND}'"
-  export FZF_CTRL_R_OPTS="\
-    --preview \"echo {} | awk '{\$1=\\\"\\\"; sub(/^ /, \\\"\\\"); print}'\" \
-    --preview-window=right:50%:wrap"
-
-  # Alt+C support
-  bindkey "ç" fzf-cd-widget
+  [ -f $HOME/.zsh/fzf.zsh ] && source $HOME/.zsh/fzf.zsh
 fi
 
 ## terminal configuration
