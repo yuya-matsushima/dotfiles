@@ -60,6 +60,8 @@ Subcommands:
   history   コマンド履歴検索・実行
   env       環境変数検索・表示
   cd        ディレクトリ履歴から移動
+  pr        GitHub Pull Request一覧
+  issue     GitHub Issue一覧
   help      このヘルプを表示
 
 Examples:
@@ -70,6 +72,8 @@ Examples:
   fz history    # コマンド履歴を検索して実行
   fz env        # 環境変数を検索・表示
   fz cd         # ディレクトリ履歴から選択して移動
+  fz pr         # Pull Requestを選択して詳細表示
+  fz issue      # Issueを選択して詳細表示
 EOF
 }
 
@@ -194,6 +198,58 @@ _ymt_fz_cd() {
   fi
 }
 
+# GitHub Pull Request一覧
+_ymt_fz_pr() {
+  if ! (( $+commands[gh] )); then
+    echo "Error: gh command not found. Please install GitHub CLI." >&2
+    return 1
+  fi
+  
+  # GitHubリポジトリチェック
+  if ! gh repo view > /dev/null 2>&1; then
+    echo "Error: Not in a GitHub repository or not authenticated" >&2
+    return 1
+  fi
+  
+  local selected_pr
+  selected_pr=$(gh pr list --limit 100 --json number,title,author,state,createdAt,headRefName \
+    --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}] {{.headRefName}}{{"\n"}}{{end}}' |
+    fzf --preview 'gh pr view {1} --comments' \
+        --preview-window=right:60%:wrap \
+        --header "Select PR to view details")
+  
+  if [ -n "$selected_pr" ]; then
+    local pr_number=$(echo "$selected_pr" | cut -d'#' -f2 | cut -d' ' -f1)
+    gh pr view "$pr_number" --web
+  fi
+}
+
+# GitHub Issue一覧
+_ymt_fz_issue() {
+  if ! (( $+commands[gh] )); then
+    echo "Error: gh command not found. Please install GitHub CLI." >&2
+    return 1
+  fi
+  
+  # GitHubリポジトリチェック
+  if ! gh repo view > /dev/null 2>&1; then
+    echo "Error: Not in a GitHub repository or not authenticated" >&2
+    return 1
+  fi
+  
+  local selected_issue
+  selected_issue=$(gh issue list --limit 100 --json number,title,author,state,createdAt,labels \
+    --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}]{{if .labels}} {{range .labels}}[{{.name}}]{{end}}{{end}}{{"\n"}}{{end}}' |
+    fzf --preview 'gh issue view {1} --comments' \
+        --preview-window=right:60%:wrap \
+        --header "Select issue to view details")
+  
+  if [ -n "$selected_issue" ]; then
+    local issue_number=$(echo "$selected_issue" | cut -d'#' -f2 | cut -d' ' -f1)
+    gh issue view "$issue_number" --web
+  fi
+}
+
 # 依存関係をチェック
 if ! _ymt_fz_check_dependencies 2>/dev/null; then
   _ymt_fz_check_dependencies
@@ -229,6 +285,14 @@ case "${1:-help}" in
   cd)
     shift
     _ymt_fz_cd "$@"
+    ;;
+  pr)
+    shift
+    _ymt_fz_pr "$@"
+    ;;
+  issue)
+    shift
+    _ymt_fz_issue "$@"
     ;;
   help|--help|-h)
     _ymt_fz_usage
