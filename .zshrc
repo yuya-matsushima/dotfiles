@@ -150,7 +150,7 @@ if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
 fi
 if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
-  [ -f $HOME/.zsh/fzf.zsh ] && source $HOME/.zsh/fzf.zsh
+  [ -f "$HOME/.zsh/fzf.zsh" ] && source "$HOME/.zsh/fzf.zsh"
 fi
 
 ## terminal configuration

@@ -28,6 +28,10 @@ _ymt_fz_check_dependencies() {
     optional_deps+=("tree (directory preview)")
   fi
 
+  if ! (( $+commands[gh] )); then
+    optional_deps+=("gh (GitHub CLI)")
+  fi
+
   # 必須コマンドが不足している場合はエラー
   if [[ ${#missing_deps[@]} -gt 0 ]]; then
     echo "Error: Missing required dependencies:" >&2
@@ -87,7 +91,7 @@ _ymt_fz_branch() {
 
   local branches branch
   branches=$(git branch | grep -v '^\*') &&
-  branch=$(echo "$branches" | fzf -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+  branch=$(echo "$branches" | fzf --height $((2 + $(wc -l <<< "$branches"))) -m) &&
   git checkout $(echo "$branch" | sed 's/^[ \t]*//')
 }
 
@@ -104,7 +108,7 @@ _ymt_fz_log() {
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)' \
+      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
       --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
