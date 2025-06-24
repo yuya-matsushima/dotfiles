@@ -3,15 +3,16 @@
 # 基本設定
 export FZF_DEFAULT_COMMAND="fd --type f --type d --hidden --exclude .git"
 export FZF_DEFAULT_OPTS='
-  --height 50% 
-  --reverse 
-  --border 
+  --height 50%
+  --reverse
+  --border
   --preview-window=right:50%
   --prompt="❯ "
   --pointer="▶"
-  --marker="✓"'
+  --marker="✓"
+  --bind "P:preview-up,N:preview-down"'
 
-# プレビューコマンド
+# プレビューコマンド (Shift+N/P でプレビュー内をスクロール)
 export FZF_PREVIEW_COMMAND='
   if [[ -d {} ]]; then
     tree -C {} | head -100
@@ -29,7 +30,7 @@ export FZF_COMPLETION_OPTS="--preview '${FZF_PREVIEW_COMMAND}'"
 
 # Ctrl+R: コマンド履歴検索
 export FZF_CTRL_R_OPTS="
-  --preview 'echo {} | sed \"s/^ *[0-9]* *//\" | head -1' 
+  --preview 'echo {} | sed \"s/^ *[0-9]* *//\" | head -1'
   --preview-window=down:3:wrap
   --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
   --color header:italic
