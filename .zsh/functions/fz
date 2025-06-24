@@ -1,0 +1,335 @@
+#!/usr/bin/env zsh
+# fz - fzf wrapper command
+
+# 依存コマンドのチェック
+_ymt_fz_check_dependencies() {
+  local missing_deps=()
+
+  # 基本的な依存
+  if ! (( $+commands[fzf] )); then
+    missing_deps+=("fzf")
+  fi
+
+  if ! (( $+commands[git] )); then
+    missing_deps+=("git")
+  fi
+
+  # オプショナルな依存（警告のみ）
+  local optional_deps=()
+  if ! (( $+commands[fd] )); then
+    optional_deps+=("fd (better file search)")
+  fi
+
+  if ! (( $+commands[bat] )); then
+    optional_deps+=("bat (syntax highlighting)")
+  fi
+
+  if ! (( $+commands[tree] )); then
+    optional_deps+=("tree (directory preview)")
+  fi
+
+  if ! (( $+commands[gh] )); then
+    optional_deps+=("gh (GitHub CLI)")
+  fi
+
+  # 必須コマンドが不足している場合はエラー
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    echo "Error: Missing required dependencies:" >&2
+    printf "  - %s\n" "${missing_deps[@]}" >&2
+    echo "Please install them first." >&2
+    return 1
+  fi
+
+  # オプショナルコマンドの警告
+  if [[ ${#optional_deps[@]} -gt 0 ]]; then
+    echo "Warning: Missing optional dependencies for better experience:" >&2
+    printf "  - %s\n" "${optional_deps[@]}" >&2
+  fi
+
+  return 0
+}
+
+# サブコマンドのヘルプ
+_ymt_fz_usage() {
+  cat <<EOF
+fz - fzf wrapper command
+
+Usage: fz <subcommand> [options]
+
+Subcommands:
+  branch    Git branch切り替え
+  log       Git commit履歴検索
+  kill      プロセス検索・kill
+  docker    Docker container接続
+  history   コマンド履歴検索・実行
+  env       環境変数検索・表示
+  cd        ディレクトリ履歴から移動
+  pr        GitHub Pull Request一覧
+  issue     GitHub Issue一覧
+  help      このヘルプを表示
+
+Examples:
+  fz branch     # Git branchを選択して切り替え
+  fz log        # Git logを検索（Ctrl+Yでhash copy）
+  fz kill       # プロセスを選択してkill
+  fz docker     # Docker containerを選択して接続
+  fz history    # コマンド履歴を検索して実行
+  fz env        # 環境変数を検索・表示
+  fz cd         # ディレクトリ履歴から選択して移動
+  fz pr         # Pull Requestを選択して詳細表示
+  fz issue      # Issueを選択して詳細表示
+EOF
+}
+
+# Git branch切り替え
+_ymt_fz_branch() {
+  # Git リポジトリチェック
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
+    return 1
+  fi
+
+  local branches branch
+  branches=$(git branch | grep -v '^\*') &&
+  branch=$(echo "$branches" | fzf --height $((2 + $(wc -l <<< "$branches"))) -m) &&
+  git checkout $(echo "$branch" | sed 's/^[ \t]*//')
+}
+
+# Git commit履歴検索
+_ymt_fz_log() {
+  # Git リポジトリチェック
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository" >&2
+    return 1
+  fi
+
+  if (( $+commands[pbcopy] )); then
+    git log --graph --color=always \
+      --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+    fzf --ansi --no-sort --reverse --tiebreak=index \
+      --bind=ctrl-s:toggle-sort \
+      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
+      --header "Press CTRL-Y to copy commit hash" \
+      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
+      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+  else
+    git log --graph --color=always \
+      --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+    fzf --ansi --no-sort --reverse --tiebreak=index \
+      --bind=ctrl-s:toggle-sort \
+      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
+      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+  fi
+}
+
+# プロセスkill
+_ymt_fz_kill() {
+  local pid
+  pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+  if [ "x$pid" != "x" ]; then
+    echo $pid | xargs kill -${1:-9}
+  fi
+}
+
+# Docker container選択
+_ymt_fz_docker() {
+  if ! (( $+commands[docker] )); then
+    echo "Error: docker command not found" >&2
+    return 1
+  fi
+
+  # Docker daemonが起動しているかチェック
+  if ! docker ps > /dev/null 2>&1; then
+    echo "Error: Docker daemon is not running or permission denied" >&2
+    return 1
+  fi
+
+  local container
+  container=$(docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}" | sed 1d | fzf | awk '{print $1}')
+  if [ -n "$container" ]; then
+    docker exec -it $container /bin/bash || docker exec -it $container /bin/sh
+  fi
+}
+
+# コマンド履歴検索・実行
+_ymt_fz_history() {
+  local selected_command
+  selected_command=$(fc -ln 1 | awk '!seen[$0]++' | fzf --tac --no-sort \
+    --preview 'echo {}' \
+    --preview-window=down:3:wrap \
+    --header "Press Enter to execute command")
+
+  if [ -n "$selected_command" ]; then
+    # コマンドラインに入力するのみ（実行はユーザーに委ねる）
+    print -z "$selected_command"
+  fi
+}
+
+# 環境変数検索・表示
+_ymt_fz_env() {
+  local selected_env
+  if (( $+commands[pbcopy] )); then
+    selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
+      --preview 'echo {} | cut -d= -f2-' \
+      --preview-window=right:50%:wrap \
+      --header "Environment variables (Press CTRL-Y to copy)" \
+      --bind='ctrl-y:execute(echo {} | pbcopy)')
+  else
+    selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
+      --preview 'echo {} | cut -d= -f2-' \
+      --preview-window=right:50%:wrap \
+      --header "Environment variables")
+  fi
+
+  if [ -n "$selected_env" ]; then
+    echo "$selected_env"
+  fi
+}
+
+# ディレクトリ履歴から移動
+_ymt_fz_cd() {
+  local selected_dir
+
+  # dirsコマンドの出力から選択（~を展開してプレビュー）
+  selected_dir=$(dirs -p | tail -n +2 | awk '!seen[$0]++' | fzf \
+    --preview 'eval ls -la --color=always {}' \
+    --preview-window=right:50% \
+    --header "Directory history")
+
+  if [ -n "$selected_dir" ]; then
+    cd "$selected_dir"
+    pwd
+  fi
+}
+
+# GitHub Pull Request一覧
+_ymt_fz_pr() {
+  if ! (( $+commands[gh] )); then
+    echo "Error: gh command not found. Please install GitHub CLI." >&2
+    return 1
+  fi
+
+  # GitHubリポジトリチェック
+  if ! gh repo view > /dev/null 2>&1; then
+    echo "Error: Not in a GitHub repository or not authenticated" >&2
+    return 1
+  fi
+
+  local selected_pr
+  selected_pr=$(gh pr list --limit 100 --json number,title,author,state,createdAt,headRefName \
+    --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}] {{.headRefName}}{{"\n"}}{{end}}' |
+    fzf \
+        --header "Select PR (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh pr view % --web)')
+
+  if [ -n "$selected_pr" ]; then
+    local pr_number=$(echo "$selected_pr" | cut -d'#' -f2 | cut -d' ' -f1)
+    if (( $+commands[glow] )); then
+      # glow でMarkdownをレンダリング
+      {
+        gh pr view "$pr_number" --json number,title,author,state,createdAt,url | jq -r '"# PR #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**URL:** \(.url)\n\n---\n"'
+        gh pr view "$pr_number" --json body -q ".body" | sed "s/<[^>]*>//g"
+      } | glow -p -
+    else
+      # glowがない場合は通常表示
+      if [ -n "$PAGER" ]; then
+        gh pr view "$pr_number" | $PAGER
+      else
+        gh pr view "$pr_number" | less -R
+      fi
+    fi
+  fi
+}
+
+# GitHub Issue一覧
+_ymt_fz_issue() {
+  if ! (( $+commands[gh] )); then
+    echo "Error: gh command not found. Please install GitHub CLI." >&2
+    return 1
+  fi
+
+  # GitHubリポジトリチェック
+  if ! gh repo view > /dev/null 2>&1; then
+    echo "Error: Not in a GitHub repository or not authenticated" >&2
+    return 1
+  fi
+
+  local selected_issue
+  selected_issue=$(gh issue list --limit 100 --json number,title,author,state,createdAt,labels \
+    --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}]{{if .labels}} {{range .labels}}[{{.name}}]{{end}}{{end}}{{"\n"}}{{end}}' |
+    fzf \
+        --header "Select issue (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh issue view % --web)')
+
+  if [ -n "$selected_issue" ]; then
+    local issue_number=$(echo "$selected_issue" | cut -d'#' -f2 | cut -d' ' -f1)
+    if (( $+commands[glow] )); then
+      # glow でMarkdownをレンダリング
+      {
+        gh issue view "$issue_number" --json number,title,author,state,createdAt,url,labels | jq -r '"# Issue #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**Labels:** \(.labels | map(.name) | join(", "))  \n**URL:** \(.url)\n\n---\n"'
+        gh issue view "$issue_number" --json body -q ".body" | sed "s/<[^>]*>//g"
+      } | glow -p -
+    else
+      # glowがない場合は通常表示
+      if [ -n "$PAGER" ]; then
+        gh issue view "$issue_number" | $PAGER
+      else
+        gh issue view "$issue_number" | less -R
+      fi
+    fi
+  fi
+}
+
+# 依存関係をチェック
+if ! _ymt_fz_check_dependencies 2>/dev/null; then
+  _ymt_fz_check_dependencies
+  return 1
+fi
+
+# メイン処理
+case "${1:-help}" in
+  branch)
+    shift
+    _ymt_fz_branch "$@"
+    ;;
+  log)
+    shift
+    _ymt_fz_log "$@"
+    ;;
+  kill)
+    shift
+    _ymt_fz_kill "$@"
+    ;;
+  docker)
+    shift
+    _ymt_fz_docker "$@"
+    ;;
+  history)
+    shift
+    _ymt_fz_history "$@"
+    ;;
+  env)
+    shift
+    _ymt_fz_env "$@"
+    ;;
+  cd)
+    shift
+    _ymt_fz_cd "$@"
+    ;;
+  pr)
+    shift
+    _ymt_fz_pr "$@"
+    ;;
+  issue)
+    shift
+    _ymt_fz_issue "$@"
+    ;;
+  help|--help|-h)
+    _ymt_fz_usage
+    ;;
+  *)
+    echo "Error: Unknown subcommand '$1'" >&2
+    echo "Run 'fz help' for usage." >&2
+    return 1
+    ;;
+esac

@@ -1,0 +1,92 @@
+#compdef fz
+
+# fz コマンドの補完定義
+
+_fz() {
+  local context state line
+  typeset -A opt_args
+
+  _arguments -C \
+    '1: :_fz_subcommands' \
+    '*::arg:->args'
+
+  case $state in
+    args)
+      case $line[1] in
+        branch)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        log)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]' \
+            '*:git log options:_git_log_options'
+          ;;
+        kill)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]' \
+            '1::signal:_signals'
+          ;;
+        docker)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        history)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        env)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        cd)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        pr)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        issue)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        help)
+          # helpサブコマンドに引数はない
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_fz_subcommands() {
+  local -a subcommands
+  subcommands=(
+    'branch:Git branch切り替え'
+    'log:Git commit履歴検索'
+    'kill:プロセス検索・kill'
+    'docker:Docker container接続'
+    'history:コマンド履歴検索・実行'
+    'env:環境変数検索・表示'
+    'cd:ディレクトリ履歴から移動'
+    'pr:GitHub Pull Request一覧'
+    'issue:GitHub Issue一覧'
+    'help:ヘルプを表示'
+  )
+  _describe -t subcommands 'fz subcommand' subcommands
+}
+
+# git log のオプション補完（簡易版）
+_git_log_options() {
+  local -a options
+  options=(
+    '--oneline:各コミットを1行で表示'
+    '--graph:ブランチグラフを表示'
+    '--all:すべてのブランチを表示'
+    '--author=:特定の作者でフィルタ'
+    '-n:表示するコミット数を指定'
+  )
+  _describe -t options 'git log option' options
+}
+
+_fz "$@"
