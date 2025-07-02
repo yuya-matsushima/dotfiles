@@ -25,11 +25,18 @@ case ${UID} in
     SPROMPT="%B%{${fg[white]}%}%r is correct? [n,y,a,e]:%{${reset_color}%}%b "
     ;;
 *)
-    PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
-    PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
-    SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-    [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-        PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
+    # シンプルなプロンプト（個人情報を含まない）
+    if [[ "$TINY_PROMPT" == "1" ]]; then
+        PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
+        PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
+        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+    else
+        PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+        PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
+        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+        [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+            PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
+    fi
     ;;
 esac
 
@@ -144,6 +151,9 @@ fi
 # Use local claude installation if available
 [[ -x "$HOME/.claude/local/claude" ]] && alias claude="$HOME/.claude/local/claude"
 (( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerously-skip-permissions'
+# Tiny prompt mode for screen recording
+alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
+alias normalprompt='unset TINY_PROMPT && exec zsh'
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
