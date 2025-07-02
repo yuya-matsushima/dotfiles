@@ -17,11 +17,18 @@ case ${UID} in
     SPROMPT="%B%{${fg[white]}%}%r is correct? [n,y,a,e]:%{${reset_color}%}%b "
     ;;
 *)
-    PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
-    PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
-    SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-    [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-        PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
+    # シンプルなプロンプト（個人情報を含まない）
+    if [ -n "$TINY_PROMPT" ]; then
+        PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
+        PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
+        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+    else
+        PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+        PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
+        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+        [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+            PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
+    fi
     ;;
 esac
 
@@ -99,6 +106,8 @@ fi
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 # tealdeer: tldr client
 (( $+commands[tldr] )) && alias tldr="tldr --language=en"
+# Tiny prompt mode for screen recording
+alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
 
 case "${TERM}" in
 screen)
