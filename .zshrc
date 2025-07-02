@@ -153,6 +153,7 @@ fi
 (( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerously-skip-permissions'
 # Tiny prompt mode for screen recording
 alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
+alias normalprompt='unset TINY_PROMPT && exec zsh'
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'

@@ -108,6 +108,7 @@ fi
 (( $+commands[tldr] )) && alias tldr="tldr --language=en"
 # Tiny prompt mode for screen recording
 alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
+alias normalprompt='unset TINY_PROMPT && exec zsh'
 
 case "${TERM}" in
 screen)
