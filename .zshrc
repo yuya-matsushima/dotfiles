@@ -26,7 +26,7 @@ case ${UID} in
     ;;
 *)
     # シンプルなプロンプト（個人情報を含まない）
-    if [ -n "$TINY_PROMPT" ]; then
+    if [[ "$TINY_PROMPT" == "1" ]]; then
         PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
         PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
         SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
