@@ -90,6 +90,11 @@ SAVEHIST=250000
 setopt hist_ignore_dups     # ignore duplication command history list
 setopt share_history        # share command history data
 
+# load credentials (only for interactive shells)
+if [[ $- == *i* ]]; then
+  [[ -f "$HOME/.zsh/credentials.zsh" ]] && source "$HOME/.zsh/credentials.zsh"
+fi
+
 # load extensions
 if [[ -d $HOME/.zsh/extensions ]]; then
   for file in $HOME/.zsh/extensions/*(.N); do
