@@ -83,6 +83,17 @@ bindkey "^n" history-beginning-search-forward-end
 # reverse menu completion binded to Shift-Tab
 bindkey "\e[Z" reverse-menu-complete
 
+# Vi mode cursor shape indicator
+function zle-line-init zle-keymap-select {
+    case $KEYMAP in
+        vicmd)      echo -ne '\e[1 q' ;;  # Block cursor for normal mode
+        viins|main) echo -ne '\e[5 q' ;;  # Beam cursor for insert mode
+    esac
+}
+zle -N zle-line-init
+zle -N zle-keymap-select
+echo -ne '\e[5 q'  # Set beam cursor on startup
+
 # history
 HISTFILE=${HOME}/.zsh_history
 HISTSIZE=250000
