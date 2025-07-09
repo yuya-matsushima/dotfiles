@@ -54,17 +54,6 @@ bindkey "^p" history-beginning-search-backward-end
 bindkey "^n" history-beginning-search-forward-end
 bindkey "\e[Z" reverse-menu-complete
 
-# Vi mode cursor shape indicator
-function zle-line-init zle-keymap-select {
-    case $KEYMAP in
-        vicmd)      echo -ne '\e[1 q' ;;  # Block cursor for normal mode
-        viins|main) echo -ne '\e[5 q' ;;  # Beam cursor for insert mode
-    esac
-}
-zle -N zle-line-init
-zle -N zle-keymap-select
-echo -ne '\e[5 q'  # Set beam cursor on startup
-
 # history
 HISTFILE=${HOME}/.zsh_history
 HISTSIZE=250000
@@ -120,6 +109,16 @@ fi
 # Tiny prompt mode for screen recording
 alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
 alias normalprompt='unset TINY_PROMPT && exec zsh'
+
+# zsh-vi-mode
+if [[ -f "$HOMEBREW_PREFIX/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh" ]]; then
+  source "$HOMEBREW_PREFIX/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
+  
+  # Explicitly enable cursor styling
+  ZVM_CURSOR_STYLE_ENABLED=true
+  ZVM_NORMAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
+fi
 
 case "${TERM}" in
 screen)
