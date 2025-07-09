@@ -63,6 +63,7 @@ Plug 'alvan/vim-closetag'
 Plug 'hashivim/vim-terraform', { 'for': 'terraform' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'github/copilot.vim'
+Plug 'ap/vim-css-color'
 
 " fzf
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
