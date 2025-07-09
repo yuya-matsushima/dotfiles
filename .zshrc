@@ -168,6 +168,16 @@ if (( $+commands[fzf] )); then
   [ -f "$HOME/.zsh/fzf.zsh" ] && source "$HOME/.zsh/fzf.zsh"
 fi
 
+# zsh-vi-mode
+if [[ -f "$HOMEBREW_PREFIX/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh" ]]; then
+  # Explicitly enable cursor styling (must be set before sourcing the plugin)
+  ZVM_CURSOR_STYLE_ENABLED=true
+  ZVM_NORMAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
+  ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
+  
+  source "$HOMEBREW_PREFIX/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
+fi
+
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
