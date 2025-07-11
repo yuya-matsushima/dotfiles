@@ -41,5 +41,4 @@ brew install \
           wget \
           zsh \
           zsh-completions \
-          zsh-git-prompt \
-          zsh-vi-mode
+          zsh-git-prompt
