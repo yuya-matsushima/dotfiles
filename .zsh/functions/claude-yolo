@@ -1,0 +1,63 @@
+#!/usr/bin/env zsh
+
+# Claude Code YOLO mode with sandbox execution
+# Uses macOS sandbox-exec to restrict file system access and system operations
+#
+# Usage: claude-yolo [--profile PATH | -p PATH] [claude options...]
+
+# Default sandbox profile
+local default_sandbox_profile="$HOME/.zsh/claude/sandbox.sb"
+local sandbox_profile="$default_sandbox_profile"
+
+# Parse options
+local -a claude_args
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --profile|-p)
+      if [[ -z "$2" ]]; then
+        echo "Error: --profile/-p requires a path" >&2
+        return 1
+      fi
+      sandbox_profile="$2"
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage: claude-yolo [--profile PATH | -p PATH] [claude options...]"
+      echo ""
+      echo "Options:"
+      echo "  --profile, -p PATH      Specify sandbox profile path"
+      echo "                          (default: $default_sandbox_profile)"
+      echo "  --help, -h              Show this help"
+      echo ""
+      echo "All other options are passed to claude command"
+      return 0
+      ;;
+    *)
+      claude_args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Check if claude command is available
+if ! command -v claude &>/dev/null; then
+  echo "Error: claude command not found" >&2
+  return 1
+fi
+
+# Check if sandbox profile exists
+if [[ ! -f "$sandbox_profile" ]]; then
+  echo "Error: Sandbox profile not found: $sandbox_profile" >&2
+  if [[ "$sandbox_profile" == "$default_sandbox_profile" ]]; then
+    echo "Hint: Make sure the required sandbox configuration file is in place" >&2
+  else
+    echo "Hint: Check if the path specified with --profile/-p is correct" >&2
+  fi
+  return 1
+fi
+
+# Execute claude with sandbox restrictions
+sandbox-exec -f "$sandbox_profile" \
+  -D PWD="$(pwd)" \
+  -D HOME="$HOME" \
+  claude --dangerously-skip-permissions "${claude_args[@]}"
