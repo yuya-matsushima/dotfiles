@@ -1,63 +1,74 @@
-#!/usr/bin/env zsh
+#!/bin/zsh
 
-# Claude Code YOLO mode with sandbox execution
-# Uses macOS sandbox-exec to restrict file system access and system operations
-#
-# Usage: claude-yolo [--profile PATH | -p PATH] [claude options...]
+_ymt_claude_yolo_usage() {
+  cat <<EOF
+claude-yolo is a command to run Claude Code YOLO mode with sandbox execution.
+
+Usage:
+    claude-yolo [options] [claude arguments...]
+
+Options:
+    --profile, -p PATH     specify sandbox profile path
+    --help, -h             print help
+
+Dependencies:
+    claude
+    sandbox-exec (macOS)
+EOF
+}
+
+_ymt_claude_yolo_exec() {
+  local sandbox_profile="${1}"
+  shift
+  local -a claude_args=("$@")
+
+  # Check if claude command is available
+  if ! command -v claude &>/dev/null; then
+    echo "Error: claude command not found" >&2
+    return 1
+  fi
+
+  # Check if sandbox profile exists
+  if [[ ! -f "$sandbox_profile" ]]; then
+    echo "Error: Sandbox profile not found: $sandbox_profile" >&2
+    return 1
+  fi
+
+  # Display execution info
+  echo "Executing claude command in sandbox with profile: $sandbox_profile"
+  
+  # Execute claude with sandbox restrictions
+  sandbox-exec -f "$sandbox_profile" \
+    -D PWD="$(pwd)" \
+    -D HOME="$HOME" \
+    claude --dangerously-skip-permissions "${claude_args[@]}"
+}
 
 # Default sandbox profile
-local default_sandbox_profile="$HOME/.zsh/claude/sandbox.sb"
-local sandbox_profile="$default_sandbox_profile"
+local default_profile="$HOME/.zsh/claude/sandbox.sb"
+local profile="$default_profile"
+local -a args=()
 
-# Parse options
-local -a claude_args
+# Parse arguments
 while [[ $# -gt 0 ]]; do
-  case $1 in
-    --profile|-p)
-      if [[ -z "$2" ]]; then
-        echo "Error: --profile/-p requires a path" >&2
-        return 1
-      fi
-      sandbox_profile="$2"
-      shift 2
-      ;;
-    --help|-h)
-      echo "Usage: claude-yolo [--profile PATH | -p PATH] [claude options...]"
-      echo ""
-      echo "Options:"
-      echo "  --profile, -p PATH      Specify sandbox profile path"
-      echo "                          (default: $default_sandbox_profile)"
-      echo "  --help, -h              Show this help"
-      echo ""
-      echo "All other options are passed to claude command"
+  case ${1} in
+    -h|--help)
+      _ymt_claude_yolo_usage
       return 0
       ;;
+    -p|--profile)
+      if [[ -z "${2}" ]]; then
+        echo "Error: --profile requires a path" >&2
+        return 1
+      fi
+      profile="${2}"
+      shift 2
+      ;;
     *)
-      claude_args+=("$1")
+      args+=("${1}")
       shift
       ;;
   esac
 done
 
-# Check if claude command is available
-if ! command -v claude &>/dev/null; then
-  echo "Error: claude command not found" >&2
-  return 1
-fi
-
-# Check if sandbox profile exists
-if [[ ! -f "$sandbox_profile" ]]; then
-  echo "Error: Sandbox profile not found: $sandbox_profile" >&2
-  if [[ "$sandbox_profile" == "$default_sandbox_profile" ]]; then
-    echo "Hint: Make sure the required sandbox configuration file is in place" >&2
-  else
-    echo "Hint: Check if the path specified with --profile/-p is correct" >&2
-  fi
-  return 1
-fi
-
-# Execute claude with sandbox restrictions
-sandbox-exec -f "$sandbox_profile" \
-  -D PWD="$(pwd)" \
-  -D HOME="$HOME" \
-  claude --dangerously-skip-permissions "${claude_args[@]}"
+_ymt_claude_yolo_exec "$profile" "${args[@]}"
