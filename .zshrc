@@ -155,7 +155,6 @@ fi
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 # Use local claude installation if available
 [[ -x "$HOME/.claude/local/claude" ]] && alias claude="$HOME/.claude/local/claude"
-(( $+commands[claude] )) && alias claude-yolo='echo "⚠️  YOLO mode will execute commands without confirmation. Continue? (y/N):" && read -q && echo && claude --dangerously-skip-permissions'
 # Tiny prompt mode for screen recording
 alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
 alias normalprompt='unset TINY_PROMPT && exec zsh'

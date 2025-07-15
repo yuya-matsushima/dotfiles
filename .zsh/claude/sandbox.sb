@@ -1,0 +1,96 @@
+; source: https://gist.github.com/masuidrive/f1b23194c5a903a4130589bde2c44802
+(version 1)
+
+; based
+; https://zenn.dev/todesking/articles/claude-code-with-sandbox-exec
+; https://scrapbox.io/nekketsuuu/sandbox-exec
+
+; NOTE: Debug logging behavior
+;
+; Despite setting (debug deny), denied operations may still be logged.
+; The logs are shown in Console.app or `log stream --style compact --predicate 'sender=="Sandbox"'`.
+(debug deny)
+
+(deny default)
+
+; /System/Library/Sandbox/Profiles/system.sb
+; It appears that this is a basic policy for applications (actually this is imported from application.sb)
+; This allows access to some standard devices such as /dev/null and /dev/urandom,
+; and allows to run sysctl-read, which is required to run Claude Code.
+(import "system.sb")
+
+(allow file-read*)
+
+; XXX: By disabling read access to ssh keys, we can't run `git push` for ssh origins.
+; Possible workaround: How about using an independent MCP server for git operations?
+(deny file-read* (subpath (string-append (param "HOME") "/.ssh")))
+
+(allow process-exec)
+(allow process-fork)
+
+; Allow operating processes in the same sandbox, such as child processes and the parent process itself (e.g., EPIPE)
+(allow signal (target same-sandbox))
+
+(allow file-write-data
+  (literal "/dev/stderr")
+  (literal "/dev/stdout"))
+(allow file-write*
+  (subpath (param "PWD"))
+  (subpath "/private/tmp")
+  (subpath "/private/var/tmp")
+  (regex #"^/private/var/folders/[^/]+/[^/]+/[C,T]"))
+
+; For Claude Code and languages
+(allow file-write*
+  (literal (string-append (param "HOME") "/.claude.json"))
+  (literal (string-append (param "HOME") "/.yarnrc"))
+  (subpath (string-append (param "HOME") "/.bundle"))
+  (subpath (string-append (param "HOME") "/.cache"))
+  (subpath (string-append (param "HOME") "/.cargo"))
+  (subpath (string-append (param "HOME") "/.claude"))
+  (subpath (string-append (param "HOME") "/.gem"))
+  (subpath (string-append (param "HOME") "/.npm"))
+  (subpath (string-append (param "HOME") "/.pyenv"))
+  (subpath (string-append (param "HOME") "/.rbenv"))
+  (subpath (string-append (param "HOME") "/.rustup"))
+  (subpath (string-append (param "HOME") "/.volta"))
+  (subpath (string-append (param "HOME") "/.yarn"))
+  (subpath (string-append (param "HOME") "/Library/Keychains"))
+  (subpath (string-append (param "HOME") "/Library/Caches/Homebrew"))
+)
+
+; It appears that the network filter can be used only like `localhost:*` or `*:443`,
+; especially we cannot filter the network by domain names, according to the reverse engineering PDF
+(allow network-outbound)
+
+; In order to utilize the Docker network, intentionally allow binds not only to localhost,
+; but also to all local network interfaces and all UNIX sockets
+(allow network-bind)
+
+; For local servers such as developing Rails servers or Mairu
+(allow network-inbound (local udp) (local tcp))
+
+; Allow terminal access for React Ink
+(allow file-ioctl (regex #"^/dev/tty.*"))
+
+; Bundler tries to write via TTY when running `bundle install`
+(allow file-write-data (regex #"^/dev/tty.*"))
+
+; sysmond is required for pgrep
+(allow mach-lookup (global-name "com.apple.sysmond"))
+
+; rustup needs the following
+(allow mach-lookup (global-name "com.apple.SystemConfiguration.configd"))
+
+; /bin/ps
+(allow process-exec-interpreter)
+(allow process-exec
+    (literal "/bin/ps")
+    (with no-sandbox))
+
+; Some Rust programs require the following for TLS certificates
+(allow system-socket
+  (require-all
+    (socket-domain 32) ; PF_SYSTEM / AF_SYSTEM
+    (socket-protocol 2))) ; SYSPROTO_CONTROL
+(allow mach-lookup (global-name "com.apple.SecurityServer"))
