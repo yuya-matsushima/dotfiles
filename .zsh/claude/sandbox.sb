@@ -43,7 +43,6 @@
 ; For Claude Code and languages
 (allow file-write*
   (literal (string-append (param "HOME") "/.claude.json"))
-  (literal (string-append (param "HOME") "/.claude"))
   (literal (string-append (param "HOME") "/.yarnrc"))
   (subpath (string-append (param "HOME") "/.bundle"))
   (subpath (string-append (param "HOME") "/.cache"))
