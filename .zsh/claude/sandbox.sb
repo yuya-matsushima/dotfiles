@@ -5,9 +5,9 @@
 ; https://zenn.dev/todesking/articles/claude-code-with-sandbox-exec
 ; https://scrapbox.io/nekketsuuu/sandbox-exec
 
-; XXX: Is this working?
+; NOTE: Debug logging behavior
 ;
-; It seems that, despite this config, the denied logs are still collected.
+; Despite setting (debug deny), denied operations may still be logged.
 ; The logs are shown in Console.app or `log stream --style compact --predicate 'sender=="Sandbox"'`.
 (debug deny)
 
