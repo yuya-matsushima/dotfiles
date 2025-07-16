@@ -38,7 +38,10 @@
   (subpath (param "PWD"))
   (subpath "/private/tmp")
   (subpath "/private/var/tmp")
-  (regex #"^/private/var/folders/[^/]+/[^/]+/[C,T]"))
+  (subpath "/tmp")
+  (subpath "/var/tmp")
+  (regex #"^/private/var/folders/[^/]+/[^/]+/[C,T]")
+  (subpath "/var/folders"))
 
 ; For Claude Code and languages
 (allow file-write*
@@ -57,6 +60,7 @@
   (subpath (string-append (param "HOME") "/.yarn"))
   (subpath (string-append (param "HOME") "/Library/Keychains"))
   (subpath (string-append (param "HOME") "/Library/Caches/Homebrew"))
+  (regex (string-append (param "HOME") "/Library/Caches/(go-build|golangci-lint)"))
 )
 
 ; It appears that the network filter can be used only like `localhost:*` or `*:443`,
