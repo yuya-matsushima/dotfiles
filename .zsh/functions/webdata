@@ -52,8 +52,57 @@ Dependencies:
 EOF
 }
 
+# Check for required dependencies
+_ymt_webdata_check_dependencies() {
+  local missing_deps=()
+
+  # Check Node.js
+  if ! command -v node >/dev/null 2>&1; then
+    missing_deps+=("Node.js")
+  else
+    local node_version=$(node --version | sed 's/v//')
+    local node_major=${node_version%%.*}
+    if [[ $node_major -lt 18 ]]; then
+      echo "Warning: Node.js version $node_version detected. Version 18 or higher is recommended." >&2
+    fi
+  fi
+
+  # Check pnpm
+  if ! command -v pnpm >/dev/null 2>&1; then
+    missing_deps+=("pnpm")
+  fi
+
+  # Report missing dependencies
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    echo "Error: Missing required dependencies:" >&2
+    for dep in "${missing_deps[@]}"; do
+      echo "  - $dep" >&2
+    done
+    echo "" >&2
+    echo "Installation instructions:" >&2
+    for dep in "${missing_deps[@]}"; do
+      case "$dep" in
+        "Node.js")
+          echo "  - Install Node.js: https://nodejs.org/" >&2
+          echo "  - Or use package manager: brew install node" >&2
+          ;;
+        "pnpm")
+          echo "  - Install pnpm: npm install -g pnpm" >&2
+          echo "  - Or use package manager: brew install pnpm" >&2
+          ;;
+      esac
+    done
+    return 1
+  fi
+
+  return 0
+}
+
 # Main function
 main() {
+  # Check dependencies first
+  _ymt_webdata_check_dependencies || return 1
+
   local url=""
   local output_dir="./output"
   local concurrent_arg=""
