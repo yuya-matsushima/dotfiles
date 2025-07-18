@@ -16,22 +16,34 @@ Arguments:
 Options:
     -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
+    -c, --concurrent <number>         Number of concurrent pages to process (default: 3)
+    --pc                              Capture PC size screenshots (1280x800)
+    --tablet                          Capture tablet size screenshots (768x1024)
+    --mobile                          Capture mobile size screenshots (375x667)
     -h, --help                        Show this help message
+    
+    Note: If no device flags are specified, --pc is used by default
 
 Output Structure:
     <output-dir>/
-    ├── captures/     # Screenshot images (PNG)
+    ├── captures/
+    │   ├── pc/       # PC size screenshots (1280x800)
+    │   ├── tablet/   # Tablet size screenshots (768x1024)
+    │   └── mobile/   # Mobile size screenshots (375x667)
     └── markdown/     # Text content (Markdown)
 
 Examples:
-    # Capture all pages from sitemap.xml
+    # Capture all pages from sitemap.xml (PC size by default)
     webdata https://example.com/sitemap.xml
 
-    # Capture single page
-    webdata https://example.com/about
+    # Capture single page in multiple device sizes
+    webdata https://example.com/about --pc --tablet --mobile
 
-    # Specify output directory
-    webdata https://example.com/products/item1 -o ./single-page
+    # Capture mobile size only
+    webdata https://example.com/products/item1 --mobile
+
+    # Use concurrent processing for faster capture
+    webdata https://example.com/sitemap.xml -c 5 --pc --tablet
 
 Dependencies:
     - Node.js
@@ -44,6 +56,8 @@ EOF
 main() {
   local url=""
   local output_dir="./output"
+  local concurrent_arg=""
+  local device_args=""
   
   # Parse arguments
   while [[ $# -gt 0 ]]; do
@@ -59,6 +73,27 @@ main() {
           return 1
         fi
         output_dir="$1"
+        shift
+        ;;
+      -c|--concurrent)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Concurrent number not specified" >&2
+          return 1
+        fi
+        concurrent_arg="--concurrent $1"
+        shift
+        ;;
+      --pc)
+        device_args="$device_args --pc"
+        shift
+        ;;
+      --tablet)
+        device_args="$device_args --tablet"
+        shift
+        ;;
+      --mobile)
+        device_args="$device_args --mobile"
         shift
         ;;
       -*)
@@ -108,7 +143,7 @@ main() {
   fi
   
   # Run the Node.js script
-  node "$node_project_dir/index.js" "$url" --output "$output_dir"
+  node "$node_project_dir/index.js" "$url" --output "$output_dir" $concurrent_arg $device_args
 }
 
 main "$@"

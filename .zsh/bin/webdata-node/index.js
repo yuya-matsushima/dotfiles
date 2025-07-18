@@ -33,11 +33,34 @@ program
   .argument('<url>', 'URL to capture (sitemap.xml or webpage)')
   .option('-o, --output <directory>', 'output directory', './output')
   .option('-f, --force', 'skip overwrite confirmation')
+  .option('-c, --concurrent <number>', 'number of concurrent pages to process', '3')
+  .option('--pc', 'capture PC size screenshots (1280x800)')
+  .option('--tablet', 'capture tablet size screenshots (768x1024)')
+  .option('--mobile', 'capture mobile size screenshots (375x667)')
   .parse();
 
 const options = program.opts();
 const url = program.args[0];
 const outputDir = options.output;
+const concurrentLimit = parseInt(options.concurrent) || 3;
+
+// Device viewport configurations
+const deviceConfigs = {
+  pc: { width: 1280, height: 800 },
+  tablet: { width: 768, height: 1024 },
+  mobile: { width: 375, height: 667 }
+};
+
+// Determine which devices to capture
+const devicesToCapture = [];
+if (options.pc) devicesToCapture.push('pc');
+if (options.tablet) devicesToCapture.push('tablet');
+if (options.mobile) devicesToCapture.push('mobile');
+
+// Default to pc if no devices specified
+if (devicesToCapture.length === 0) {
+  devicesToCapture.push('pc');
+}
 
 // Utility function to create directory if it doesn't exist
 async function ensureDir(dir) {
@@ -129,8 +152,37 @@ function urlToFilePath(urlString) {
   return parts.join(path.sep);
 }
 
+// Simple semaphore implementation for concurrency control
+class Semaphore {
+  constructor(maxConcurrent) {
+    this.maxConcurrent = maxConcurrent;
+    this.current = 0;
+    this.queue = [];
+  }
+  
+  async acquire() {
+    if (this.current < this.maxConcurrent) {
+      this.current++;
+      return Promise.resolve();
+    }
+    
+    return new Promise((resolve) => {
+      this.queue.push(resolve);
+    });
+  }
+  
+  release() {
+    this.current--;
+    if (this.queue.length > 0) {
+      this.current++;
+      const resolve = this.queue.shift();
+      resolve();
+    }
+  }
+}
+
 // Capture single page
-async function capturePage(page, url, outputDir) {
+async function capturePage(page, url, outputDir, deviceType) {
   console.log(`Capturing: ${url}`);
   
   try {
@@ -148,8 +200,8 @@ async function capturePage(page, url, outputDir) {
     const fileName = path.basename(filePath) || 'index';
     const dirPath = path.dirname(filePath);
     
-    // Create directories
-    const captureDir = path.join(outputDir, 'captures', dirPath);
+    // Create directories with device type suffix for captures
+    const captureDir = path.join(outputDir, 'captures', deviceType, dirPath);
     const markdownDir = path.join(outputDir, 'markdown', dirPath);
     await ensureDir(captureDir);
     await ensureDir(markdownDir);
@@ -173,7 +225,7 @@ async function capturePage(page, url, outputDir) {
     
     const markdown = turndownService.turndown(cleanedHtml);
     
-    // Save markdown
+    // Save markdown (only once, not per device)
     const markdownPath = path.join(markdownDir, `${fileName}.md`);
     await fs.writeFile(markdownPath, markdown, 'utf8');
     console.log(`  Markdown saved: ${markdownPath}`);
@@ -183,11 +235,49 @@ async function capturePage(page, url, outputDir) {
   }
 }
 
+// Process URLs with concurrency limit for multiple devices
+async function processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit) {
+  const semaphore = new Semaphore(concurrentLimit);
+  const allPromises = [];
+  
+  for (const url of urls) {
+    for (const deviceType of devicesToCapture) {
+      const promise = (async () => {
+        await semaphore.acquire();
+        try {
+          const page = await browser.newPage();
+          await page.setViewportSize(deviceConfigs[deviceType]);
+          await capturePage(page, url, outputDir, deviceType);
+          await page.close();
+        } finally {
+          semaphore.release();
+        }
+      })();
+      allPromises.push(promise);
+    }
+  }
+  
+  // Process all device/URL combinations concurrently
+  let completed = 0;
+  const total = urls.length * devicesToCapture.length;
+  
+  for (const promise of allPromises) {
+    promise.then(() => {
+      completed++;
+      console.log(`Progress: ${completed}/${total}`);
+    });
+  }
+  
+  await Promise.all(allPromises);
+}
+
 // Main function
 async function main() {
   console.log(`Starting webdata capture...`);
   console.log(`URL: ${url}`);
   console.log(`Output directory: ${outputDir}`);
+  console.log(`Device types: ${devicesToCapture.map(d => `${d} (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join(', ')}`);
+  console.log(`Concurrent limit: ${concurrentLimit}`);
   console.log();
   
   // Check if captures or markdown directories already exist
@@ -221,11 +311,6 @@ async function main() {
   });
   
   try {
-    const page = await browser.newPage();
-    
-    // Set viewport
-    await page.setViewportSize({ width: 1280, height: 800 });
-    
     // Check if URL is a sitemap
     const isSitemap = url.toLowerCase().includes('sitemap.xml') || 
                       url.toLowerCase().endsWith('.xml');
@@ -234,23 +319,27 @@ async function main() {
       console.log('Detected sitemap.xml, fetching all URLs...');
       
       // Fetch sitemap
+      const page = await browser.newPage();
       const response = await page.goto(url);
       const xmlContent = await response.text();
+      await page.close();
       
       // Parse sitemap
       const urls = await parseSitemap(xmlContent);
       console.log(`Found ${urls.length} URLs in sitemap`);
       console.log();
       
-      // Process each URL
-      for (let i = 0; i < urls.length; i++) {
-        console.log(`Progress: ${i + 1}/${urls.length}`);
-        await capturePage(page, urls[i], outputDir);
-        console.log();
-      }
+      // Process URLs concurrently for all devices
+      await processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit);
     } else {
-      // Single page capture
-      await capturePage(page, url, outputDir);
+      // Single page capture for all devices
+      for (const deviceType of devicesToCapture) {
+        console.log(`Capturing ${deviceType} size...`);
+        const page = await browser.newPage();
+        await page.setViewportSize(deviceConfigs[deviceType]);
+        await capturePage(page, url, outputDir, deviceType);
+        await page.close();
+      }
     }
     
     console.log('Capture completed successfully!');
