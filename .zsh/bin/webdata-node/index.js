@@ -66,6 +66,39 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
 
+// Memory usage monitoring
+function checkMemoryUsage() {
+  const usage = process.memoryUsage();
+  const usedMB = Math.round(usage.heapUsed / 1024 / 1024);
+  const totalMB = Math.round(usage.heapTotal / 1024 / 1024);
+  
+  if (usedMB > 1000) { // Warning if over 1GB
+    console.warn(`⚠️  High memory usage: ${usedMB}MB / ${totalMB}MB`);
+  }
+  
+  return { usedMB, totalMB };
+}
+
+// Domain-based rate limiting
+const domainLimiter = new Map();
+const DOMAIN_RATE_LIMIT_MS = 1000; // 1 second between requests to same domain
+
+async function rateLimitedOperation(url, operation) {
+  const domain = new URL(url).hostname;
+  const lastAccess = domainLimiter.get(domain) || 0;
+  const now = Date.now();
+  const timeSinceLastAccess = now - lastAccess;
+  
+  if (timeSinceLastAccess < DOMAIN_RATE_LIMIT_MS) {
+    const waitTime = DOMAIN_RATE_LIMIT_MS - timeSinceLastAccess;
+    console.log(`  Rate limiting: waiting ${waitTime}ms for ${domain}`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  
+  domainLimiter.set(domain, Date.now());
+  return await operation();
+}
+
 // Device viewport configurations
 const deviceConfigs = {
   pc: { width: 1440, height: 900 },
@@ -283,16 +316,28 @@ async function capturePage(page, url, outputDir, deviceType) {
   console.log(`Capturing: ${url}`);
 
   try {
-    // Navigate to the page with retry logic
-    await retryOperation(async () => {
-      await page.goto(url, {
-        waitUntil: 'networkidle',
-        timeout: 60000  // Increased timeout to 60 seconds
+    // Navigate to the page with retry logic and rate limiting
+    await rateLimitedOperation(url, async () => {
+      await retryOperation(async () => {
+        await page.goto(url, {
+          waitUntil: 'networkidle',
+          timeout: 60000  // Increased timeout to 60 seconds
+        });
       });
     });
 
     // Wait a bit for dynamic content
     await page.waitForTimeout(2000);
+
+    // Check memory usage
+    const { usedMB } = checkMemoryUsage();
+    if (usedMB > 800) {
+      console.log(`  Memory usage: ${usedMB}MB - considering cleanup`);
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+      }
+    }
 
     // Get the file path
     const filePath = urlToFilePath(url);
@@ -452,6 +497,14 @@ async function main() {
   // Set global browser for cleanup
   globalBrowser = browser;
 
+  // Start periodic memory monitoring
+  const memoryMonitor = setInterval(() => {
+    const { usedMB, totalMB } = checkMemoryUsage();
+    if (usedMB > 500) {
+      console.log(`📊 Memory usage: ${usedMB}MB / ${totalMB}MB`);
+    }
+  }, 30000); // Check every 30 seconds
+
   try {
     // Check if URL is a sitemap
     const isSitemap = url.toLowerCase().includes('sitemap.xml') ||
@@ -501,6 +554,11 @@ async function main() {
     console.error('Error:', error.message);
     process.exit(1);
   } finally {
+    // Stop memory monitoring
+    if (memoryMonitor) {
+      clearInterval(memoryMonitor);
+    }
+    
     // Clean up browser resources
     if (browser) {
       try {
