@@ -17,12 +17,14 @@ Options:
     -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
     -c, --concurrent <number>         Number of concurrent pages to process (default: 1)
+    -i, --interval-sec <seconds>      Interval between requests in seconds (default: 1)
     --pc                              Capture PC size screenshots (1440x900)
     --tablet                          Capture tablet size screenshots (768x1024)
     --mobile                          Capture mobile size screenshots (375x667)
     -h, --help                        Show this help message
 
     Note: If no device flags are specified, --pc is used by default
+    Note: When --interval-sec is set, --concurrent is forced to 1
 
 Output Structure:
     <output-dir>/
@@ -44,6 +46,12 @@ Examples:
 
     # Use concurrent processing for faster capture
     webdata https://example.com/sitemap.xml -c 5 --pc --tablet
+
+    # Capture with interval between requests to avoid rate limiting
+    webdata https://example.com/sitemap.xml -i 2 --pc
+
+    # Use 0.5 second interval for faster but still controlled capture
+    webdata https://example.com/sitemap.xml --interval-sec 0.5 --mobile
 
 Dependencies:
     - Node.js
@@ -106,8 +114,15 @@ main() {
   local url=""
   local output_dir="./output"
   local concurrent_value="1"  # Default value as documented
+  local interval_value="1"  # Default 1 second interval
   local device_args_array=()
   local force_flag=""
+
+  # Check for help flag first
+  if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    _ymt_webdata_usage
+    return 0
+  fi
 
   # Parse arguments
   while [[ $# -gt 0 ]]; do
@@ -140,6 +155,24 @@ main() {
           return 1
         fi
         concurrent_value="$1"
+        shift
+        ;;
+      -i|--interval-sec)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Interval not specified" >&2
+          return 1
+        fi
+        if ! [[ "$1" =~ ^[0-9]+\.?[0-9]*$ ]] || [[ "$1" =~ ^\.[0-9]+$ ]]; then
+          echo "Error: Interval must be a positive number (seconds)" >&2
+          return 1
+        fi
+        # Validate that the value is greater than 0
+        if (( $(echo "$1 <= 0" | bc -l) )); then
+          echo "Error: Interval must be greater than 0" >&2
+          return 1
+        fi
+        interval_value="$1"
         shift
         ;;
       --pc)
@@ -179,6 +212,18 @@ main() {
     return 1
   fi
 
+  # Validate interval and concurrent options
+  if [[ "$interval_value" != "1" ]] && [[ "$concurrent_value" != "1" ]]; then
+    echo "Error: When --interval-sec is specified, --concurrent must be 1 (or omitted)" >&2
+    echo "This is to prevent DDoS-like behavior when using custom intervals." >&2
+    return 1
+  fi
+
+  # Force concurrent to 1 when interval is set
+  if [[ "$interval_value" != "1" ]]; then
+    concurrent_value="1"
+  fi
+
   # Get the directory where this script is located
   local script_dir="${0:A:h}"
   local dotfiles_dir="${script_dir:h:h}"
@@ -205,6 +250,10 @@ main() {
 
   # Add concurrent argument (always present with default value)
   cmd+=(--concurrent "$concurrent_value")
+
+  # Add interval argument (convert seconds to milliseconds for Node.js)
+  local interval_ms=$(echo "$interval_value * 1000" | bc)
+  cmd+=(--interval "$interval_ms")
 
   # Add force flag if specified
   if [[ -n "$force_flag" ]]; then

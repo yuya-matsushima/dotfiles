@@ -34,6 +34,7 @@ program
   .option('-o, --output <directory>', 'output directory', './output')
   .option('-f, --force', 'skip overwrite confirmation')
   .option('-c, --concurrent <number>', 'number of concurrent pages to process', '1')
+  .option('-i, --interval-sec <seconds>', 'interval between requests in seconds', '1')
   .option('--pc', 'capture PC size screenshots (1440x900)')
   .option('--tablet', 'capture tablet size screenshots (768x1024)')
   .option('--mobile', 'capture mobile size screenshots (375x667)')
@@ -43,6 +44,7 @@ const options = program.opts();
 const url = program.args[0];
 const outputDir = options.output;
 const concurrentLimit = parseInt(options.concurrent) || 1;
+const requestInterval = parseFloat(options.intervalSec) || 1;
 
 // Global browser instance for cleanup
 let globalBrowser = null;
@@ -81,7 +83,7 @@ function checkMemoryUsage() {
 
 // Domain-based rate limiting
 const domainLimiter = new Map();
-const DOMAIN_RATE_LIMIT_MS = 1000; // 1 second between requests to same domain
+let DOMAIN_RATE_LIMIT_MS = requestInterval * 1000; // Convert seconds to milliseconds
 
 async function rateLimitedOperation(url, operation) {
   const domain = new URL(url).hostname;
@@ -415,6 +417,28 @@ async function processUrlsConcurrently(urls, browser, outputDir, devicesToCaptur
   const semaphore = new Semaphore(concurrentLimit);
   const allPromises = [];
 
+  // When interval is set (not default 1 second), process sequentially
+  if (requestInterval !== 1) {
+    console.log(`Using sequential processing with ${requestInterval}s interval between requests`);
+    for (const url of urls) {
+      for (const deviceType of devicesToCapture) {
+        const page = await browser.newPage();
+        await page.setViewportSize(deviceConfigs[deviceType]);
+        await capturePage(page, url, outputDir, deviceType);
+        await page.close();
+        
+        // Wait for the interval between requests (except for the last one)
+        const isLastUrl = url === urls[urls.length - 1];
+        const isLastDevice = deviceType === devicesToCapture[devicesToCapture.length - 1];
+        if (!(isLastUrl && isLastDevice)) {
+          await new Promise(resolve => setTimeout(resolve, requestInterval * 1000));
+        }
+      }
+    }
+    return;
+  }
+
+  // Original concurrent processing when using default interval
   for (const url of urls) {
     for (const deviceType of devicesToCapture) {
       const promise = (async () => {
@@ -458,6 +482,9 @@ async function main() {
   console.log(`URL: ${url}`);
   console.log(`Output directory: ${outputDir}`);
   console.log(`Device types: ${devicesToCapture.map(d => `${d} (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join(', ')}`);
+  if (requestInterval !== 1) {
+    console.log(`Request interval: ${requestInterval}s (concurrent processing disabled)`);
+  }
   console.log(`Concurrent limit: ${concurrentLimit}`);
   console.log();
 
@@ -539,12 +566,18 @@ async function main() {
       await createReadme(outputDir, url, devicesToCapture, false);
 
       // Single page capture for all devices
-      for (const deviceType of devicesToCapture) {
+      for (let i = 0; i < devicesToCapture.length; i++) {
+        const deviceType = devicesToCapture[i];
         console.log(`Capturing ${deviceType} size...`);
         const page = await browser.newPage();
         await page.setViewportSize(deviceConfigs[deviceType]);
         await capturePage(page, url, outputDir, deviceType);
         await page.close();
+        
+        // Wait for interval between device captures if custom interval is set
+        if (requestInterval !== 1 && i < devicesToCapture.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, requestInterval * 1000));
+        }
       }
     }
 
