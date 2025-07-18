@@ -268,6 +268,10 @@ async function capturePage(page, url, outputDir, deviceType) {
     // Get page content and convert to markdown
     const htmlContent = await page.content();
 
+    // Extract title from HTML
+    const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
+    const pageTitle = titleMatch ? titleMatch[1].trim() : 'Untitled';
+
     // Remove script and style tags before conversion
     const cleanedHtml = htmlContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -275,10 +279,15 @@ async function capturePage(page, url, outputDir, deviceType) {
       .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
 
     const markdown = turndownService.turndown(cleanedHtml);
+    
+    // Add frontmatter with title
+    const createdAt = new Date().toISOString();
+    const frontmatter = `---\ntitle: "${pageTitle}"\nurl: "${url}"\ncreated: "${createdAt}"\n---\n\n`;
+    const markdownWithFrontmatter = frontmatter + markdown;
 
     // Save markdown (only once, not per device)
     const markdownPath = path.join(markdownDir, `${fileName}.md`);
-    await fs.writeFile(markdownPath, markdown, 'utf8');
+    await fs.writeFile(markdownPath, markdownWithFrontmatter, 'utf8');
     console.log(`  Markdown saved: ${markdownPath}`);
 
   } catch (error) {
