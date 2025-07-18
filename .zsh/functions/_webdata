@@ -1,0 +1,36 @@
+#compdef webdata
+
+# Completion for webdata command
+# This provides tab completion for the webdata command with its options and arguments
+
+_webdata() {
+  local context state line
+  typeset -A opt_args
+
+  # Define the argument specification
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[Show help message]' \
+    '(-o --output)'{-o,--output}'[Output directory]:output directory:_directories' \
+    '(-f --force)'{-f,--force}'[Skip overwrite confirmation]' \
+    '1:URL:_urls' \
+    '*::arg:->args' \
+    && return 0
+
+  # Handle additional arguments
+  case $state in
+    args)
+      # No additional arguments expected after URL
+      ;;
+  esac
+}
+
+# Helper function to provide URL completion
+_webdata_urls() {
+  # Basic URL completion - can be extended with common patterns
+  _alternative \
+    'urls:URL:(http:// https://)' \
+    'files:file:_files'
+}
+
+# Register the completion function
+compdef _webdata webdata
