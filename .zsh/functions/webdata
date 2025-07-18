@@ -1,0 +1,225 @@
+#!/bin/zsh
+
+_ymt_webdata_usage() {
+  cat <<EOF
+webdata is a tool to capture website data (screenshots and markdown) for LLM processing.
+
+Usage:
+    webdata <URL>                     Capture data from a URL (sitemap.xml or webpage)
+    webdata <URL> -o <directory>      Specify output directory
+    webdata <URL> --output <directory> Specify output directory
+    webdata --help                    Show this help message
+
+Arguments:
+    URL                               The URL to capture (sitemap.xml or webpage URL)
+
+Options:
+    -o, --output <directory>          Output directory (default: ./output)
+    -f, --force                       Skip overwrite confirmation
+    -c, --concurrent <number>         Number of concurrent pages to process (default: 1)
+    --pc                              Capture PC size screenshots (1440x900)
+    --tablet                          Capture tablet size screenshots (768x1024)
+    --mobile                          Capture mobile size screenshots (375x667)
+    -h, --help                        Show this help message
+
+    Note: If no device flags are specified, --pc is used by default
+
+Output Structure:
+    <output-dir>/
+    ├── captures/
+    │   ├── pc/       # PC size screenshots (1440x900)
+    │   ├── tablet/   # Tablet size screenshots (768x1024)
+    │   └── mobile/   # Mobile size screenshots (375x667)
+    └── markdown/     # Text content (Markdown)
+
+Examples:
+    # Capture all pages from sitemap.xml (PC size by default)
+    webdata https://example.com/sitemap.xml
+
+    # Capture single page in multiple device sizes
+    webdata https://example.com/about --pc --tablet --mobile
+
+    # Capture mobile size only
+    webdata https://example.com/products/item1 --mobile
+
+    # Use concurrent processing for faster capture
+    webdata https://example.com/sitemap.xml -c 5 --pc --tablet
+
+Dependencies:
+    - Node.js
+    - pnpm (for package management)
+    - npm packages (automatically installed on first run)
+EOF
+}
+
+# Check for required dependencies
+_ymt_webdata_check_dependencies() {
+  local missing_deps=()
+
+  # Check Node.js
+  if ! command -v node >/dev/null 2>&1; then
+    missing_deps+=("Node.js")
+  else
+    local node_version=$(node --version | sed 's/v//')
+    local node_major=${node_version%%.*}
+    if [[ $node_major -lt 18 ]]; then
+      echo "Warning: Node.js version $node_version detected. Version 18 or higher is recommended." >&2
+    fi
+  fi
+
+  # Check pnpm
+  if ! command -v pnpm >/dev/null 2>&1; then
+    missing_deps+=("pnpm")
+  fi
+
+  # Report missing dependencies
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    echo "Error: Missing required dependencies:" >&2
+    for dep in "${missing_deps[@]}"; do
+      echo "  - $dep" >&2
+    done
+    echo "" >&2
+    echo "Installation instructions:" >&2
+    for dep in "${missing_deps[@]}"; do
+      case "$dep" in
+        "Node.js")
+          echo "  - Install Node.js: https://nodejs.org/" >&2
+          echo "  - Or use package manager: brew install node" >&2
+          ;;
+        "pnpm")
+          echo "  - Install pnpm: npm install -g pnpm" >&2
+          echo "  - Or use package manager: brew install pnpm" >&2
+          ;;
+      esac
+    done
+    return 1
+  fi
+
+  return 0
+}
+
+# Main function
+main() {
+  # Check dependencies first
+  _ymt_webdata_check_dependencies || return 1
+
+  local url=""
+  local output_dir="./output"
+  local concurrent_value="1"  # Default value as documented
+  local device_args_array=()
+  local force_flag=""
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        _ymt_webdata_usage
+        return 0
+        ;;
+      -o|--output)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Output directory not specified" >&2
+          return 1
+        fi
+        output_dir="$1"
+        shift
+        ;;
+      -f|--force)
+        force_flag="--force"
+        shift
+        ;;
+      -c|--concurrent)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Concurrent number not specified" >&2
+          return 1
+        fi
+        if ! [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
+          echo "Error: Concurrent number must be a positive integer" >&2
+          return 1
+        fi
+        concurrent_value="$1"
+        shift
+        ;;
+      --pc)
+        device_args_array+=(--pc)
+        shift
+        ;;
+      --tablet)
+        device_args_array+=(--tablet)
+        shift
+        ;;
+      --mobile)
+        device_args_array+=(--mobile)
+        shift
+        ;;
+      -*)
+        echo "Error: Unknown option $1" >&2
+        _ymt_webdata_usage
+        return 1
+        ;;
+      *)
+        if [[ -z "$url" ]]; then
+          url="$1"
+        else
+          echo "Error: Multiple URLs specified" >&2
+          _ymt_webdata_usage
+          return 1
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  # Check if URL is provided
+  if [[ -z "$url" ]]; then
+    echo "Error: URL is required" >&2
+    _ymt_webdata_usage
+    return 1
+  fi
+
+  # Get the directory where this script is located
+  local script_dir="${0:A:h}"
+  local dotfiles_dir="${script_dir:h:h}"
+  local node_project_dir="${dotfiles_dir}/.zsh/bin/webdata-node"
+
+  # Check if Node.js project exists
+  if [[ ! -d "$node_project_dir" ]]; then
+    echo "Error: Node.js project not found at $node_project_dir" >&2
+    echo "Please ensure the dotfiles are properly installed." >&2
+    return 1
+  fi
+
+  # Check if dependencies are installed, if not, install them
+  if [[ ! -d "$node_project_dir/node_modules" ]] || [[ ! -f "$node_project_dir/pnpm-lock.yaml" ]]; then
+    echo "Installing dependencies for webdata..."
+    (cd "$node_project_dir" && pnpm install) || {
+      echo "Error: Failed to install dependencies" >&2
+      return 1
+    }
+  fi
+
+  # Run the Node.js script
+  local cmd=("node" "$node_project_dir/index.js" "$url" "--output" "$output_dir")
+
+  # Add concurrent argument (always present with default value)
+  cmd+=(--concurrent "$concurrent_value")
+
+  # Add force flag if specified
+  if [[ -n "$force_flag" ]]; then
+    cmd+=("$force_flag")
+  fi
+
+  # Add device arguments if provided, or use --pc as the default
+  if [[ ${#device_args_array[@]} -gt 0 ]]; then
+    cmd+=("${device_args_array[@]}")
+  else
+    cmd+=(--pc)
+  fi
+
+  # Execute the command
+  "${cmd[@]}"
+}
+
+main "$@"

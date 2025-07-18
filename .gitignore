@@ -14,3 +14,16 @@
 
 # Claude Code
 .claude
+
+# webdata-node dependencies
+.zsh/bin/webdata-node/node_modules/
+
+# pnpm store
+.pnpm-store/
+
+# webdata output directories
+**/output/
+**/captures/
+**/markdown/
+webdata-output/
+
