@@ -62,6 +62,16 @@ if (devicesToCapture.length === 0) {
   devicesToCapture.push('pc');
 }
 
+// URL validation function
+function validateUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    return ['http:', 'https:'].includes(urlObj.protocol);
+  } catch {
+    return false;
+  }
+}
+
 // Utility function to create directory if it doesn't exist
 async function ensureDir(dir) {
   try {
@@ -355,6 +365,12 @@ async function processUrlsConcurrently(urls, browser, outputDir, devicesToCaptur
 
 // Main function
 async function main() {
+  // Validate URL
+  if (!validateUrl(url)) {
+    console.error('Error: Invalid URL format. Please provide a valid HTTP or HTTPS URL.');
+    process.exit(1);
+  }
+
   console.log(`Starting webdata capture...`);
   console.log(`URL: ${url}`);
   console.log(`Output directory: ${outputDir}`);
