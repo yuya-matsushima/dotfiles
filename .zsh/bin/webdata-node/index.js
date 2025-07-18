@@ -72,6 +72,20 @@ function validateUrl(url) {
   }
 }
 
+// Retry operation with exponential backoff
+async function retryOperation(operation, maxRetries = 3, initialDelay = 1000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      const delay = initialDelay * Math.pow(2, i);
+      console.log(`  Retry ${i + 1}/${maxRetries} after ${delay}ms... (${error.message})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 // Utility function to create directory if it doesn't exist
 async function ensureDir(dir) {
   try {
@@ -247,10 +261,12 @@ async function capturePage(page, url, outputDir, deviceType) {
   console.log(`Capturing: ${url}`);
 
   try {
-    // Navigate to the page
-    await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: 30000
+    // Navigate to the page with retry logic
+    await retryOperation(async () => {
+      await page.goto(url, {
+        waitUntil: 'networkidle',
+        timeout: 60000  // Increased timeout to 60 seconds
+      });
     });
 
     // Wait a bit for dynamic content
@@ -419,10 +435,15 @@ async function main() {
     if (isSitemap) {
       console.log('Detected sitemap.xml, fetching all URLs...');
 
-      // Fetch sitemap
+      // Fetch sitemap with retry logic
       const page = await browser.newPage();
-      const response = await page.goto(url);
-      const xmlContent = await response.text();
+      const xmlContent = await retryOperation(async () => {
+        const response = await page.goto(url, {
+          waitUntil: 'networkidle',
+          timeout: 60000
+        });
+        return await response.text();
+      });
       await page.close();
 
       // Parse sitemap
