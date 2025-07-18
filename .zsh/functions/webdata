@@ -1,0 +1,112 @@
+#!/bin/zsh
+
+_ymt_webdata_usage() {
+  cat <<EOF
+webdata is a tool to capture website data (screenshots and markdown) for LLM processing.
+
+Usage:
+    webdata <URL>                     Capture data from a URL (sitemap.xml or webpage)
+    webdata <URL> -o <directory>      Specify output directory
+    webdata <URL> --output <directory> Specify output directory
+    webdata --help                    Show this help message
+
+Arguments:
+    URL                               The URL to capture (sitemap.xml or webpage URL)
+
+Options:
+    -o, --output <directory>          Output directory (default: ./web-data)
+    -h, --help                        Show this help message
+
+Output Structure:
+    <output-dir>/
+    ├── captures/     # Screenshot images (PNG)
+    └── markdown/     # Text content (Markdown)
+
+Examples:
+    # Capture all pages from sitemap.xml
+    webdata https://example.com/sitemap.xml
+
+    # Capture single page
+    webdata https://example.com/about
+
+    # Specify output directory
+    webdata https://example.com/products/item1 -o ./single-page
+
+Dependencies:
+    - Node.js
+    - npm packages (automatically installed on first run)
+EOF
+}
+
+# Main function
+main() {
+  local url=""
+  local output_dir="./web-data"
+  
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        _ymt_webdata_usage
+        return 0
+        ;;
+      -o|--output)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Output directory not specified" >&2
+          return 1
+        fi
+        output_dir="$1"
+        shift
+        ;;
+      -*)
+        echo "Error: Unknown option $1" >&2
+        _ymt_webdata_usage
+        return 1
+        ;;
+      *)
+        if [[ -z "$url" ]]; then
+          url="$1"
+        else
+          echo "Error: Multiple URLs specified" >&2
+          _ymt_webdata_usage
+          return 1
+        fi
+        shift
+        ;;
+    esac
+  done
+  
+  # Check if URL is provided
+  if [[ -z "$url" ]]; then
+    echo "Error: URL is required" >&2
+    _ymt_webdata_usage
+    return 1
+  fi
+  
+  # Get the directory where this script is located
+  local script_dir="${0:A:h}"
+  local dotfiles_dir="${script_dir:h:h}"
+  local node_project_dir="${dotfiles_dir}/bin/webdata-node"
+  
+  # Check if Node.js project exists
+  if [[ ! -d "$node_project_dir" ]]; then
+    echo "Error: Node.js project not found at $node_project_dir" >&2
+    echo "Please ensure the dotfiles are properly installed." >&2
+    return 1
+  fi
+  
+  # Check if node_modules exists, if not, install dependencies
+  if [[ ! -d "$node_project_dir/node_modules" ]]; then
+    echo "Installing dependencies for webdata..."
+    (cd "$node_project_dir" && npm install) || {
+      echo "Error: Failed to install dependencies" >&2
+      return 1
+    }
+  fi
+  
+  # Run the Node.js script
+  node "$node_project_dir/index.js" "$url" --output "$output_dir"
+}
+
+main "$@"

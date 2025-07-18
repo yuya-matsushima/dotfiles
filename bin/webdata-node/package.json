@@ -1,0 +1,18 @@
+{
+  "name": "webdata-node",
+  "version": "1.0.0",
+  "description": "Web data capture tool for screenshots and markdown extraction",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "xml2js": "^0.6.2",
+    "turndown": "^7.1.2",
+    "commander": "^11.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
