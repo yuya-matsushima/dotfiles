@@ -44,6 +44,28 @@ const url = program.args[0];
 const outputDir = options.output;
 const concurrentLimit = parseInt(options.concurrent) || 1;
 
+// Global browser instance for cleanup
+let globalBrowser = null;
+
+// Graceful shutdown handler
+async function gracefulShutdown(signal) {
+  console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+  if (globalBrowser) {
+    try {
+      await globalBrowser.close();
+      console.log('Browser closed successfully');
+    } catch (error) {
+      console.error('Error closing browser:', error.message);
+    }
+  }
+  process.exit(0);
+}
+
+// Register signal handlers
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
+
 // Device viewport configurations
 const deviceConfigs = {
   pc: { width: 1440, height: 900 },
@@ -426,6 +448,9 @@ async function main() {
   const browser = await chromium.launch({
     headless: true
   });
+  
+  // Set global browser for cleanup
+  globalBrowser = browser;
 
   try {
     // Check if URL is a sitemap
@@ -476,7 +501,16 @@ async function main() {
     console.error('Error:', error.message);
     process.exit(1);
   } finally {
-    await browser.close();
+    // Clean up browser resources
+    if (browser) {
+      try {
+        await browser.close();
+        globalBrowser = null;
+        console.log('Browser resources cleaned up');
+      } catch (error) {
+        console.error('Error cleaning up browser:', error.message);
+      }
+    }
   }
 }
 
