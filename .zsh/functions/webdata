@@ -201,9 +201,11 @@ main() {
   # Add concurrent argument (always present with default value)
   cmd+=(--concurrent "$concurrent_value")
 
-  # Add device arguments if provided
+  # Add device arguments if provided, or use --pc as the default
   if [[ ${#device_args_array[@]} -gt 0 ]]; then
     cmd+=("${device_args_array[@]}")
+  else
+    cmd+=(--pc)
   fi
 
   # Execute the command
