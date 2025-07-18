@@ -71,11 +71,11 @@ function checkMemoryUsage() {
   const usage = process.memoryUsage();
   const usedMB = Math.round(usage.heapUsed / 1024 / 1024);
   const totalMB = Math.round(usage.heapTotal / 1024 / 1024);
-  
+
   if (usedMB > 1000) { // Warning if over 1GB
     console.warn(`⚠️  High memory usage: ${usedMB}MB / ${totalMB}MB`);
   }
-  
+
   return { usedMB, totalMB };
 }
 
@@ -88,13 +88,13 @@ async function rateLimitedOperation(url, operation) {
   const lastAccess = domainLimiter.get(domain) || 0;
   const now = Date.now();
   const timeSinceLastAccess = now - lastAccess;
-  
+
   if (timeSinceLastAccess < DOMAIN_RATE_LIMIT_MS) {
     const waitTime = DOMAIN_RATE_LIMIT_MS - timeSinceLastAccess;
     console.log(`  Rate limiting: waiting ${waitTime}ms for ${domain}`);
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
-  
+
   domainLimiter.set(domain, Date.now());
   return await operation();
 }
@@ -493,7 +493,7 @@ async function main() {
   const browser = await chromium.launch({
     headless: true
   });
-  
+
   // Set global browser for cleanup
   globalBrowser = browser;
 
@@ -558,7 +558,7 @@ async function main() {
     if (memoryMonitor) {
       clearInterval(memoryMonitor);
     }
-    
+
     // Clean up browser resources
     if (browser) {
       try {
