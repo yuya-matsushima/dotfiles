@@ -105,8 +105,8 @@ main() {
 
   local url=""
   local output_dir="./output"
-  local concurrent_arg=""
-  local device_args=""
+  local concurrent_value=""
+  local device_args_array=()
 
   # Parse arguments
   while [[ $# -gt 0 ]]; do
@@ -134,19 +134,19 @@ main() {
           echo "Error: Concurrent number must be a positive integer" >&2
           return 1
         fi
-        concurrent_arg="--concurrent $1"
+        concurrent_value="$1"
         shift
         ;;
       --pc)
-        device_args="$device_args --pc"
+        device_args_array+=(--pc)
         shift
         ;;
       --tablet)
-        device_args="$device_args --tablet"
+        device_args_array+=(--tablet)
         shift
         ;;
       --mobile)
-        device_args="$device_args --mobile"
+        device_args_array+=(--mobile)
         shift
         ;;
       -*)
@@ -199,13 +199,13 @@ main() {
   local cmd=("node" "$node_project_dir/index.js" "$url" "--output" "$output_dir")
 
   # Add concurrent argument if provided
-  if [[ -n "$concurrent_arg" ]]; then
-    cmd+=($concurrent_arg)
+  if [[ -n "$concurrent_value" ]]; then
+    cmd+=(--concurrent "$concurrent_value")
   fi
 
   # Add device arguments if provided
-  if [[ -n "$device_args" ]]; then
-    cmd+=($device_args)
+  if [[ ${#device_args_array[@]} -gt 0 ]]; then
+    cmd+=("${device_args_array[@]}")
   fi
 
   # Execute the command
