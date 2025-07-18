@@ -35,6 +35,7 @@ Examples:
 
 Dependencies:
     - Node.js
+    - pnpm (for package management)
     - npm packages (automatically installed on first run)
 EOF
 }
@@ -97,10 +98,10 @@ main() {
     return 1
   fi
   
-  # Check if node_modules exists, if not, install dependencies
-  if [[ ! -d "$node_project_dir/node_modules" ]]; then
+  # Check if dependencies are installed, if not, install them
+  if [[ ! -d "$node_project_dir/node_modules" ]] || [[ ! -f "$node_project_dir/pnpm-lock.yaml" ]]; then
     echo "Installing dependencies for webdata..."
-    (cd "$node_project_dir" && npm install) || {
+    (cd "$node_project_dir" && pnpm install) || {
       echo "Error: Failed to install dependencies" >&2
       return 1
     }
