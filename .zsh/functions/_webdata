@@ -16,7 +16,7 @@ _webdata() {
     '--pc[Capture PC size screenshots (1440x900)]' \
     '--tablet[Capture tablet size screenshots (768x1024)]' \
     '--mobile[Capture mobile size screenshots (375x667)]' \
-    '1:URL:_urls' \
+    '1:URL:_webdata_urls' \
     '*::arg:->args' \
     && return 0
 
