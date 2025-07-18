@@ -13,7 +13,7 @@ _webdata() {
     '(-o --output)'{-o,--output}'[Output directory]:output directory:_directories' \
     '(-f --force)'{-f,--force}'[Skip overwrite confirmation]' \
     '(-c --concurrent)'{-c,--concurrent}'[Number of concurrent pages]:concurrent number:' \
-    '--pc[Capture PC size screenshots (1280x800)]' \
+    '--pc[Capture PC size screenshots (1440x900)]' \
     '--tablet[Capture tablet size screenshots (768x1024)]' \
     '--mobile[Capture mobile size screenshots (375x667)]' \
     '1:URL:_urls' \

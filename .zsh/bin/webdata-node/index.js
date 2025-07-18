@@ -33,8 +33,8 @@ program
   .argument('<url>', 'URL to capture (sitemap.xml or webpage)')
   .option('-o, --output <directory>', 'output directory', './output')
   .option('-f, --force', 'skip overwrite confirmation')
-  .option('-c, --concurrent <number>', 'number of concurrent pages to process', '3')
-  .option('--pc', 'capture PC size screenshots (1280x800)')
+  .option('-c, --concurrent <number>', 'number of concurrent pages to process', '1')
+  .option('--pc', 'capture PC size screenshots (1440x900)')
   .option('--tablet', 'capture tablet size screenshots (768x1024)')
   .option('--mobile', 'capture mobile size screenshots (375x667)')
   .parse();
@@ -42,11 +42,11 @@ program
 const options = program.opts();
 const url = program.args[0];
 const outputDir = options.output;
-const concurrentLimit = parseInt(options.concurrent) || 3;
+const concurrentLimit = parseInt(options.concurrent) || 1;
 
 // Device viewport configurations
 const deviceConfigs = {
-  pc: { width: 1280, height: 800 },
+  pc: { width: 1440, height: 900 },
   tablet: { width: 768, height: 1024 },
   mobile: { width: 375, height: 667 }
 };

@@ -16,8 +16,8 @@ Arguments:
 Options:
     -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
-    -c, --concurrent <number>         Number of concurrent pages to process (default: 3)
-    --pc                              Capture PC size screenshots (1280x800)
+    -c, --concurrent <number>         Number of concurrent pages to process (default: 1)
+    --pc                              Capture PC size screenshots (1440x900)
     --tablet                          Capture tablet size screenshots (768x1024)
     --mobile                          Capture mobile size screenshots (375x667)
     -h, --help                        Show this help message
@@ -27,7 +27,7 @@ Options:
 Output Structure:
     <output-dir>/
     ├── captures/
-    │   ├── pc/       # PC size screenshots (1280x800)
+    │   ├── pc/       # PC size screenshots (1440x900)
     │   ├── tablet/   # Tablet size screenshots (768x1024)
     │   └── mobile/   # Mobile size screenshots (375x667)
     └── markdown/     # Text content (Markdown)
