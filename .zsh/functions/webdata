@@ -197,17 +197,17 @@ main() {
 
   # Run the Node.js script
   local cmd=("node" "$node_project_dir/index.js" "$url" "--output" "$output_dir")
-  
+
   # Add concurrent argument if provided
   if [[ -n "$concurrent_arg" ]]; then
     cmd+=($concurrent_arg)
   fi
-  
+
   # Add device arguments if provided
   if [[ -n "$device_args" ]]; then
     cmd+=($device_args)
   fi
-  
+
   # Execute the command
   "${cmd[@]}"
 }
