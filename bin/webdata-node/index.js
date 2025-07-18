@@ -7,6 +7,7 @@ const { program } = require('commander');
 const fs = require('fs').promises;
 const path = require('path');
 const { URL } = require('url');
+const readline = require('readline');
 
 // Initialize Turndown service for HTML to Markdown conversion
 const turndownService = new TurndownService({
@@ -31,6 +32,7 @@ program
   .description('Capture website data (screenshots and markdown)')
   .argument('<url>', 'URL to capture (sitemap.xml or webpage)')
   .option('-o, --output <directory>', 'output directory', './web-data')
+  .option('-f, --force', 'skip overwrite confirmation')
   .parse();
 
 const options = program.opts();
@@ -44,6 +46,31 @@ async function ensureDir(dir) {
   } catch (error) {
     console.error(`Error creating directory ${dir}:`, error);
   }
+}
+
+// Check if directory exists
+async function dirExists(dir) {
+  try {
+    const stats = await fs.stat(dir);
+    return stats.isDirectory();
+  } catch (error) {
+    return false;
+  }
+}
+
+// Ask user for confirmation
+async function askConfirmation(message) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${message} (y/N): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y');
+    });
+  });
 }
 
 // Parse sitemap.xml and extract URLs
@@ -162,6 +189,31 @@ async function main() {
   console.log(`URL: ${url}`);
   console.log(`Output directory: ${outputDir}`);
   console.log();
+  
+  // Check if captures or markdown directories already exist
+  const capturesDir = path.join(outputDir, 'captures');
+  const markdownDir = path.join(outputDir, 'markdown');
+  const capturesExists = await dirExists(capturesDir);
+  const markdownExists = await dirExists(markdownDir);
+  
+  if (capturesExists || markdownExists) {
+    console.log('Warning: The following directories already exist:');
+    if (capturesExists) console.log(`  - ${capturesDir}`);
+    if (markdownExists) console.log(`  - ${markdownDir}`);
+    console.log();
+    
+    if (!options.force) {
+      const confirmed = await askConfirmation('Files in these directories may be overwritten. Continue?');
+      if (!confirmed) {
+        console.log('Operation cancelled.');
+        process.exit(0);
+      }
+      console.log();
+    } else {
+      console.log('Force mode enabled, continuing without confirmation.');
+      console.log();
+    }
+  }
   
   // Launch browser
   const browser = await chromium.launch({

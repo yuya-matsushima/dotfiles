@@ -15,6 +15,7 @@ Arguments:
 
 Options:
     -o, --output <directory>          Output directory (default: ./web-data)
+    -f, --force                       Skip overwrite confirmation
     -h, --help                        Show this help message
 
 Output Structure:
