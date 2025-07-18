@@ -107,6 +107,7 @@ main() {
   local output_dir="./output"
   local concurrent_value="1"  # Default value as documented
   local device_args_array=()
+  local force_flag=""
 
   # Parse arguments
   while [[ $# -gt 0 ]]; do
@@ -122,6 +123,10 @@ main() {
           return 1
         fi
         output_dir="$1"
+        shift
+        ;;
+      -f|--force)
+        force_flag="--force"
         shift
         ;;
       -c|--concurrent)
@@ -200,6 +205,11 @@ main() {
 
   # Add concurrent argument (always present with default value)
   cmd+=(--concurrent "$concurrent_value")
+
+  # Add force flag if specified
+  if [[ -n "$force_flag" ]]; then
+    cmd+=("$force_flag")
+  fi
 
   # Add device arguments if provided, or use --pc as the default
   if [[ ${#device_args_array[@]} -gt 0 ]]; then
