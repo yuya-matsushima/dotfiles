@@ -289,6 +289,9 @@ async function capturePage(page, url, outputDir, deviceType) {
 
     const markdown = turndownService.turndown(cleanedHtml);
 
+    // Clean up markdown: remove empty lines at the beginning
+    const cleanedMarkdown = markdown.replace(/^\s*\n+/, '');
+
     // Add frontmatter with title
     const createdAt = new Date().toISOString();
     let frontmatter = `---\ntitle: "${pageTitle}"\nurl: "${url}"\ncreated: "${createdAt}"\n`;
@@ -302,7 +305,7 @@ async function capturePage(page, url, outputDir, deviceType) {
     }
 
     frontmatter += `---\n\n`;
-    const markdownWithFrontmatter = frontmatter + markdown;
+    const markdownWithFrontmatter = frontmatter + cleanedMarkdown;
 
     // Save markdown (only once, not per device)
     const markdownPath = path.join(markdownDir, `${fileName}.md`);
