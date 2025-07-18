@@ -21,7 +21,7 @@ Options:
     --tablet                          Capture tablet size screenshots (768x1024)
     --mobile                          Capture mobile size screenshots (375x667)
     -h, --help                        Show this help message
-    
+
     Note: If no device flags are specified, --pc is used by default
 
 Output Structure:
@@ -58,7 +58,7 @@ main() {
   local output_dir="./output"
   local concurrent_arg=""
   local device_args=""
-  
+
   # Parse arguments
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -113,26 +113,26 @@ main() {
         ;;
     esac
   done
-  
+
   # Check if URL is provided
   if [[ -z "$url" ]]; then
     echo "Error: URL is required" >&2
     _ymt_webdata_usage
     return 1
   fi
-  
+
   # Get the directory where this script is located
   local script_dir="${0:A:h}"
   local dotfiles_dir="${script_dir:h:h}"
   local node_project_dir="${dotfiles_dir}/.zsh/bin/webdata-node"
-  
+
   # Check if Node.js project exists
   if [[ ! -d "$node_project_dir" ]]; then
     echo "Error: Node.js project not found at $node_project_dir" >&2
     echo "Please ensure the dotfiles are properly installed." >&2
     return 1
   fi
-  
+
   # Check if dependencies are installed, if not, install them
   if [[ ! -d "$node_project_dir/node_modules" ]] || [[ ! -f "$node_project_dir/pnpm-lock.yaml" ]]; then
     echo "Installing dependencies for webdata..."
@@ -141,7 +141,7 @@ main() {
       return 1
     }
   fi
-  
+
   # Run the Node.js script
   eval "node \"$node_project_dir/index.js\" \"$url\" --output \"$output_dir\" $concurrent_arg $device_args"
 }
