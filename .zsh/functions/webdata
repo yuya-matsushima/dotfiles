@@ -130,6 +130,10 @@ main() {
           echo "Error: Concurrent number not specified" >&2
           return 1
         fi
+        if ! [[ "$1" =~ ^[1-9][0-9]*$ ]]; then
+          echo "Error: Concurrent number must be a positive integer" >&2
+          return 1
+        fi
         concurrent_arg="--concurrent $1"
         shift
         ;;
