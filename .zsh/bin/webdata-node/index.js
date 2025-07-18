@@ -272,11 +272,12 @@ async function capturePage(page, url, outputDir, deviceType) {
     const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
     const pageTitle = titleMatch ? titleMatch[1].trim() : 'Untitled';
 
-    // Remove script and style tags before conversion
+    // Remove script, style, and title tags before conversion
     const cleanedHtml = htmlContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
+      .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '')
+      .replace(/<title\b[^<]*(?:(?!<\/title>)<[^<]*)*<\/title>/gi, '');
 
     const markdown = turndownService.turndown(cleanedHtml);
     
