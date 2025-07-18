@@ -12,7 +12,7 @@ _webdata() {
     '(-h --help)'{-h,--help}'[Show help message]' \
     '(-o --output)'{-o,--output}'[Output directory]:output directory:_directories' \
     '(-f --force)'{-f,--force}'[Skip overwrite confirmation]' \
-    '(-c --concurrent)'{-c,--concurrent}'[Number of concurrent pages]:concurrent number:' \
+    '(-c --concurrent)'{-c,--concurrent}'[Number of concurrent pages]:concurrent number:_webdata_concurrent' \
     '--pc[Capture PC size screenshots (1440x900)]' \
     '--tablet[Capture tablet size screenshots (768x1024)]' \
     '--mobile[Capture mobile size screenshots (375x667)]' \
@@ -34,6 +34,14 @@ _webdata_urls() {
   _alternative \
     'urls:URL:(http:// https://)' \
     'files:file:_files'
+}
+
+# Helper function to provide concurrent number completion
+_webdata_concurrent() {
+  # Suggest reasonable concurrent values
+  _alternative \
+    'numbers:concurrent number:(1 2 3 4 5 6 7 8 9 10)' \
+    'custom:custom number:_message "Enter a positive integer"'
 }
 
 # Register the completion function
