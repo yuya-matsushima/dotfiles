@@ -34,6 +34,7 @@ program
   .option('-o, --output <directory>', 'output directory', './output')
   .option('-f, --force', 'skip overwrite confirmation')
   .option('-c, --concurrent <number>', 'number of concurrent pages to process', '1')
+  .option('-i, --interval-sec <seconds>', 'interval between requests in seconds (1-5)', '1')
   .option('--pc', 'capture PC size screenshots (1440x900)')
   .option('--tablet', 'capture tablet size screenshots (768x1024)')
   .option('--mobile', 'capture mobile size screenshots (375x667)')
@@ -43,6 +44,7 @@ const options = program.opts();
 const url = program.args[0];
 const outputDir = options.output;
 const concurrentLimit = parseInt(options.concurrent) || 1;
+const intervalSeconds = parseFloat(options.intervalSec) || 1;
 
 // Global browser instance for cleanup
 let globalBrowser = null;
@@ -81,7 +83,7 @@ function checkMemoryUsage() {
 
 // Domain-based rate limiting
 const domainLimiter = new Map();
-const DOMAIN_RATE_LIMIT_MS = 1000; // 1 second between requests to same domain
+let DOMAIN_RATE_LIMIT_MS = 1000; // Default 1 second between requests to same domain
 
 async function rateLimitedOperation(url, operation) {
   const domain = new URL(url).hostname;
@@ -458,8 +460,12 @@ async function main() {
   console.log(`URL: ${url}`);
   console.log(`Output directory: ${outputDir}`);
   console.log(`Device types: ${devicesToCapture.map(d => `${d} (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join(', ')}`);
+  console.log(`Interval between requests: ${intervalSeconds} seconds`);
   console.log(`Concurrent limit: ${concurrentLimit}`);
   console.log();
+
+  // Set custom rate limit based on interval option (always > 0 now)
+  DOMAIN_RATE_LIMIT_MS = intervalSeconds * 1000;
 
   // Create output directory
   await ensureDir(outputDir);

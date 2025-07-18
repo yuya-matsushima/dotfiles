@@ -17,6 +17,7 @@ Options:
     -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
     -c, --concurrent <number>         Number of concurrent pages to process (default: 1)
+    -i, --interval-sec <seconds>      Interval between requests in seconds (1-5, default: 1)
     --pc                              Capture PC size screenshots (1440x900)
     --tablet                          Capture tablet size screenshots (768x1024)
     --mobile                          Capture mobile size screenshots (375x667)
@@ -44,6 +45,12 @@ Examples:
 
     # Use concurrent processing for faster capture
     webdata https://example.com/sitemap.xml -c 5 --pc --tablet
+
+    # Add interval between requests to avoid rate limiting
+    webdata https://example.com/sitemap.xml -i 2
+
+    # Combine concurrent processing with interval
+    webdata https://example.com/sitemap.xml -c 3 -i 3 --mobile
 
 Dependencies:
     - Node.js
@@ -106,6 +113,7 @@ main() {
   local url=""
   local output_dir="./output"
   local concurrent_value="1"  # Default value as documented
+  local interval_value="1"  # Default interval in seconds
   local device_args_array=()
   local force_flag=""
 
@@ -140,6 +148,19 @@ main() {
           return 1
         fi
         concurrent_value="$1"
+        shift
+        ;;
+      -i|--interval-sec)
+        shift
+        if [[ -z "$1" ]]; then
+          echo "Error: Interval value not specified" >&2
+          return 1
+        fi
+        if ! [[ "$1" =~ ^[1-5](\.[0-9]+)?$ ]] || (( $(echo "$1 > 5" | bc -l) )); then
+          echo "Error: Interval must be between 1 and 5 seconds (e.g., 1, 1.5, 2, 5)" >&2
+          return 1
+        fi
+        interval_value="$1"
         shift
         ;;
       --pc)
@@ -205,6 +226,9 @@ main() {
 
   # Add concurrent argument (always present with default value)
   cmd+=(--concurrent "$concurrent_value")
+
+  # Add interval argument (always present with default value)
+  cmd+=(--interval-sec "$interval_value")
 
   # Add force flag if specified
   if [[ -n "$force_flag" ]]; then
