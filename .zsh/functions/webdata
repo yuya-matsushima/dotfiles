@@ -158,7 +158,7 @@ main() {
         fi
         # Only allow single decimal place (e.g., 1.5, not 1.25)
         if [[ ! "$1" =~ ^[0-9]+(\.[0-9])?$ ]]; then
-          echo "Error: Interval must be a numeric value between 1 and 5 seconds (e.g., 1, 1.5, 2, 5)" >&2
+          echo "Error: Interval must be a numeric value between 1 and 5 seconds with at most one decimal place (e.g., 1, 1.5, 2, 5)" >&2
           return 1
         fi
         
@@ -166,12 +166,17 @@ main() {
         if [[ "$1" == *.* ]]; then
           local integer_part=${1%%.*}
           local decimal_part=${1##*.}
-          local val_times_10=$(( integer_part * 10 + decimal_part ))
+          # Ensure the decimal part has only one digit (double-check for safety)
+          if [[ ${#decimal_part} -gt 1 ]]; then
+            echo "Error: Interval must have at most one decimal place (e.g., 1, 1.5, 2)" >&2
+            return 1
+          fi
+          local scaled_interval=$(( integer_part * 10 + decimal_part ))
         else
-          local val_times_10=$(( $1 * 10 ))
+          local scaled_interval=$(( $1 * 10 ))
         fi
-        if (( val_times_10 < 10 || val_times_10 > 50 )); then
-          echo "Error: Interval must be a numeric value between 1 and 5 seconds (e.g., 1, 1.5, 2, 5)" >&2
+        if (( scaled_interval < 10 || scaled_interval > 50 )); then
+          echo "Error: Interval must be a numeric value between 1 and 5 seconds with at most one decimal place (e.g., 1, 1.5, 2, 5)" >&2
           return 1
         fi
         interval_value="$1"
