@@ -156,14 +156,17 @@ main() {
           echo "Error: Interval value not specified" >&2
           return 1
         fi
-        if [[ ! "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+        # Only allow single decimal place (e.g., 1.5, not 1.25)
+        if [[ ! "$1" =~ ^[0-9]+(\.[0-9])?$ ]]; then
           echo "Error: Interval must be a numeric value between 1 and 5 seconds (e.g., 1, 1.5, 2, 5)" >&2
           return 1
         fi
         
-        # Convert to integer comparison by multiplying by 10
+        # Convert decimal to integer for comparison (1.5 -> 15, 2 -> 20)
         if [[ "$1" == *.* ]]; then
-          local val_times_10=$(( ${1%%.*}0 + ${1##*.} ))
+          local integer_part=${1%%.*}
+          local decimal_part=${1##*.}
+          local val_times_10=$(( integer_part * 10 + decimal_part ))
         else
           local val_times_10=$(( $1 * 10 ))
         fi
