@@ -31,6 +31,27 @@
 - Path structure follows the URL structure
 - Root pages (`/`) are saved as `index`
 
+## Markdown File Format
+
+Each markdown file contains:
+
+### YAML Frontmatter
+```yaml
+---
+title: "Page Title"        # Extracted from HTML <title> tag
+url: "https://example.com" # Source URL
+created: "2025-01-18T12:34:56.789Z" # Capture timestamp
+description: "Page description"      # Extracted from <meta name="description"> (optional)
+keywords: "keyword1, keyword2"      # Extracted from <meta name="keywords"> (optional)
+---
+```
+
+### Content
+- Clean markdown content converted from HTML
+- Scripts, styles, and title tags removed
+- Preserves text content and structure
+- Images and links maintained with proper formatting
+
 ## Usage for LLM
 
 This directory contains website data captured for LLM processing:

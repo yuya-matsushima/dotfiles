@@ -272,6 +272,14 @@ async function capturePage(page, url, outputDir, deviceType) {
     const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
     const pageTitle = titleMatch ? titleMatch[1].trim() : 'Untitled';
 
+    // Extract meta description
+    const descriptionMatch = htmlContent.match(/<meta\s+name=['"']description['"']\s+content=['"']([^'"]*)['"'][^>]*>/i);
+    const pageDescription = descriptionMatch ? descriptionMatch[1].trim() : '';
+
+    // Extract meta keywords
+    const keywordsMatch = htmlContent.match(/<meta\s+name=['"']keywords['"']\s+content=['"']([^'"]*)['"'][^>]*>/i);
+    const pageKeywords = keywordsMatch ? keywordsMatch[1].trim() : '';
+
     // Remove script, style, and title tags before conversion
     const cleanedHtml = htmlContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -280,10 +288,20 @@ async function capturePage(page, url, outputDir, deviceType) {
       .replace(/<title\b[^<]*(?:(?!<\/title>)<[^<]*)*<\/title>/gi, '');
 
     const markdown = turndownService.turndown(cleanedHtml);
-    
+
     // Add frontmatter with title
     const createdAt = new Date().toISOString();
-    const frontmatter = `---\ntitle: "${pageTitle}"\nurl: "${url}"\ncreated: "${createdAt}"\n---\n\n`;
+    let frontmatter = `---\ntitle: "${pageTitle}"\nurl: "${url}"\ncreated: "${createdAt}"\n`;
+
+    if (pageDescription) {
+      frontmatter += `description: "${pageDescription}"\n`;
+    }
+
+    if (pageKeywords) {
+      frontmatter += `keywords: "${pageKeywords}"\n`;
+    }
+
+    frontmatter += `---\n\n`;
     const markdownWithFrontmatter = frontmatter + markdown;
 
     // Save markdown (only once, not per device)
