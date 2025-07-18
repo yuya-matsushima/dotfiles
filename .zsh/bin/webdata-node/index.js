@@ -84,8 +84,13 @@ async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = nu
 
     let sourceType = isSitemap ? 'Sitemap' : 'Single Page';
     let pageCountInfo = '';
+    let processingInfo = '';
+
     if (isSitemap && urls) {
       pageCountInfo = `**Pages captured:** ${urls.length}`;
+      processingInfo = `**Processing:** sitemap.xml をベースに全ページを取得`;
+    } else {
+      processingInfo = `**Processing:** 単一ページを取得`;
     }
 
     return template
@@ -93,6 +98,7 @@ async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = nu
       .replace('{{SOURCE_TYPE}}', sourceType)
       .replace('{{SOURCE_URL}}', url)
       .replace('{{PAGE_COUNT_INFO}}', pageCountInfo)
+      .replace('{{PROCESSING_INFO}}', processingInfo)
       .replace('{{DEVICE_LIST}}', deviceList)
       .replace('{{DEVICE_TREE}}', deviceTree);
 

@@ -8,6 +8,7 @@
 **Type:** {{SOURCE_TYPE}}
 **URL:** {{SOURCE_URL}}
 {{PAGE_COUNT_INFO}}
+{{PROCESSING_INFO}}
 
 ## Device Configurations
 
