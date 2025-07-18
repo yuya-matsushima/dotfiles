@@ -31,7 +31,7 @@ program
   .name('webdata')
   .description('Capture website data (screenshots and markdown)')
   .argument('<url>', 'URL to capture (sitemap.xml or webpage)')
-  .option('-o, --output <directory>', 'output directory', './web-data')
+  .option('-o, --output <directory>', 'output directory', './output')
   .option('-f, --force', 'skip overwrite confirmation')
   .parse();
 

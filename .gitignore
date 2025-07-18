@@ -15,3 +15,6 @@
 # Claude Code
 .claude
 
+# webdata-node dependencies
+.zsh/bin/webdata-node/node_modules/
+

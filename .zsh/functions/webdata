@@ -14,7 +14,7 @@ Arguments:
     URL                               The URL to capture (sitemap.xml or webpage URL)
 
 Options:
-    -o, --output <directory>          Output directory (default: ./web-data)
+    -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
     -h, --help                        Show this help message
 
@@ -43,7 +43,7 @@ EOF
 # Main function
 main() {
   local url=""
-  local output_dir="./web-data"
+  local output_dir="./output"
   
   # Parse arguments
   while [[ $# -gt 0 ]]; do
