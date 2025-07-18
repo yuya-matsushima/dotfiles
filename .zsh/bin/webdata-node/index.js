@@ -71,6 +71,51 @@ async function ensureDir(dir) {
   }
 }
 
+// Generate README.md content from template
+async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = null) {
+  const templatePath = path.join(__dirname, 'templates', 'README.md');
+
+  try {
+    const template = await fs.readFile(templatePath, 'utf8');
+
+    const timestamp = new Date().toISOString();
+    const deviceList = devicesToCapture.map(d => `- ${d}: ${deviceConfigs[d].width}x${deviceConfigs[d].height}`).join('\n');
+    const deviceTree = devicesToCapture.map(d => `│   ├── ${d}/            # ${d.charAt(0).toUpperCase() + d.slice(1)} size screenshots (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join('\n');
+
+    let sourceType = isSitemap ? 'Sitemap' : 'Single Page';
+    let pageCountInfo = '';
+    if (isSitemap && urls) {
+      pageCountInfo = `**Pages captured:** ${urls.length}`;
+    }
+
+    return template
+      .replace('{{TIMESTAMP}}', timestamp)
+      .replace('{{SOURCE_TYPE}}', sourceType)
+      .replace('{{SOURCE_URL}}', url)
+      .replace('{{PAGE_COUNT_INFO}}', pageCountInfo)
+      .replace('{{DEVICE_LIST}}', deviceList)
+      .replace('{{DEVICE_TREE}}', deviceTree);
+
+  } catch (error) {
+    console.error('Error reading template file:', error.message);
+    // Fallback to simple content if template fails
+    return `# Website Data Capture\n\n**Generated:** ${new Date().toISOString()}\n**URL:** ${url}\n**Devices:** ${devicesToCapture.join(', ')}\n`;
+  }
+}
+
+// Create README.md in output directory
+async function createReadme(outputDir, url, devicesToCapture, isSitemap, urls = null) {
+  const readmeContent = await generateReadmeContent(url, devicesToCapture, isSitemap, urls);
+  const readmePath = path.join(outputDir, 'README.md');
+
+  try {
+    await fs.writeFile(readmePath, readmeContent, 'utf8');
+    console.log(`README.md created: ${readmePath}`);
+  } catch (error) {
+    console.error(`Error creating README.md:`, error.message);
+  }
+}
+
 // Check if directory exists
 async function dirExists(dir) {
   try {
@@ -101,7 +146,7 @@ async function parseSitemap(xmlContent) {
   const parser = new xml2js.Parser();
   const result = await parser.parseStringPromise(xmlContent);
   const urls = [];
-  
+
   // Handle different sitemap formats
   if (result.urlset && result.urlset.url) {
     result.urlset.url.forEach(urlEntry => {
@@ -117,7 +162,7 @@ async function parseSitemap(xmlContent) {
       }
     });
   }
-  
+
   return urls;
 }
 
@@ -125,18 +170,18 @@ async function parseSitemap(xmlContent) {
 function urlToFilePath(urlString) {
   const urlObj = new URL(urlString);
   let pathname = urlObj.pathname;
-  
+
   // Handle root path
   if (pathname === '/' || pathname === '') {
     return 'index';
   }
-  
+
   // Remove leading and trailing slashes
   pathname = pathname.replace(/^\/|\/$/g, '');
-  
+
   // Replace slashes with directory separators
   const parts = pathname.split('/');
-  
+
   // If the last part has an extension, use it as is
   const lastPart = parts[parts.length - 1];
   if (!path.extname(lastPart) || lastPart.endsWith('.html') || lastPart.endsWith('.htm')) {
@@ -148,7 +193,7 @@ function urlToFilePath(urlString) {
       // Don't add index to avoid confusion
     }
   }
-  
+
   return parts.join(path.sep);
 }
 
@@ -159,18 +204,18 @@ class Semaphore {
     this.current = 0;
     this.queue = [];
   }
-  
+
   async acquire() {
     if (this.current < this.maxConcurrent) {
       this.current++;
       return Promise.resolve();
     }
-    
+
     return new Promise((resolve) => {
       this.queue.push(resolve);
     });
   }
-  
+
   release() {
     this.current--;
     if (this.queue.length > 0) {
@@ -184,52 +229,52 @@ class Semaphore {
 // Capture single page
 async function capturePage(page, url, outputDir, deviceType) {
   console.log(`Capturing: ${url}`);
-  
+
   try {
     // Navigate to the page
-    await page.goto(url, { 
+    await page.goto(url, {
       waitUntil: 'networkidle',
-      timeout: 30000 
+      timeout: 30000
     });
-    
+
     // Wait a bit for dynamic content
     await page.waitForTimeout(2000);
-    
+
     // Get the file path
     const filePath = urlToFilePath(url);
     const fileName = path.basename(filePath) || 'index';
     const dirPath = path.dirname(filePath);
-    
+
     // Create directories with device type suffix for captures
     const captureDir = path.join(outputDir, 'captures', deviceType, dirPath);
     const markdownDir = path.join(outputDir, 'markdown', dirPath);
     await ensureDir(captureDir);
     await ensureDir(markdownDir);
-    
+
     // Take screenshot
     const screenshotPath = path.join(captureDir, `${fileName}.png`);
-    await page.screenshot({ 
+    await page.screenshot({
       path: screenshotPath,
-      fullPage: true 
+      fullPage: true
     });
     console.log(`  Screenshot saved: ${screenshotPath}`);
-    
+
     // Get page content and convert to markdown
     const htmlContent = await page.content();
-    
+
     // Remove script and style tags before conversion
     const cleanedHtml = htmlContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
       .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
-    
+
     const markdown = turndownService.turndown(cleanedHtml);
-    
+
     // Save markdown (only once, not per device)
     const markdownPath = path.join(markdownDir, `${fileName}.md`);
     await fs.writeFile(markdownPath, markdown, 'utf8');
     console.log(`  Markdown saved: ${markdownPath}`);
-    
+
   } catch (error) {
     console.error(`  Error capturing ${url}:`, error.message);
   }
@@ -239,7 +284,7 @@ async function capturePage(page, url, outputDir, deviceType) {
 async function processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit) {
   const semaphore = new Semaphore(concurrentLimit);
   const allPromises = [];
-  
+
   for (const url of urls) {
     for (const deviceType of devicesToCapture) {
       const promise = (async () => {
@@ -256,18 +301,18 @@ async function processUrlsConcurrently(urls, browser, outputDir, devicesToCaptur
       allPromises.push(promise);
     }
   }
-  
+
   // Process all device/URL combinations concurrently
   let completed = 0;
   const total = urls.length * devicesToCapture.length;
-  
+
   for (const promise of allPromises) {
     promise.then(() => {
       completed++;
       console.log(`Progress: ${completed}/${total}`);
     });
   }
-  
+
   await Promise.all(allPromises);
 }
 
@@ -279,19 +324,22 @@ async function main() {
   console.log(`Device types: ${devicesToCapture.map(d => `${d} (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join(', ')}`);
   console.log(`Concurrent limit: ${concurrentLimit}`);
   console.log();
-  
+
+  // Create output directory
+  await ensureDir(outputDir);
+
   // Check if captures or markdown directories already exist
   const capturesDir = path.join(outputDir, 'captures');
   const markdownDir = path.join(outputDir, 'markdown');
   const capturesExists = await dirExists(capturesDir);
   const markdownExists = await dirExists(markdownDir);
-  
+
   if (capturesExists || markdownExists) {
     console.log('Warning: The following directories already exist:');
     if (capturesExists) console.log(`  - ${capturesDir}`);
     if (markdownExists) console.log(`  - ${markdownDir}`);
     console.log();
-    
+
     if (!options.force) {
       const confirmed = await askConfirmation('Files in these directories may be overwritten. Continue?');
       if (!confirmed) {
@@ -304,34 +352,40 @@ async function main() {
       console.log();
     }
   }
-  
+
   // Launch browser
   const browser = await chromium.launch({
     headless: true
   });
-  
+
   try {
     // Check if URL is a sitemap
-    const isSitemap = url.toLowerCase().includes('sitemap.xml') || 
+    const isSitemap = url.toLowerCase().includes('sitemap.xml') ||
                       url.toLowerCase().endsWith('.xml');
-    
+
     if (isSitemap) {
       console.log('Detected sitemap.xml, fetching all URLs...');
-      
+
       // Fetch sitemap
       const page = await browser.newPage();
       const response = await page.goto(url);
       const xmlContent = await response.text();
       await page.close();
-      
+
       // Parse sitemap
       const urls = await parseSitemap(xmlContent);
       console.log(`Found ${urls.length} URLs in sitemap`);
       console.log();
-      
+
+      // Create README.md
+      await createReadme(outputDir, url, devicesToCapture, true, urls);
+
       // Process URLs concurrently for all devices
       await processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit);
     } else {
+      // Create README.md
+      await createReadme(outputDir, url, devicesToCapture, false);
+
       // Single page capture for all devices
       for (const deviceType of devicesToCapture) {
         console.log(`Capturing ${deviceType} size...`);
@@ -341,9 +395,9 @@ async function main() {
         await page.close();
       }
     }
-    
+
     console.log('Capture completed successfully!');
-    
+
   } catch (error) {
     console.error('Error:', error.message);
     process.exit(1);
