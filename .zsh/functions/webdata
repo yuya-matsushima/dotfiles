@@ -105,7 +105,7 @@ main() {
 
   local url=""
   local output_dir="./output"
-  local concurrent_value=""
+  local concurrent_value="1"  # Default value as documented
   local device_args_array=()
 
   # Parse arguments
@@ -198,10 +198,8 @@ main() {
   # Run the Node.js script
   local cmd=("node" "$node_project_dir/index.js" "$url" "--output" "$output_dir")
 
-  # Add concurrent argument if provided
-  if [[ -n "$concurrent_value" ]]; then
-    cmd+=(--concurrent "$concurrent_value")
-  fi
+  # Add concurrent argument (always present with default value)
+  cmd+=(--concurrent "$concurrent_value")
 
   # Add device arguments if provided
   if [[ ${#device_args_array[@]} -gt 0 ]]; then
