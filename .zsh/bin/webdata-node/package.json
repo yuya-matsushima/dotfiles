@@ -4,7 +4,9 @@
   "description": "Web data capture tool for screenshots and markdown extraction",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "install-browsers": "playwright install chromium",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "playwright": "^1.40.0",
@@ -13,6 +15,16 @@
     "commander": "^11.1.0"
   },
   "engines": {
-    "node": ">=16.0.0"
-  }
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "keywords": [
+    "web-scraping",
+    "screenshot",
+    "markdown",
+    "playwright",
+    "sitemap"
+  ],
+  "author": "Yuya Matsushima",
+  "license": "MIT"
 }

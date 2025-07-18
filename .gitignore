@@ -21,3 +21,9 @@
 # pnpm store
 .pnpm-store/
 
+# webdata output directories
+**/output/
+**/captures/
+**/markdown/
+webdata-output/
+
