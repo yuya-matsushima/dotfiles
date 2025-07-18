@@ -88,7 +88,7 @@ main() {
   # Get the directory where this script is located
   local script_dir="${0:A:h}"
   local dotfiles_dir="${script_dir:h:h}"
-  local node_project_dir="${dotfiles_dir}/bin/webdata-node"
+  local node_project_dir="${dotfiles_dir}/.zsh/bin/webdata-node"
   
   # Check if Node.js project exists
   if [[ ! -d "$node_project_dir" ]]; then
