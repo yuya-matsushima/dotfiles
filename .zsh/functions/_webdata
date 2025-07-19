@@ -13,6 +13,7 @@ _webdata() {
     '(-o --output)'{-o,--output}'[Output directory]:output directory:_directories' \
     '(-f --force)'{-f,--force}'[Skip overwrite confirmation]' \
     '(-c --concurrent)'{-c,--concurrent}'[Number of concurrent pages]:concurrent number:_webdata_concurrent' \
+    '(-i --interval-sec)'{-i,--interval-sec}'[Interval between requests in seconds]:interval seconds:_webdata_interval' \
     '--pc[Capture PC size screenshots (1440x900)]' \
     '--tablet[Capture tablet size screenshots (768x1024)]' \
     '--mobile[Capture mobile size screenshots (375x667)]' \
@@ -42,6 +43,14 @@ _webdata_concurrent() {
   _alternative \
     'numbers:concurrent number:(1 2 3 4 5 6 7 8 9 10)' \
     'custom:custom number:_message "Enter a positive integer"'
+}
+
+# Helper function to provide interval completion
+_webdata_interval() {
+  # Suggest interval values in seconds (1-5 range)
+  _alternative \
+    'intervals:interval seconds:(1 1.5 2 2.5 3 3.5 4 4.5 5)' \
+    'custom:custom interval:_message "Enter interval in seconds (1-5, e.g., 1, 2.5, 5)"'
 }
 
 # Register the completion function
