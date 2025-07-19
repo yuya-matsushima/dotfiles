@@ -160,10 +160,14 @@ main() {
           return 1
         fi
         # Validate interval: check against valid values array
-        if [[ " ${VALID_INTERVALS[*]} " =~ " $1 " ]]; then
-          # Valid interval value
-          :
-        else
+        local is_valid_interval=false
+        for valid_interval in "${VALID_INTERVALS[@]}"; do
+          if [[ "$1" == "$valid_interval" ]]; then
+            is_valid_interval=true
+            break
+          fi
+        done
+        if [[ "$is_valid_interval" == false ]]; then
           echo "Error: Interval must be one of: ${VALID_INTERVALS[*]}" >&2
           return 1
         fi
