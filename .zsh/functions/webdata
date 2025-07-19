@@ -17,7 +17,7 @@ Options:
     -o, --output <directory>          Output directory (default: ./output)
     -f, --force                       Skip overwrite confirmation
     -c, --concurrent <number>         Number of concurrent pages to process (default: 1)
-    -i, --interval-sec <seconds>      Interval between requests in seconds (1-5, default: 1)
+    -i, --interval-sec <seconds>      Interval between requests: 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5 (default: 1)
     --pc                              Capture PC size screenshots (1440x900)
     --tablet                          Capture tablet size screenshots (768x1024)
     --mobile                          Capture mobile size screenshots (375x667)
@@ -47,10 +47,10 @@ Examples:
     webdata https://example.com/sitemap.xml -c 5 --pc --tablet
 
     # Add interval between requests to avoid rate limiting
-    webdata https://example.com/sitemap.xml -i 2
+    webdata https://example.com/sitemap.xml -i 2.5
 
     # Combine concurrent processing with interval
-    webdata https://example.com/sitemap.xml -c 3 -i 3 --mobile
+    webdata https://example.com/sitemap.xml -c 3 -i 3.5 --mobile
 
 Dependencies:
     - Node.js
@@ -156,11 +156,16 @@ main() {
           echo "Error: Interval value not specified" >&2
           return 1
         fi
-        # Validate interval: 1-5 seconds with single decimal place allowed
-        if ! echo "$1" | awk '$1 >= 1 && $1 <= 5 && $1 ~ /^[0-9]+(\.[0-9])?$/ {exit 0} {exit 1}'; then
-          echo "Error: Interval must be between 1 and 5 seconds with at most one decimal place (e.g., 1, 1.5, 2, 5)" >&2
-          return 1
-        fi
+        # Validate interval: only allow specific 0.5-step values
+        case "$1" in
+          1|1.5|2|2.5|3|3.5|4|4.5|5)
+            # Valid interval value
+            ;;
+          *)
+            echo "Error: Interval must be one of: 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5" >&2
+            return 1
+            ;;
+        esac
         interval_value="$1"
         shift
         ;;
