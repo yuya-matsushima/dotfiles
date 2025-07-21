@@ -267,7 +267,7 @@ async function parseSitemap(xmlContent) {
 }
 
 // Fetch and process sitemap index recursively
-async function fetchSitemapIndex(browser, sitemapUrl, outputDir) {
+async function fetchSitemapIndex(browser, sitemapUrl, outputDir, isRoot = true) {
   console.log(`Fetching sitemap: ${sitemapUrl}`);
 
   const page = await browser.newPage();
@@ -284,19 +284,44 @@ async function fetchSitemapIndex(browser, sitemapUrl, outputDir) {
   const allUrls = [];
   const sitemapFiles = [];
 
+  // Create sitemap directory
+  const sitemapDir = path.join(outputDir, 'sitemap');
+  await ensureDir(sitemapDir);
+
+  // Determine file path for sitemap
+  const urlObj = new URL(sitemapUrl);
+  let sitemapRelativePath;
+
+  if (isRoot) {
+    // Root sitemap goes directly in sitemap directory
+    sitemapRelativePath = urlObj.pathname.split('/').pop() || 'sitemap.xml';
+  } else {
+    // Child sitemaps maintain their directory structure
+    const pathname = urlObj.pathname.replace(/^\//, ''); // Remove leading slash
+    sitemapRelativePath = pathname;
+  }
+
+  const sitemapPath = path.join(sitemapDir, sitemapRelativePath);
+
+  // Ensure parent directory exists
+  await ensureDir(path.dirname(sitemapPath));
+
   // Save the sitemap file
-  const sitemapFilename = new URL(sitemapUrl).pathname.split('/').pop() || 'sitemap.xml';
-  const sitemapPath = path.join(outputDir, sitemapFilename);
   await fs.writeFile(sitemapPath, xmlContent, 'utf8');
-  sitemapFiles.push({ url: sitemapUrl, filename: sitemapFilename, type: parseResult.type });
-  console.log(`Saved: ${sitemapFilename}`);
+  sitemapFiles.push({
+    url: sitemapUrl,
+    filename: sitemapRelativePath,
+    type: parseResult.type,
+    path: path.join('sitemap', sitemapRelativePath)
+  });
+  console.log(`Saved: sitemap/${sitemapRelativePath}`);
 
   if (parseResult.type === 'sitemapindex') {
     // This is a sitemap index, fetch all child sitemaps
     console.log(`Found sitemap index with ${parseResult.sitemaps.length} child sitemaps`);
 
     for (const childSitemapUrl of parseResult.sitemaps) {
-      const { urls, files } = await fetchSitemapIndex(browser, childSitemapUrl, outputDir);
+      const { urls, files } = await fetchSitemapIndex(browser, childSitemapUrl, outputDir, false);
       allUrls.push(...urls);
       sitemapFiles.push(...files);
     }
