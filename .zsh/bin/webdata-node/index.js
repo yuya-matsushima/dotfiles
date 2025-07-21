@@ -538,6 +538,11 @@ async function main() {
       // Create README.md
       await createReadme(outputDir, url, devicesToCapture, true, urls);
 
+      // Save sitemap.xml
+      const sitemapPath = path.join(outputDir, 'sitemap.xml');
+      await fs.writeFile(sitemapPath, xmlContent, 'utf8');
+      console.log(`Sitemap saved: ${sitemapPath}`);
+
       // Process URLs concurrently for all devices
       await processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit);
     } else {
