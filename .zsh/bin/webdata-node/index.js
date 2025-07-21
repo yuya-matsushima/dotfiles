@@ -153,7 +153,7 @@ async function ensureDir(dir) {
 }
 
 // Generate README.md content from template
-async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = null) {
+async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = null, sitemapFiles = null) {
   const templatePath = path.join(__dirname, 'templates', 'README.md');
 
   try {
@@ -163,13 +163,22 @@ async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = nu
     const deviceList = devicesToCapture.map(d => `- ${d}: ${deviceConfigs[d].width}x${deviceConfigs[d].height}`).join('\n');
     const deviceTree = devicesToCapture.map(d => `│   ├── ${d}/            # ${d.charAt(0).toUpperCase() + d.slice(1)} size screenshots (${deviceConfigs[d].width}x${deviceConfigs[d].height})`).join('\n');
 
-    let sourceType = isSitemap ? 'Sitemap' : 'Single Page';
+    let sourceType = 'Single Page';
     let pageCountInfo = '';
     let processingInfo = '';
 
-    if (isSitemap && urls) {
-      pageCountInfo = `**Pages captured:** ${urls.length}`;
-      processingInfo = `**Processing:** sitemap.xml をベースに全ページを取得`;
+    if (isSitemap) {
+      if (sitemapFiles && sitemapFiles.some(f => f.type === 'sitemapindex')) {
+        sourceType = 'Sitemap Index';
+        const indexCount = sitemapFiles.filter(f => f.type === 'sitemapindex').length;
+        const sitemapCount = sitemapFiles.filter(f => f.type === 'urlset').length;
+        pageCountInfo = `**Pages captured:** ${urls ? urls.length : 0}\n**Sitemap files:** ${indexCount} index file(s), ${sitemapCount} sitemap(s)`;
+        processingInfo = `**Processing:** sitemap index をベースに全サイトマップと全ページを取得`;
+      } else {
+        sourceType = 'Sitemap';
+        pageCountInfo = `**Pages captured:** ${urls ? urls.length : 0}`;
+        processingInfo = `**Processing:** sitemap.xml をベースに全ページを取得`;
+      }
     } else {
       processingInfo = `**Processing:** 単一ページを取得`;
     }
@@ -191,8 +200,8 @@ async function generateReadmeContent(url, devicesToCapture, isSitemap, urls = nu
 }
 
 // Create README.md in output directory
-async function createReadme(outputDir, url, devicesToCapture, isSitemap, urls = null) {
-  const readmeContent = await generateReadmeContent(url, devicesToCapture, isSitemap, urls);
+async function createReadme(outputDir, url, devicesToCapture, isSitemap, urls = null, sitemapFiles = null) {
+  const readmeContent = await generateReadmeContent(url, devicesToCapture, isSitemap, urls, sitemapFiles);
   const readmePath = path.join(outputDir, 'README.md');
 
   try {
@@ -232,25 +241,72 @@ async function askConfirmation(message) {
 async function parseSitemap(xmlContent) {
   const parser = new xml2js.Parser();
   const result = await parser.parseStringPromise(xmlContent);
-  const urls = [];
 
-  // Handle different sitemap formats
+  // Determine sitemap type and return structured result
   if (result.urlset && result.urlset.url) {
+    // Regular sitemap
+    const urls = [];
     result.urlset.url.forEach(urlEntry => {
       if (urlEntry.loc && urlEntry.loc[0]) {
         urls.push(urlEntry.loc[0]);
       }
     });
+    return { type: 'urlset', urls };
   } else if (result.sitemapindex && result.sitemapindex.sitemap) {
-    // Handle sitemap index
+    // Sitemap index
+    const sitemaps = [];
     result.sitemapindex.sitemap.forEach(sitemapEntry => {
       if (sitemapEntry.loc && sitemapEntry.loc[0]) {
-        urls.push(sitemapEntry.loc[0]);
+        sitemaps.push(sitemapEntry.loc[0]);
       }
     });
+    return { type: 'sitemapindex', sitemaps };
   }
 
-  return urls;
+  return { type: 'unknown', urls: [] };
+}
+
+// Fetch and process sitemap index recursively
+async function fetchSitemapIndex(browser, sitemapUrl, outputDir) {
+  console.log(`Fetching sitemap: ${sitemapUrl}`);
+
+  const page = await browser.newPage();
+  const xmlContent = await retryOperation(async () => {
+    const response = await page.goto(sitemapUrl, {
+      waitUntil: 'networkidle',
+      timeout: 60000
+    });
+    return await response.text();
+  });
+  await page.close();
+
+  const parseResult = await parseSitemap(xmlContent);
+  const allUrls = [];
+  const sitemapFiles = [];
+
+  // Save the sitemap file
+  const sitemapFilename = new URL(sitemapUrl).pathname.split('/').pop() || 'sitemap.xml';
+  const sitemapPath = path.join(outputDir, sitemapFilename);
+  await fs.writeFile(sitemapPath, xmlContent, 'utf8');
+  sitemapFiles.push({ url: sitemapUrl, filename: sitemapFilename, type: parseResult.type });
+  console.log(`Saved: ${sitemapFilename}`);
+
+  if (parseResult.type === 'sitemapindex') {
+    // This is a sitemap index, fetch all child sitemaps
+    console.log(`Found sitemap index with ${parseResult.sitemaps.length} child sitemaps`);
+
+    for (const childSitemapUrl of parseResult.sitemaps) {
+      const { urls, files } = await fetchSitemapIndex(browser, childSitemapUrl, outputDir);
+      allUrls.push(...urls);
+      sitemapFiles.push(...files);
+    }
+  } else if (parseResult.type === 'urlset') {
+    // Regular sitemap with URLs
+    allUrls.push(...parseResult.urls);
+    console.log(`Found ${parseResult.urls.length} URLs in sitemap`);
+  }
+
+  return { urls: allUrls, files: sitemapFiles };
 }
 
 // Convert URL to file path
@@ -517,31 +573,19 @@ async function main() {
                       url.toLowerCase().endsWith('.xml');
 
     if (isSitemap) {
-      console.log('Detected sitemap.xml, fetching all URLs...');
-
-      // Fetch sitemap with retry logic
-      const page = await browser.newPage();
-      const xmlContent = await retryOperation(async () => {
-        const response = await page.goto(url, {
-          waitUntil: 'networkidle',
-          timeout: 60000
-        });
-        return await response.text();
-      });
-      await page.close();
-
-      // Parse sitemap
-      const urls = await parseSitemap(xmlContent);
-      console.log(`Found ${urls.length} URLs in sitemap`);
+      console.log('Detected sitemap/sitemap index, fetching all URLs...');
       console.log();
 
-      // Create README.md
-      await createReadme(outputDir, url, devicesToCapture, true, urls);
+      // Fetch sitemap and all child sitemaps if it's an index
+      const { urls, files } = await fetchSitemapIndex(browser, url, outputDir);
 
-      // Save sitemap.xml
-      const sitemapPath = path.join(outputDir, 'sitemap.xml');
-      await fs.writeFile(sitemapPath, xmlContent, 'utf8');
-      console.log(`Sitemap saved: ${sitemapPath}`);
+      console.log();
+      console.log(`Total URLs found: ${urls.length}`);
+      console.log(`Sitemap files saved: ${files.length}`);
+      console.log();
+
+      // Create README.md with sitemap information
+      await createReadme(outputDir, url, devicesToCapture, true, urls, files);
 
       // Process URLs concurrently for all devices
       await processUrlsConcurrently(urls, browser, outputDir, devicesToCapture, concurrentLimit);

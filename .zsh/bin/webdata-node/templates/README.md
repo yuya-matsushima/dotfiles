@@ -19,7 +19,7 @@
 ```
 ./
 ├── README.md           # This file
-├── sitemap.xml         # Original sitemap.xml (if captured from sitemap)
+├── *.xml               # Sitemap files (if captured from sitemap/sitemap index)
 ├── captures/           # Screenshot images (PNG)
 {{DEVICE_TREE}}
 └── markdown/           # Text content (Markdown)
@@ -60,9 +60,15 @@ This directory contains website data captured for LLM processing:
 1. **Screenshots**: Visual representation of pages in different device sizes
 2. **Markdown**: Clean text content extracted from HTML
 3. **Structure**: Organized by URL path for easy navigation
-4. **Sitemap**: Original sitemap.xml file (if source was a sitemap) containing all page URLs
+4. **Sitemap files**: 
+   - For regular sitemaps: Original sitemap.xml containing all page URLs
+   - For sitemap indexes: All sitemap files including the index and child sitemaps
 
-You can reference screenshots and markdown files to understand the website structure and content. The markdown files contain the main textual content, while screenshots provide visual context for layout and design elements. When analyzing a site captured from sitemap.xml, you can use the sitemap.xml file to understand the complete site structure and available pages.
+You can reference screenshots and markdown files to understand the website structure and content. The markdown files contain the main textual content, while screenshots provide visual context for layout and design elements.
+
+When analyzing a site captured from a sitemap:
+- **Regular sitemap**: Use the sitemap.xml file to understand the complete site structure
+- **Sitemap index**: Multiple XML files are saved - the index file lists all child sitemaps, and each child sitemap contains actual page URLs
 
 ## Notes
 
