@@ -67,7 +67,7 @@ local -a args=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
-  case ${1} in
+  case "${1}" in
     -h|--help)
       _ymt_claude_yolo_usage
       return 0
@@ -80,7 +80,11 @@ while [[ $# -gt 0 ]]; do
       profile="${2}"
       shift 2
       ;;
-    -os|--only-sandbox)
+    --only-sandbox)
+      only_sandbox="true"
+      shift
+      ;;
+    -os)
       only_sandbox="true"
       shift
       ;;
