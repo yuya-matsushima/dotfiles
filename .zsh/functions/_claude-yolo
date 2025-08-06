@@ -7,6 +7,7 @@ _claude_yolo() {
   _arguments -C \
     '(-h --help)'{-h,--help}'[print help]' \
     '(-p --profile)'{-p,--profile}'[specify sandbox profile path]:profile file:_files' \
+    '(-os --only-sandbox)'{-os,--only-sandbox}'[run without --dangerously-skip-permissions]' \
     '*::claude args:->claude_args'
 
   case $state in
