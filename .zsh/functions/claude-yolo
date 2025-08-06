@@ -8,8 +8,9 @@ Usage:
     claude-yolo [options] [claude arguments...]
 
 Options:
-    --profile, -p PATH     specify sandbox profile path
-    --help, -h             print help
+    --profile, -p PATH       specify sandbox profile path
+    --only-sandbox, -os      run with sandbox only (without YOLO mode)
+    --help, -h               print help
 
 Dependencies:
     claude
@@ -19,7 +20,8 @@ EOF
 
 _ymt_claude_yolo_exec() {
   local sandbox_profile="${1}"
-  shift
+  local only_sandbox="${2}"
+  shift 2
   local -a claude_args=("$@")
 
   # Check if claude command is available
@@ -35,18 +37,32 @@ _ymt_claude_yolo_exec() {
   fi
 
   # Display execution info
-  echo "Executing claude command in sandbox with profile: $sandbox_profile"
+  if [[ "$only_sandbox" == "true" ]]; then
+    echo "Executing claude command in sandbox (without YOLO) with profile: $sandbox_profile"
+  else
+    echo "Executing claude command in sandbox with profile: $sandbox_profile"
+  fi
   
   # Execute claude with sandbox restrictions
-  sandbox-exec -f "$sandbox_profile" \
-    -D PWD="$(pwd)" \
-    -D HOME="$HOME" \
-    claude --dangerously-skip-permissions "${claude_args[@]}"
+  if [[ "$only_sandbox" == "true" ]]; then
+    # Run with sandbox only (no YOLO flag)
+    sandbox-exec -f "$sandbox_profile" \
+      -D PWD="$(pwd)" \
+      -D HOME="$HOME" \
+      claude "${claude_args[@]}"
+  else
+    # Run with both sandbox and YOLO mode
+    sandbox-exec -f "$sandbox_profile" \
+      -D PWD="$(pwd)" \
+      -D HOME="$HOME" \
+      claude --dangerously-skip-permissions "${claude_args[@]}"
+  fi
 }
 
 # Default sandbox profile
 local default_profile="$HOME/.zsh/claude/sandbox.sb"
 local profile="$default_profile"
+local only_sandbox="false"
 local -a args=()
 
 # Parse arguments
@@ -64,6 +80,10 @@ while [[ $# -gt 0 ]]; do
       profile="${2}"
       shift 2
       ;;
+    -os|--only-sandbox)
+      only_sandbox="true"
+      shift
+      ;;
     *)
       args+=("${1}")
       shift
@@ -71,4 +91,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-_ymt_claude_yolo_exec "$profile" "${args[@]}"
+_ymt_claude_yolo_exec "$profile" "$only_sandbox" "${args[@]}"
