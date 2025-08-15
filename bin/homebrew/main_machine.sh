@@ -11,7 +11,5 @@ brew install --cask \
           deskpad \
           inkdrop \
           keycastr \
-          microsoft-auto-update \
-          microsoft-office \
           spotify \
           zoom
