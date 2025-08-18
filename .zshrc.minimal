@@ -104,6 +104,7 @@ if (( $+commands[go] )); then
 fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
+(( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 # tealdeer: tldr client
 (( $+commands[tldr] )) && alias tldr="tldr --language=en"
 # Tiny prompt mode for screen recording

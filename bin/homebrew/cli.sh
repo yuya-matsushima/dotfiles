@@ -38,6 +38,7 @@ brew install \
           tig \
           tmux \
           tree \
+          uv \
           wget \
           zsh \
           zsh-completions \
