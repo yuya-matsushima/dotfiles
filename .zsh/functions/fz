@@ -3,6 +3,7 @@
 
 # 依存コマンドのチェック
 _ymt_fz_check_dependencies() {
+  local subcommand="$1"
   local missing_deps=()
 
   # 基本的な依存
@@ -14,22 +15,36 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("git")
   fi
 
-  # オプショナルな依存（警告のみ）
-  local optional_deps=()
-  if ! (( $+commands[fd] )); then
-    optional_deps+=("fd (better file search)")
+  # サブコマンド固有の必須依存
+  if [[ "$subcommand" == "docker" ]] && ! (( $+commands[docker] )); then
+    missing_deps+=("docker")
   fi
 
+  if [[ "$subcommand" == "pr" || "$subcommand" == "issue" ]]; then
+    if ! (( $+commands[gh] )); then
+      missing_deps+=("gh")
+    fi
+    if ! (( $+commands[jq] )); then
+      missing_deps+=("jq")
+    fi
+  fi
+
+  if [[ "$subcommand" == "find" || "$subcommand" == "view" ]] && ! (( $+commands[fd] )); then
+    missing_deps+=("fd")
+  fi
+
+  # オプショナルな依存（警告のみ）
+  local optional_deps=()
   if ! (( $+commands[bat] )); then
     optional_deps+=("bat (syntax highlighting)")
   fi
 
-  if ! (( $+commands[tree] )); then
-    optional_deps+=("tree (directory preview)")
+  if ! (( $+commands[glow] )); then
+    optional_deps+=("glow (markdown rendering for pr/issue)")
   fi
 
-  if ! (( $+commands[gh] )); then
-    optional_deps+=("gh (GitHub CLI)")
+  if ! (( $+commands[pbcopy] )) && [[ "$OSTYPE" == "darwin"* ]]; then
+    optional_deps+=("pbcopy (clipboard support)")
   fi
 
   # 必須コマンドが不足している場合はエラー
@@ -58,14 +73,16 @@ Usage: fz <subcommand> [options]
 
 Subcommands:
   branch    Git branch切り替え
-  log       Git commit履歴検索
+  log       Git commit履歴検索（batでシンタックスハイライト）
   kill      プロセス検索・kill
   docker    Docker container接続
   history   コマンド履歴検索・実行
   env       環境変数検索・表示
-  cd        ディレクトリ履歴から移動
+  cd        ディレクトリ履歴から移動（fdで拡張検索）
   pr        GitHub Pull Request一覧
   issue     GitHub Issue一覧
+  find      ファイル検索（fdを使用）
+  view      ファイル内容表示（batを使用）
   help      このヘルプを表示
 
 Examples:
@@ -78,6 +95,8 @@ Examples:
   fz cd         # ディレクトリ履歴から選択して移動
   fz pr         # Pull Requestを選択して詳細表示
   fz issue      # Issueを選択して詳細表示
+  fz find       # ファイルを検索して選択
+  fz view       # ファイルを検索してbatで表示
 EOF
 }
 
@@ -103,6 +122,20 @@ _ymt_fz_log() {
     return 1
   fi
 
+  local preview_cmd
+  if (( $+commands[bat] )); then
+    preview_cmd="echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always | bat --style=plain --language=diff --color=always'"
+  else
+    preview_cmd="echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'"
+  fi
+
+  local enter_cmd
+  if (( $+commands[bat] )); then
+    enter_cmd="enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | bat --style=full --language=diff --paging=always')"
+  else
+    enter_cmd="enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+  fi
+
   if (( $+commands[pbcopy] )); then
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
@@ -110,15 +143,15 @@ _ymt_fz_log() {
       --bind=ctrl-s:toggle-sort \
       --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
-      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
-      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+      --preview "$preview_cmd" \
+      --bind "$enter_cmd"
   else
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
-      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+      --preview "$preview_cmd" \
+      --bind "$enter_cmd"
   fi
 }
 
@@ -189,12 +222,30 @@ _ymt_fz_env() {
 # ディレクトリ履歴から移動
 _ymt_fz_cd() {
   local selected_dir
+  local dirs_list
 
-  # dirsコマンドの出力から選択（~を展開してプレビュー）
-  selected_dir=$(dirs -p | tail -n +2 | awk '!seen[$0]++' | fzf \
-    --preview 'eval ls -la --color=always {}' \
+  # 履歴とfdの結果を組み合わせ
+  if (( $+commands[fd] )); then
+    dirs_list=$({ 
+      dirs -p | tail -n +2
+      fd -t d --max-depth 3 . 2>/dev/null | sed 's|^\./||'
+    } | awk '!seen[$0]++')
+  else
+    dirs_list=$(dirs -p | tail -n +2 | awk '!seen[$0]++')
+  fi
+
+  # プレビューコマンドの設定
+  local preview_cmd
+  if (( $+commands[bat] )); then
+    preview_cmd='eval ls -la --color=always {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -5 | while read -r file; do echo "=== $file ===" && bat --style=plain --line-range=:20 --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+  else
+    preview_cmd='eval ls -la --color=always {}'
+  fi
+
+  selected_dir=$(echo "$dirs_list" | fzf \
+    --preview "$preview_cmd" \
     --preview-window=right:50% \
-    --header "Directory history")
+    --header "Directory history + fd search (max depth: 3)")
 
   if [ -n "$selected_dir" ]; then
     cd "$selected_dir"
@@ -280,9 +331,49 @@ _ymt_fz_issue() {
   fi
 }
 
+# ファイル検索
+_ymt_fz_find() {
+  local selected_file
+
+  # fdを使用した高速検索
+  selected_file=$(fd -t f . 2>/dev/null | fzf \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview-window=right:60% \
+    --header "File search with fd (gitignore respected)")
+
+  if [ -n "$selected_file" ]; then
+    echo "$selected_file"
+    # クリップボードにコピー
+    if (( $+commands[pbcopy] )); then
+      echo -n "$selected_file" | pbcopy
+      echo "Copied to clipboard!"
+    fi
+  fi
+}
+
+# ファイル内容表示
+_ymt_fz_view() {
+  local selected_file
+
+  # fdを使用した高速検索
+  selected_file=$(fd -t f . 2>/dev/null | fzf \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview-window=right:60% \
+    --bind='ctrl-y:execute(echo {} | pbcopy)+abort' \
+    --header "Select file to view (Ctrl-Y to copy path)")
+
+  if [ -n "$selected_file" ]; then
+    if (( $+commands[bat] )); then
+      bat --style=full --paging=always "$selected_file"
+    else
+      ${PAGER:-less} "$selected_file"
+    fi
+  fi
+}
+
 # 依存関係をチェック
-if ! _ymt_fz_check_dependencies 2>/dev/null; then
-  _ymt_fz_check_dependencies
+if ! _ymt_fz_check_dependencies "$1" 2>/dev/null; then
+  _ymt_fz_check_dependencies "$1"
   return 1
 fi
 
@@ -323,6 +414,14 @@ case "${1:-help}" in
   issue)
     shift
     _ymt_fz_issue "$@"
+    ;;
+  find)
+    shift
+    _ymt_fz_find "$@"
+    ;;
+  view)
+    shift
+    _ymt_fz_view "$@"
     ;;
   help|--help|-h)
     _ymt_fz_usage
