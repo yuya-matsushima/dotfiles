@@ -289,10 +289,17 @@ _ymt_fz_cd() {
     dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
   fi
 
-  # プレビューコマンドの設定
+  # プレビューコマンドの設定（インライン化）
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd='zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_preview_directory "$@"'\'' _ "{}"'
+    # Cross-platform ls color support  
+    if ls --color=always -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la --color=always -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+    elif ls -G -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la -G -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+    else
+      preview_cmd='ls -la -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+    fi
   else
     # Cross-platform ls color support
     if ls --color=always -d . >/dev/null 2>&1; then
@@ -413,7 +420,7 @@ _ymt_fz_find() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_get_preview_cmd "$@"'\'' _ "{}"' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -447,7 +454,7 @@ _ymt_fz_view() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_get_preview_cmd "$@"'\'' _ "{}"' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
     --preview-window=right:60% \
     --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
