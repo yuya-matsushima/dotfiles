@@ -124,16 +124,16 @@ _ymt_fz_log() {
 
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd="echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always | bat --style=plain --language=diff --color=always'"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
   else
-    preview_cmd="echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
   fi
 
   local enter_cmd
   if (( $+commands[bat] )); then
-    enter_cmd="enter:become(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | bat --style=full --language=diff --paging=always')"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
   else
-    enter_cmd="enter:become(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | less -R')"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
   fi
 
   if (( $+commands[pbcopy] )); then
@@ -237,9 +237,9 @@ _ymt_fz_cd() {
   # プレビューコマンドの設定
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd='eval ls -la --color=always {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -5 | while read -r file; do echo "=== $file ===" && bat --style=plain --line-range=:20 --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+    preview_cmd='ls -la --color=always -- "{}" && echo && find "{}" -maxdepth 1 -type f 2>/dev/null | head -5 | while read -r file; do echo "=== $file ===" && bat --style=plain --line-range=:20 --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
   else
-    preview_cmd='eval ls -la --color=always {}'
+    preview_cmd='ls -la --color=always -- "{}"'
   fi
 
   selected_dir=$(echo "$dirs_list" | fzf \
@@ -359,7 +359,7 @@ _ymt_fz_view() {
   selected_file=$(fd -t f . 2>/dev/null | fzf \
     --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
     --preview-window=right:60% \
-    --bind='ctrl-y:execute(echo {} | pbcopy)+abort' \
+    --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
 
   if [ -n "$selected_file" ]; then
