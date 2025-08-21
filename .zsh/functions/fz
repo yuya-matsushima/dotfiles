@@ -289,25 +289,25 @@ _ymt_fz_cd() {
     dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
   fi
 
-  # プレビューコマンドの設定（インライン化）
+  # プレビューコマンドの設定（シンプル化）
   local preview_cmd
   if (( $+commands[bat] )); then
     # Cross-platform ls color support  
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la --color=always -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+      preview_cmd="ls -la --color=always -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la -G -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+      preview_cmd="ls -la -G -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     else
-      preview_cmd='ls -la -- "{}" && echo && find "{}" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n '${FZ_PREVIEW_FILES}' | while IFS= read -r -d "" file; do echo "=== $file ===" && bat --style=plain --line-range=:'${FZ_PREVIEW_LINES}' --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+      preview_cmd="ls -la -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     fi
   else
     # Cross-platform ls color support
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la --color=always -- "{}"'
+      preview_cmd='ls -la --color=always -- {}'
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la -G -- "{}"'
+      preview_cmd='ls -la -G -- {}'
     else
-      preview_cmd='ls -la -- "{}"'
+      preview_cmd='ls -la -- {}'
     fi
   fi
 
