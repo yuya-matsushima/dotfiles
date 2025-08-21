@@ -38,8 +38,8 @@ _ymt_fz_preview_directory() {
   fi
   
   echo
-  find "$dir" -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | \
-    while read -r file; do
+  find "$dir" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n ${FZ_PREVIEW_FILES} | \
+    while IFS= read -r -d '' file; do
       echo "=== $file ==="
       if (( $+commands[bat] )); then
         bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always "$file" 2>/dev/null || echo "(binary file)"
@@ -276,8 +276,12 @@ _ymt_fz_cd() {
   
   if (( $+commands[fd] )); then
     fd_dirs=$(fd -t d --max-depth ${FZ_MAX_DEPTH} . 2>/dev/null | sed 's|^\./||')
-    if [ $? -eq 0 ] && [ -n "$fd_dirs" ]; then
-      dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_dirs" | awk '!seen[$0]++')
+    if [ $? -eq 0 ]; then
+      if [ -n "$fd_dirs" ]; then
+        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_dirs" | awk '!seen[$0]++')
+      else
+        dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+      fi
     else
       dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
     fi
@@ -288,7 +292,7 @@ _ymt_fz_cd() {
   # プレビューコマンドの設定
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd='_ymt_fz_preview_directory "{}"'
+    preview_cmd='zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_preview_directory "$@"'\'' _ "{}"'
   else
     # Cross-platform ls color support
     if ls --color=always -d . >/dev/null 2>&1; then
@@ -409,7 +413,7 @@ _ymt_fz_find() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
+    --preview 'zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_get_preview_cmd "$@"'\'' _ "{}"' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -443,7 +447,7 @@ _ymt_fz_view() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
+    --preview 'zsh -c '\''source ~/.zsh/functions/fz && _ymt_fz_get_preview_cmd "$@"'\'' _ "{}"' \
     --preview-window=right:60% \
     --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
