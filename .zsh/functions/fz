@@ -1,6 +1,43 @@
 #!/usr/bin/env zsh
 # fz - fzf wrapper command
 
+# 設定定数
+readonly FZ_MAX_DEPTH=3
+readonly FZ_PREVIEW_FILES=5
+readonly FZ_PREVIEW_LINES=20
+
+# ヘルパー関数
+_ymt_fz_get_preview_cmd() {
+  local file_path="$1"
+  if (( $+commands[bat] )); then
+    echo "bat --style=full --color=always '$file_path'"
+  else
+    echo "cat '$file_path'"
+  fi
+}
+
+_ymt_fz_get_pager_cmd() {
+  local file_path="$1"
+  if (( $+commands[bat] )); then
+    echo "bat --style=full --paging=always '$file_path'"
+  else
+    echo "${PAGER:-less} '$file_path'"
+  fi
+}
+
+_ymt_fz_preview_directory() {
+  local dir="$1"
+  ls -la --color=always -- "$dir"
+  echo
+  find "$dir" -maxdepth 1 -type f 2>/dev/null | head -$FZ_PREVIEW_FILES | \
+    while read -r file; do
+      echo "=== $file ==="
+      if (( $+commands[bat] )); then
+        bat --style=plain --line-range=:$FZ_PREVIEW_LINES --color=always "$file" 2>/dev/null || echo "(binary file)"
+      fi
+    done
+}
+
 # 依存コマンドのチェック
 _ymt_fz_check_dependencies() {
   local subcommand="$1"
@@ -225,19 +262,24 @@ _ymt_fz_cd() {
   local dirs_list
 
   # 履歴とfdの結果を組み合わせ
+  local fd_dirs hist_dirs
+  hist_dirs=$(dirs -p | tail -n +2)
+  
   if (( $+commands[fd] )); then
-    dirs_list=$({ 
-      dirs -p | tail -n +2
-      fd -t d --max-depth 3 . 2>/dev/null | sed 's|^\./||'
-    } | awk '!seen[$0]++')
+    fd_dirs=$(fd -t d --max-depth $FZ_MAX_DEPTH . 2>/dev/null | sed 's|^\./||')
+    if [ $? -eq 0 ] && [ -n "$fd_dirs" ]; then
+      dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_dirs" | awk '!seen[$0]++')
+    else
+      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+    fi
   else
-    dirs_list=$(dirs -p | tail -n +2 | awk '!seen[$0]++')
+    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
   fi
 
   # プレビューコマンドの設定
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd='ls -la --color=always -- "{}" && echo && find "{}" -maxdepth 1 -type f 2>/dev/null | head -5 | while read -r file; do echo "=== $file ===" && bat --style=plain --line-range=:20 --color=always "$file" 2>/dev/null || echo "(binary file)"; done'
+    preview_cmd='_ymt_fz_preview_directory "{}"'
   else
     preview_cmd='ls -la --color=always -- "{}"'
   fi
@@ -245,7 +287,7 @@ _ymt_fz_cd() {
   selected_dir=$(echo "$dirs_list" | fzf \
     --preview "$preview_cmd" \
     --preview-window=right:50% \
-    --header "Directory history + fd search (max depth: 3)")
+    --header "Directory history + fd search (max depth: $FZ_MAX_DEPTH)")
 
   if [ -n "$selected_dir" ]; then
     cd "$selected_dir"
@@ -333,10 +375,24 @@ _ymt_fz_issue() {
 
 # ファイル検索
 _ymt_fz_find() {
-  local selected_file
+  # fdコマンドの存在チェック
+  if ! (( $+commands[fd] )); then
+    echo "Error: fd command is required for find subcommand" >&2
+    echo "Please install fd first: brew install fd" >&2
+    return 1
+  fi
 
-  # fdを使用した高速検索
-  selected_file=$(fd -t f . 2>/dev/null | fzf \
+  local files selected_file
+  
+  # fdでファイル一覧を取得
+  files=$(fd -t f . 2>/dev/null)
+  if [ -z "$files" ]; then
+    echo "No files found in current directory" >&2
+    return 1
+  fi
+
+  # fzfで選択
+  selected_file=$(echo "$files" | fzf \
     --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
@@ -353,21 +409,36 @@ _ymt_fz_find() {
 
 # ファイル内容表示
 _ymt_fz_view() {
-  local selected_file
+  # fdコマンドの存在チェック
+  if ! (( $+commands[fd] )); then
+    echo "Error: fd command is required for view subcommand" >&2
+    echo "Please install fd first: brew install fd" >&2
+    return 1
+  fi
 
-  # fdを使用した高速検索
-  selected_file=$(fd -t f . 2>/dev/null | fzf \
+  local files selected_file
+  
+  # fdでファイル一覧を取得
+  files=$(fd -t f . 2>/dev/null)
+  if [ -z "$files" ]; then
+    echo "No files found in current directory" >&2
+    return 1
+  fi
+
+  # fzfで選択
+  selected_file=$(echo "$files" | fzf \
     --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
     --preview-window=right:60% \
     --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
 
   if [ -n "$selected_file" ]; then
-    if (( $+commands[bat] )); then
-      bat --style=full --paging=always "$selected_file"
-    else
-      ${PAGER:-less} "$selected_file"
+    if [ ! -r "$selected_file" ]; then
+      echo "Error: Cannot read file '$selected_file'" >&2
+      return 1
     fi
+    
+    eval "$(_ymt_fz_get_pager_cmd "$selected_file")"
   fi
 }
 
