@@ -27,13 +27,22 @@ _ymt_fz_get_pager_cmd() {
 
 _ymt_fz_preview_directory() {
   local dir="$1"
-  ls -la --color=always -- "$dir"
+  
+  # Use GNU or BSD color flag for ls depending on the platform
+  if ls --color=always -d . >/dev/null 2>&1; then
+    ls -la --color=always -- "$dir"
+  elif ls -G -d . >/dev/null 2>&1; then
+    ls -la -G -- "$dir"
+  else
+    ls -la -- "$dir"
+  fi
+  
   echo
-  find "$dir" -maxdepth 1 -type f 2>/dev/null | head -$FZ_PREVIEW_FILES | \
+  find "$dir" -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | \
     while read -r file; do
       echo "=== $file ==="
       if (( $+commands[bat] )); then
-        bat --style=plain --line-range=:$FZ_PREVIEW_LINES --color=always "$file" 2>/dev/null || echo "(binary file)"
+        bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always "$file" 2>/dev/null || echo "(binary file)"
       fi
     done
 }
@@ -266,7 +275,7 @@ _ymt_fz_cd() {
   hist_dirs=$(dirs -p | tail -n +2)
   
   if (( $+commands[fd] )); then
-    fd_dirs=$(fd -t d --max-depth $FZ_MAX_DEPTH . 2>/dev/null | sed 's|^\./||')
+    fd_dirs=$(fd -t d --max-depth ${FZ_MAX_DEPTH} . 2>/dev/null | sed 's|^\./||')
     if [ $? -eq 0 ] && [ -n "$fd_dirs" ]; then
       dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_dirs" | awk '!seen[$0]++')
     else
@@ -281,13 +290,20 @@ _ymt_fz_cd() {
   if (( $+commands[bat] )); then
     preview_cmd='_ymt_fz_preview_directory "{}"'
   else
-    preview_cmd='ls -la --color=always -- "{}"'
+    # Cross-platform ls color support
+    if ls --color=always -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la --color=always -- "{}"'
+    elif ls -G -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la -G -- "{}"'
+    else
+      preview_cmd='ls -la -- "{}"'
+    fi
   fi
 
   selected_dir=$(echo "$dirs_list" | fzf \
     --preview "$preview_cmd" \
     --preview-window=right:50% \
-    --header "Directory history + fd search (max depth: $FZ_MAX_DEPTH)")
+    --header "Directory history + fd search (max depth: ${FZ_MAX_DEPTH})")
 
   if [ -n "$selected_dir" ]; then
     cd "$selected_dir"
@@ -393,7 +409,7 @@ _ymt_fz_find() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -427,7 +443,7 @@ _ymt_fz_view() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
     --preview-window=right:60% \
     --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
