@@ -131,9 +131,9 @@ _ymt_fz_log() {
 
   local enter_cmd
   if (( $+commands[bat] )); then
-    enter_cmd="enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | bat --style=full --language=diff --paging=always')"
+    enter_cmd="enter:become(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | bat --style=full --language=diff --paging=always')"
   else
-    enter_cmd="enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+    enter_cmd="enter:become(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % | less -R')"
   fi
 
   if (( $+commands[pbcopy] )); then
