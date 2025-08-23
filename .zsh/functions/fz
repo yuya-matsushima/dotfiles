@@ -420,7 +420,7 @@ _ymt_fz_find() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -454,7 +454,7 @@ _ymt_fz_view() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always "{}"; else cat "{}"; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
     --preview-window=right:60% \
     --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
