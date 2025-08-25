@@ -17,27 +17,6 @@ _ymt_fz_get_preview_cmd() {
 }
 
 
-_ymt_fz_preview_directory() {
-  local dir="$1"
-  
-  # Use GNU or BSD color flag for ls depending on the platform
-  if ls --color=always -d . >/dev/null 2>&1; then
-    ls -la --color=always -- "$dir"
-  elif ls -G -d . >/dev/null 2>&1; then
-    ls -la -G -- "$dir"
-  else
-    ls -la -- "$dir"
-  fi
-  
-  echo
-  find "$dir" -maxdepth 1 -type f -print0 2>/dev/null | head -z -n ${FZ_PREVIEW_FILES} | \
-    while IFS= read -r -d '' file; do
-      echo "=== $file ==="
-      if (( $+commands[bat] )); then
-        bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always "$file" 2>/dev/null || echo "(binary file)"
-      fi
-    done
-}
 
 # 依存コマンドのチェック
 _ymt_fz_check_dependencies() {
@@ -163,16 +142,16 @@ _ymt_fz_log() {
 
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -I % sh -c 'git show --color=always "$1"' -- % | bat --style=plain --language=diff --color=always"
   else
-    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -I % sh -c 'git show --color=always "$1"' -- %"
   fi
 
   local enter_cmd
   if (( $+commands[bat] )); then
-    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -I % sh -c 'git show "$1" | bat --style=full --language=diff --paging=always' -- %)"
   else
-    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -I % sh -c 'git show "$1" | less -R' -- %)"
   fi
 
   if (( $+commands[pbcopy] )); then
