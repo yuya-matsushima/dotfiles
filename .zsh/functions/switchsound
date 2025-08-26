@@ -37,7 +37,7 @@ _ymt_switchsound_display_devices() {
   local title="$2"
   local current_device
   current_device=$(_ymt_switchsound_get_current_device "$device_type")
-  
+
   echo "$title"
   while IFS= read -r device; do
     if [[ "$device" == "$current_device" ]]; then
@@ -53,7 +53,7 @@ _ymt_switchsound_select_device() {
   local device_type="$1"
   local current_device selected_device devices
   current_device=$(_ymt_switchsound_get_current_device "$device_type")
-  
+
   # デバイスリストを作成（現在のデバイスにマークを付ける）
   devices=""
   while IFS= read -r device; do
@@ -63,7 +63,7 @@ _ymt_switchsound_select_device() {
       devices+="  $device\n"
     fi
   done < <(_ymt_switchsound_get_device_list "$device_type")
-  
+
   # fzfで選択
   selected_device=$(echo -e "$devices" | fzf \
     --height=40% \
@@ -72,7 +72,7 @@ _ymt_switchsound_select_device() {
     --preview="echo 'Selected device will be set as audio $device_type'" \
     --preview-window=down:2 \
     | sed 's/^[► ] *//' | sed 's/ (current)$//')
-  
+
   echo "$selected_device"
 }
 
@@ -80,7 +80,7 @@ _ymt_switchsound_select_device() {
 _ymt_switchsound_switch_device() {
   local device_type="$1"
   local device_name="$2"
-  
+
   if SwitchAudioSource -t "$device_type" -s "$device_name"; then
     echo "${device_type^} device switched to: $device_name"
     echo ""
@@ -130,7 +130,7 @@ _ymt_switchsound_status() {
   local current_output current_input
   current_output=$(_ymt_switchsound_get_current_device "output")
   current_input=$(_ymt_switchsound_get_current_device "input")
-  
+
   echo "Current Audio Devices:"
   echo "  Output: $current_output"
   echo "  Input:  $current_input"
@@ -140,7 +140,7 @@ _ymt_switchsound_status() {
 _ymt_switchsound_output() {
   local selected
   selected=$(_ymt_switchsound_select_device "output")
-  
+
   if [[ -n "$selected" ]]; then
     _ymt_switchsound_switch_device "output" "$selected"
   fi
@@ -150,7 +150,7 @@ _ymt_switchsound_output() {
 _ymt_switchsound_input() {
   local selected
   selected=$(_ymt_switchsound_select_device "input")
-  
+
   if [[ -n "$selected" ]]; then
     _ymt_switchsound_switch_device "input" "$selected"
   fi
