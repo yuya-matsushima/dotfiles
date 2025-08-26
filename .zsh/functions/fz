@@ -205,7 +205,9 @@ _ymt_fz_log() {
 # プロセスkill
 _ymt_fz_kill() {
   local pid
-  pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+  # 経過時間表示でプロセス一覧を表示
+  pid=$(LC_ALL=C ps -eo pid,user,pcpu,pmem,etime,comm | sed 1d | fzf -m \
+    --header "Select processes to kill (TAB: multi-select, Enter: kill)" | awk '{print $1}')
   if [ "x$pid" != "x" ]; then
     echo $pid | xargs kill -${1:-9}
   fi

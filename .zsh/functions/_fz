@@ -77,7 +77,7 @@ _fz_subcommands() {
     'pr:GitHub Pull Request一覧'
     'issue:GitHub Issue一覧'
     'find:ファイル検索（fdを使用）'
-    'vi:ファイルをvimで開く（fdを使用）'
+    'vi:ファイルをviで開く（fdを使用）'
     'vim:ファイルをvimで開く（fdを使用）'
   )
   _describe -t subcommands 'fz subcommand' subcommands
