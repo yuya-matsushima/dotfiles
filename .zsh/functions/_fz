@@ -55,7 +55,7 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
-        vi|vim)
+        view)
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
@@ -80,8 +80,7 @@ _fz_subcommands() {
     'pr:GitHub Pull Request一覧'
     'issue:GitHub Issue一覧'
     'find:ファイル検索（fdを使用）'
-    'vi:ファイルをvimで開く（fdを使用）'
-    'vim:ファイルをvimで開く（fdを使用）'
+    'view:ファイル内容表示（batを使用）'
     'help:ヘルプを表示'
   )
   _describe -t subcommands 'fz subcommand' subcommands
