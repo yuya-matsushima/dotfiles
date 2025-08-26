@@ -59,9 +59,6 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
-        help)
-          # helpサブコマンドに引数はない
-          ;;
       esac
       ;;
   esac
@@ -82,7 +79,6 @@ _fz_subcommands() {
     'find:ファイル検索（fdを使用）'
     'vi:ファイルをvimで開く（fdを使用）'
     'vim:ファイルをvimで開く（fdを使用）'
-    'help:ヘルプを表示'
   )
   _describe -t subcommands 'fz subcommand' subcommands
 }

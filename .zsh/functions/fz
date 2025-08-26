@@ -128,7 +128,6 @@ Subcommands:
   issue     GitHub Issue一覧
   find      ファイル検索（fdを使用）
   vi/vim    ファイルをvimで開く（fdを使用）
-  help      このヘルプを表示
 
 Examples:
   fz branch     # Git branchを選択して切り替え
@@ -537,12 +536,12 @@ case "${1:-help}" in
     shift
     _ymt_fz_view "$@"
     ;;
-  help|--help|-h)
+  --help|-h)
     _ymt_fz_usage
     ;;
   *)
     echo "Error: Unknown subcommand '$1'" >&2
-    echo "Run 'fz help' for usage." >&2
+    echo "Run 'fz --help' for usage." >&2
     return 1
     ;;
 esac
