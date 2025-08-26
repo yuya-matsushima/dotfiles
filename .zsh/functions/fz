@@ -10,9 +10,10 @@ readonly FZ_PREVIEW_LINES=20
 _ymt_fz_get_preview_cmd() {
   local file_path="$1"
   if (( $+commands[bat] )); then
-    echo "bat --style=full --color=always '$file_path'"
+    # Use printf %q for proper shell escaping
+    printf "bat --style=full --color=always %q" "$file_path"
   else
-    echo "cat '$file_path'"
+    printf "cat %q" "$file_path"
   fi
 }
 
@@ -46,7 +47,7 @@ _ymt_fz_check_dependencies() {
     fi
   fi
 
-  if [[ "$subcommand" == "find" || "$subcommand" == "vi" || "$subcommand" == "vim" ]] && ! (( $+commands[fd] )); then
+  if [[ "$subcommand" == "find" || "$subcommand" == "view" || "$subcommand" == "vi" || "$subcommand" == "vim" ]] && ! (( $+commands[fd] )); then
     missing_deps+=("fd")
   fi
 
@@ -142,16 +143,16 @@ _ymt_fz_log() {
 
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
+    preview_cmd="printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
   else
-    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
+    preview_cmd="printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
   fi
 
   local enter_cmd
   if (( $+commands[bat] )); then
-    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
+    enter_cmd="enter:become(printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
   else
-    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
+    enter_cmd="enter:become(printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
   fi
 
   if (( $+commands[pbcopy] )); then
@@ -159,7 +160,7 @@ _ymt_fz_log() {
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
+      --bind='ctrl-y:execute(echo {q} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "$preview_cmd" \
       --height=100% \
@@ -226,7 +227,7 @@ _ymt_fz_env() {
       --preview 'echo {} | cut -d= -f2-' \
       --preview-window=right:50%:wrap \
       --header "Environment variables (Press CTRL-Y to copy)" \
-      --bind='ctrl-y:execute(echo {} | pbcopy)')
+      --bind='ctrl-y:execute(echo {q} | pbcopy)')
   else
     selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
       --preview 'echo {} | cut -d= -f2-' \
@@ -268,20 +269,20 @@ _ymt_fz_cd() {
   if (( $+commands[bat] )); then
     # Cross-platform ls color support  
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd="ls -la --color=always -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la --color=always -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd="ls -la -G -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la -G -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     else
-      preview_cmd="ls -la -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     fi
   else
     # Cross-platform ls color support
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la --color=always -- {}'
+      preview_cmd='ls -la --color=always -- {q}'
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la -G -- {}'
+      preview_cmd='ls -la -G -- {q}'
     else
-      preview_cmd='ls -la -- {}'
+      preview_cmd='ls -la -- {q}'
     fi
   fi
 
@@ -394,7 +395,7 @@ _ymt_fz_find() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {q}; else cat {q}; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -428,9 +429,9 @@ _ymt_fz_view() {
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {}; else cat {}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {q}; else cat {q}; fi' \
     --preview-window=right:60% \
-    --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
+    --bind='ctrl-y:execute(printf "%s" {q} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
 
   if [ -n "$selected_file" ]; then
