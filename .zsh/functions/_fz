@@ -51,8 +51,13 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
-        help)
-          # helpサブコマンドに引数はない
+        find)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
+        vi|vim)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
           ;;
       esac
       ;;
@@ -63,15 +68,17 @@ _fz_subcommands() {
   local -a subcommands
   subcommands=(
     'branch:Git branch切り替え'
-    'log:Git commit履歴検索'
+    'log:Git commit履歴検索（batでシンタックスハイライト）'
     'kill:プロセス検索・kill'
     'docker:Docker container接続'
     'history:コマンド履歴検索・実行'
     'env:環境変数検索・表示'
-    'cd:ディレクトリ履歴から移動'
+    'cd:ディレクトリ履歴から移動（fdで拡張検索）'
     'pr:GitHub Pull Request一覧'
     'issue:GitHub Issue一覧'
-    'help:ヘルプを表示'
+    'find:ファイル検索（fdを使用）'
+    'vi:ファイルをviで開く（fdを使用）'
+    'vim:ファイルをvimで開く（fdを使用）'
   )
   _describe -t subcommands 'fz subcommand' subcommands
 }

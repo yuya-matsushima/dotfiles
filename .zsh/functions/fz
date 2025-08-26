@@ -1,8 +1,54 @@
 #!/usr/bin/env zsh
 # fz - fzf wrapper command
 
+# 設定定数
+readonly FZ_MAX_DEPTH=3
+readonly FZ_PREVIEW_FILES=5
+readonly FZ_PREVIEW_LINES=20
+
+# ヘルパー関数
+_ymt_fz_get_preview_cmd() {
+  local file_path="$1"
+  if (( $+commands[bat] )); then
+    # Use printf %q for proper shell escaping
+    printf "bat --style=full --color=always %q" "$file_path"
+  else
+    printf "cat %q" "$file_path"
+  fi
+}
+
+# fdでファイル一覧を取得する共通関数
+_ymt_fz_get_files_with_fd() {
+  local fd_output fd_exit_code
+  
+  # 引数を配列として受け取り展開する
+  fd_output=$(fd "$@" 2>&1)
+  fd_exit_code=$?
+  
+  if [ $fd_exit_code -ne 0 ]; then
+    echo "Error: fd command failed" >&2
+    echo "Details: $fd_output" >&2
+    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
+    return 1
+  fi
+  
+  if [ -z "$fd_output" ]; then
+    echo "No files found in current directory" >&2
+    echo "This could be due to:" >&2
+    echo "  - Empty directory" >&2
+    echo "  - All files ignored by .gitignore" >&2
+    echo "  - Permission issues" >&2
+    return 1
+  fi
+  
+  echo "$fd_output"
+}
+
+
+
 # 依存コマンドのチェック
 _ymt_fz_check_dependencies() {
+  local subcommand="$1"
   local missing_deps=()
 
   # 基本的な依存
@@ -14,22 +60,36 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("git")
   fi
 
-  # オプショナルな依存（警告のみ）
-  local optional_deps=()
-  if ! (( $+commands[fd] )); then
-    optional_deps+=("fd (better file search)")
+  # サブコマンド固有の必須依存
+  if [[ "$subcommand" == "docker" ]] && ! (( $+commands[docker] )); then
+    missing_deps+=("docker")
   fi
 
+  if [[ "$subcommand" == "pr" || "$subcommand" == "issue" ]]; then
+    if ! (( $+commands[gh] )); then
+      missing_deps+=("gh")
+    fi
+    if ! (( $+commands[jq] )); then
+      missing_deps+=("jq")
+    fi
+  fi
+
+  if [[ "$subcommand" == "find" || "$subcommand" == "view" || "$subcommand" == "vi" || "$subcommand" == "vim" ]] && ! (( $+commands[fd] )); then
+    missing_deps+=("fd")
+  fi
+
+  # オプショナルな依存（警告のみ）
+  local optional_deps=()
   if ! (( $+commands[bat] )); then
     optional_deps+=("bat (syntax highlighting)")
   fi
 
-  if ! (( $+commands[tree] )); then
-    optional_deps+=("tree (directory preview)")
+  if ! (( $+commands[glow] )); then
+    optional_deps+=("glow (markdown rendering for pr/issue)")
   fi
 
-  if ! (( $+commands[gh] )); then
-    optional_deps+=("gh (GitHub CLI)")
+  if ! (( $+commands[pbcopy] )) && [[ "$OSTYPE" == "darwin"* ]]; then
+    optional_deps+=("pbcopy (clipboard support)")
   fi
 
   # 必須コマンドが不足している場合はエラー
@@ -58,15 +118,16 @@ Usage: fz <subcommand> [options]
 
 Subcommands:
   branch    Git branch切り替え
-  log       Git commit履歴検索
+  log       Git commit履歴検索（batでシンタックスハイライト）
   kill      プロセス検索・kill
   docker    Docker container接続
   history   コマンド履歴検索・実行
   env       環境変数検索・表示
-  cd        ディレクトリ履歴から移動
+  cd        ディレクトリ履歴から移動（fdで拡張検索）
   pr        GitHub Pull Request一覧
   issue     GitHub Issue一覧
-  help      このヘルプを表示
+  find      ファイル検索（fdを使用）
+  vi/vim    ファイルをvimで開く（fdを使用）
 
 Examples:
   fz branch     # Git branchを選択して切り替え
@@ -78,6 +139,9 @@ Examples:
   fz cd         # ディレクトリ履歴から選択して移動
   fz pr         # Pull Requestを選択して詳細表示
   fz issue      # Issueを選択して詳細表示
+  fz find       # ファイルを検索して選択
+  fz vi         # ファイルを検索してvimで開く
+  fz vim        # ファイルを検索してvimで開く
 EOF
 }
 
@@ -103,6 +167,20 @@ _ymt_fz_log() {
     return 1
   fi
 
+  local preview_cmd
+  if (( $+commands[bat] )); then
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
+  else
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
+  fi
+
+  local enter_cmd
+  if (( $+commands[bat] )); then
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
+  else
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
+  fi
+
   if (( $+commands[pbcopy] )); then
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
@@ -110,22 +188,26 @@ _ymt_fz_log() {
       --bind=ctrl-s:toggle-sort \
       --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
-      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
-      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+      --preview "$preview_cmd" \
+      --height=100% \
+      --bind "$enter_cmd"
   else
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show % --color=always'" \
-      --bind "enter:execute(echo {} | grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show %')"
+      --preview "$preview_cmd" \
+      --height=100% \
+      --bind "$enter_cmd"
   fi
 }
 
 # プロセスkill
 _ymt_fz_kill() {
   local pid
-  pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+  # 経過時間表示でプロセス一覧を表示
+  pid=$(LC_ALL=C ps -eo pid,user,pcpu,pmem,etime,comm | sed 1d | fzf -m \
+    --header "Select processes to kill (TAB: multi-select, Enter: kill)" | awk '{print $1}')
   if [ "x$pid" != "x" ]; then
     echo $pid | xargs kill -${1:-9}
   fi
@@ -189,12 +271,57 @@ _ymt_fz_env() {
 # ディレクトリ履歴から移動
 _ymt_fz_cd() {
   local selected_dir
+  local dirs_list
 
-  # dirsコマンドの出力から選択（~を展開してプレビュー）
-  selected_dir=$(dirs -p | tail -n +2 | awk '!seen[$0]++' | fzf \
-    --preview 'eval ls -la --color=always {}' \
+  # 履歴とfdの結果を組み合わせ
+  local fd_dirs hist_dirs
+  hist_dirs=$(dirs -p | tail -n +2)
+  
+  if (( $+commands[fd] )); then
+    local fd_output fd_exit_code
+    fd_output=$(fd -t d --max-depth ${FZ_MAX_DEPTH} . 2>&1 | sed 's|^\./||')
+    fd_exit_code=$?
+    
+    if [ $fd_exit_code -eq 0 ]; then
+      if [ -n "$fd_output" ]; then
+        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_output" | awk '!seen[$0]++')
+      else
+        dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+      fi
+    else
+      echo "Warning: fd failed to search directories, using history only" >&2
+      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+    fi
+  else
+    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+  fi
+
+  # プレビューコマンドの設定（シンプル化）
+  local preview_cmd
+  if (( $+commands[bat] )); then
+    # Cross-platform ls color support  
+    if ls --color=always -d . >/dev/null 2>&1; then
+      preview_cmd="ls -la --color=always -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+    elif ls -G -d . >/dev/null 2>&1; then
+      preview_cmd="ls -la -G -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+    else
+      preview_cmd="ls -la -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+    fi
+  else
+    # Cross-platform ls color support
+    if ls --color=always -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la --color=always -- {q}'
+    elif ls -G -d . >/dev/null 2>&1; then
+      preview_cmd='ls -la -G -- {q}'
+    else
+      preview_cmd='ls -la -- {q}'
+    fi
+  fi
+
+  selected_dir=$(echo "$dirs_list" | fzf \
+    --preview "$preview_cmd" \
     --preview-window=right:50% \
-    --header "Directory history")
+    --header "Directory history + fd search (max depth: ${FZ_MAX_DEPTH})")
 
   if [ -n "$selected_dir" ]; then
     cd "$selected_dir"
@@ -215,11 +342,17 @@ _ymt_fz_pr() {
     return 1
   fi
 
+  local preview_cmd
+  # プレビューはシンプルにgh pr viewの出力をそのまま表示
+  preview_cmd='pr_num=$(echo {} | grep -o "^#[0-9]\+" | tr -d "#"); if [ -n "$pr_num" ]; then gh pr view "$pr_num" | head -50; fi'
+
   local selected_pr
   selected_pr=$(gh pr list --limit 100 --json number,title,author,state,createdAt,headRefName \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}] {{.headRefName}}{{"\n"}}{{end}}' |
     fzf \
         --header "Select PR (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --preview "$preview_cmd" \
+        --preview-window=right:60%:wrap \
         --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh pr view % --web)')
 
   if [ -n "$selected_pr" ]; then
@@ -254,11 +387,17 @@ _ymt_fz_issue() {
     return 1
   fi
 
+  local preview_cmd
+  # プレビューはシンプルにgh issue viewの出力をそのまま表示
+  preview_cmd='issue_num=$(echo {} | grep -o "^#[0-9]\+" | tr -d "#"); if [ -n "$issue_num" ]; then gh issue view "$issue_num" | head -50; fi'
+
   local selected_issue
   selected_issue=$(gh issue list --limit 100 --json number,title,author,state,createdAt,labels \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}]{{if .labels}} {{range .labels}}[{{.name}}]{{end}}{{end}}{{"\n"}}{{end}}' |
     fzf \
         --header "Select issue (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --preview "$preview_cmd" \
+        --preview-window=right:60%:wrap \
         --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh issue view % --web)')
 
   if [ -n "$selected_issue" ]; then
@@ -280,9 +419,76 @@ _ymt_fz_issue() {
   fi
 }
 
+# ファイル検索
+_ymt_fz_find() {
+  # fdコマンドの存在チェック
+  if ! (( $+commands[fd] )); then
+    echo "Error: fd command is required for find subcommand" >&2
+    echo "Please install fd first: brew install fd" >&2
+    return 1
+  fi
+
+  local files selected_file
+  
+  # fdでファイル一覧を取得
+  files=$(_ymt_fz_get_files_with_fd -t f)
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+
+  # fzfで選択
+  selected_file=$(echo "$files" | fzf \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always -- {}; else cat -- {}; fi' \
+    --preview-window=right:60% \
+    --header "File search with fd (gitignore respected)")
+
+  if [ -n "$selected_file" ]; then
+    echo "$selected_file"
+    # クリップボードにコピー
+    if (( $+commands[pbcopy] )); then
+      echo -n "$selected_file" | pbcopy
+      echo "Copied to clipboard!"
+    fi
+  fi
+}
+
+# ファイル内容表示
+_ymt_fz_view() {
+  # fdコマンドの存在チェック
+  if ! (( $+commands[fd] )); then
+    echo "Error: fd command is required for view subcommand" >&2
+    echo "Please install fd first: brew install fd" >&2
+    return 1
+  fi
+
+  local files selected_file
+  
+  # fdでファイル一覧を取得
+  files=$(_ymt_fz_get_files_with_fd -t f)
+  if [ $? -ne 0 ]; then
+    return 1
+  fi
+
+  # fzfで選択
+  selected_file=$(echo "$files" | fzf \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always -- {}; else cat -- {}; fi' \
+    --preview-window=right:60% \
+    --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
+    --header "Select file to view (Ctrl-Y to copy path)")
+
+  if [ -n "$selected_file" ]; then
+    if [ ! -r "$selected_file" ]; then
+      echo "Error: Cannot read file '$selected_file'" >&2
+      return 1
+    fi
+    
+    vim "$selected_file"
+  fi
+}
+
 # 依存関係をチェック
-if ! _ymt_fz_check_dependencies 2>/dev/null; then
-  _ymt_fz_check_dependencies
+if ! _ymt_fz_check_dependencies "$1" 2>/dev/null; then
+  _ymt_fz_check_dependencies "$1"
   return 1
 fi
 
@@ -324,12 +530,20 @@ case "${1:-help}" in
     shift
     _ymt_fz_issue "$@"
     ;;
-  help|--help|-h)
+  find)
+    shift
+    _ymt_fz_find "$@"
+    ;;
+  vi|vim)
+    shift
+    _ymt_fz_view "$@"
+    ;;
+  --help|-h)
     _ymt_fz_usage
     ;;
   *)
     echo "Error: Unknown subcommand '$1'" >&2
-    echo "Run 'fz help' for usage." >&2
+    echo "Run 'fz --help' for usage." >&2
     return 1
     ;;
 esac
