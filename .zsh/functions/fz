@@ -341,11 +341,17 @@ _ymt_fz_pr() {
     return 1
   fi
 
+  local preview_cmd
+  # プレビューはシンプルにgh pr viewの出力をそのまま表示
+  preview_cmd='pr_num=$(echo {} | grep -o "^#[0-9]\+" | tr -d "#"); if [ -n "$pr_num" ]; then gh pr view "$pr_num" | head -50; fi'
+
   local selected_pr
   selected_pr=$(gh pr list --limit 100 --json number,title,author,state,createdAt,headRefName \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}] {{.headRefName}}{{"\n"}}{{end}}' |
     fzf \
         --header "Select PR (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --preview "$preview_cmd" \
+        --preview-window=right:60%:wrap \
         --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh pr view % --web)')
 
   if [ -n "$selected_pr" ]; then
@@ -380,11 +386,17 @@ _ymt_fz_issue() {
     return 1
   fi
 
+  local preview_cmd
+  # プレビューはシンプルにgh issue viewの出力をそのまま表示
+  preview_cmd='issue_num=$(echo {} | grep -o "^#[0-9]\+" | tr -d "#"); if [ -n "$issue_num" ]; then gh issue view "$issue_num" | head -50; fi'
+
   local selected_issue
   selected_issue=$(gh issue list --limit 100 --json number,title,author,state,createdAt,labels \
     --template '{{range .}}#{{.number}} {{.title}} ({{.author.login}}) [{{.state}}]{{if .labels}} {{range .labels}}[{{.name}}]{{end}}{{end}}{{"\n"}}{{end}}' |
     fzf \
         --header "Select issue (Enter: view in terminal, Ctrl-O: open in browser)" \
+        --preview "$preview_cmd" \
+        --preview-window=right:60%:wrap \
         --bind='ctrl-o:execute(echo {} | grep -o "^#[0-9]\+" | tr -d "#" | xargs -I % gh issue view % --web)')
 
   if [ -n "$selected_issue" ]; then
