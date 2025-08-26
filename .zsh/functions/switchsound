@@ -65,10 +65,16 @@ _ymt_switchsound_select_device() {
   done < <(_ymt_switchsound_get_device_list "$device_type")
 
   # fzfで選択
+  local device_type_capitalized
+  if [[ "$device_type" == "output" ]]; then
+    device_type_capitalized="Output"
+  else
+    device_type_capitalized="Input"
+  fi
   selected_device=$(echo -e "$devices" | fzf \
     --height=40% \
     --layout=reverse \
-    --header="Select ${device_type^} Device (current: $current_device)" \
+    --header="Select $device_type_capitalized Device (current: $current_device)" \
     --preview="echo 'Selected device will be set as audio $device_type'" \
     --preview-window=down:2 \
     | sed 's/^[► ] *//' | sed 's/ (current)$//')
@@ -82,7 +88,13 @@ _ymt_switchsound_switch_device() {
   local device_name="$2"
 
   if SwitchAudioSource -t "$device_type" -s "$device_name"; then
-    echo "${device_type^} device switched to: $device_name"
+    local device_type_capitalized
+    if [[ "$device_type" == "output" ]]; then
+      device_type_capitalized="Output"
+    else
+      device_type_capitalized="Input"
+    fi
+    echo "$device_type_capitalized device switched to: $device_name"
     echo ""
     _ymt_switchsound_status
     return 0
