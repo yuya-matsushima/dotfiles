@@ -162,6 +162,7 @@ _ymt_fz_log() {
       --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "$preview_cmd" \
+      --height=100% \
       --bind "$enter_cmd"
   else
     git log --graph --color=always \
@@ -169,6 +170,7 @@ _ymt_fz_log() {
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
       --preview "$preview_cmd" \
+      --height=100% \
       --bind "$enter_cmd"
   fi
 }
