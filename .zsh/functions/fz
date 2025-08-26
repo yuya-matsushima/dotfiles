@@ -19,10 +19,10 @@ _ymt_fz_get_preview_cmd() {
 
 # fdでファイル一覧を取得する共通関数
 _ymt_fz_get_files_with_fd() {
-  local fd_args="$1"  # fd引数（例: "-t f"）
   local fd_output fd_exit_code
   
-  fd_output=$(fd $fd_args . 2>&1)
+  # 引数を配列として受け取り展開する
+  fd_output=$(fd "$@" 2>&1)
   fd_exit_code=$?
   
   if [ $fd_exit_code -ne 0 ]; then
@@ -170,16 +170,16 @@ _ymt_fz_log() {
 
   local preview_cmd
   if (( $+commands[bat] )); then
-    preview_cmd="printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always | bat --style=plain --language=diff --color=always"
   else
-    preview_cmd="printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
+    preview_cmd="printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show --color=always"
   fi
 
   local enter_cmd
   if (( $+commands[bat] )); then
-    enter_cmd="enter:become(printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | bat --style=full --language=diff --paging=always)"
   else
-    enter_cmd="enter:become(printf '%s' {q} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
+    enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
   fi
 
   if (( $+commands[pbcopy] )); then
@@ -187,7 +187,7 @@ _ymt_fz_log() {
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --bind='ctrl-y:execute(echo {q} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
+      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "$preview_cmd" \
       --height=100% \
@@ -254,7 +254,7 @@ _ymt_fz_env() {
       --preview 'echo {} | cut -d= -f2-' \
       --preview-window=right:50%:wrap \
       --header "Environment variables (Press CTRL-Y to copy)" \
-      --bind='ctrl-y:execute(echo {q} | pbcopy)')
+      --bind='ctrl-y:execute(echo {} | pbcopy)')
   else
     selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
       --preview 'echo {} | cut -d= -f2-' \
@@ -418,14 +418,14 @@ _ymt_fz_find() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  files=$(_ymt_fz_get_files_with_fd "-t f")
+  files=$(_ymt_fz_get_files_with_fd -t f)
   if [ $? -ne 0 ]; then
     return 1
   fi
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {q}; else cat {q}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always -- {}; else cat -- {}; fi' \
     --preview-window=right:60% \
     --header "File search with fd (gitignore respected)")
 
@@ -451,16 +451,16 @@ _ymt_fz_view() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  files=$(_ymt_fz_get_files_with_fd "-t f")
+  files=$(_ymt_fz_get_files_with_fd -t f)
   if [ $? -ne 0 ]; then
     return 1
   fi
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
-    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always {q}; else cat {q}; fi' \
+    --preview 'if (( $+commands[bat] )); then bat --style=full --color=always -- {}; else cat -- {}; fi' \
     --preview-window=right:60% \
-    --bind='ctrl-y:execute(printf "%s" {q} | pbcopy)+abort' \
+    --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
 
   if [ -n "$selected_file" ]; then
