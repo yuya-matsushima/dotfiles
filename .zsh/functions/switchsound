@@ -1,0 +1,193 @@
+#!/usr/bin/env zsh
+
+# OS チェック
+if [[ $OSTYPE != 'darwin'* ]]; then
+  echo "Error: This command is only available on macOS" >&2
+  return 1
+fi
+
+# 依存コマンドチェック
+if ! (( $+commands[SwitchAudioSource] )); then
+  echo "Error: SwitchAudioSource is not installed" >&2
+  echo "Please install it with: brew install switchaudio-osx" >&2
+  return 1
+fi
+
+if ! (( $+commands[fzf] )); then
+  echo "Error: fzf is not installed" >&2
+  echo "Please install it with: brew install fzf" >&2
+  return 1
+fi
+
+# 共通関数: 現在のデバイス取得
+_ymt_switchsound_get_current_device() {
+  local device_type="$1"
+  SwitchAudioSource -t "$device_type" -c
+}
+
+# 共通関数: デバイス一覧取得
+_ymt_switchsound_get_device_list() {
+  local device_type="$1"
+  SwitchAudioSource -t "$device_type" -a
+}
+
+# 共通関数: デバイス表示（マーク付き）
+_ymt_switchsound_display_devices() {
+  local device_type="$1"
+  local title="$2"
+  local current_device
+  current_device=$(_ymt_switchsound_get_current_device "$device_type")
+
+  echo "$title"
+  while IFS= read -r device; do
+    if [[ "$device" == "$current_device" ]]; then
+      echo "* $device"
+    else
+      echo "  $device"
+    fi
+  done < <(_ymt_switchsound_get_device_list "$device_type")
+}
+
+# 共通関数: fzfでデバイス選択
+_ymt_switchsound_select_device() {
+  local device_type="$1"
+  local current_device selected_device devices
+  current_device=$(_ymt_switchsound_get_current_device "$device_type")
+
+  # デバイスリストを作成（現在のデバイスにマークを付ける）
+  devices=""
+  while IFS= read -r device; do
+    if [[ "$device" == "$current_device" ]]; then
+      devices+="► $device (current)\n"
+    else
+      devices+="  $device\n"
+    fi
+  done < <(_ymt_switchsound_get_device_list "$device_type")
+
+  # fzfで選択
+  local device_type_capitalized
+  if [[ "$device_type" == "output" ]]; then
+    device_type_capitalized="Output"
+  else
+    device_type_capitalized="Input"
+  fi
+  selected_device=$(echo -e "$devices" | fzf \
+    --height=40% \
+    --layout=reverse \
+    --header="Select $device_type_capitalized Device (current: $current_device)" \
+    --preview="echo 'Selected device will be set as audio $device_type'" \
+    --preview-window=down:2 \
+    | sed 's/^[► ] *//' | sed 's/ (current)$//')
+
+  echo "$selected_device"
+}
+
+# 共通関数: デバイス切り替え
+_ymt_switchsound_switch_device() {
+  local device_type="$1"
+  local device_name="$2"
+
+  if SwitchAudioSource -t "$device_type" -s "$device_name"; then
+    local device_type_capitalized
+    if [[ "$device_type" == "output" ]]; then
+      device_type_capitalized="Output"
+    else
+      device_type_capitalized="Input"
+    fi
+    echo "$device_type_capitalized device switched to: $device_name"
+    echo ""
+    _ymt_switchsound_status
+    return 0
+  else
+    echo "Error: Failed to switch $device_type device" >&2
+    return 1
+  fi
+}
+
+# ヘルプ関数
+_ymt_switchsound_usage() {
+  cat <<EOF
+switchsound - Audio device switcher for macOS using fzf
+
+Usage:
+    switchsound               show help
+    switchsound list          list all available audio devices
+    switchsound status        show current input/output devices
+    switchsound input         select and switch input device with fzf
+    switchsound output        select and switch output device with fzf
+
+Options:
+    --help, -h               show this help
+
+Dependencies:
+    switchaudio-osx (brew install switchaudio-osx)
+    fzf (brew install fzf)
+
+Examples:
+    switchsound output       # Select output device interactively
+    switchsound input        # Select input device interactively
+    switchsound list         # Show all available devices
+EOF
+}
+
+# デバイス一覧表示
+_ymt_switchsound_list() {
+  _ymt_switchsound_display_devices "output" "=== Output Devices ==="
+  echo ""
+  _ymt_switchsound_display_devices "input" "=== Input Devices ==="
+}
+
+# 現在の状態表示
+_ymt_switchsound_status() {
+  local current_output current_input
+  current_output=$(_ymt_switchsound_get_current_device "output")
+  current_input=$(_ymt_switchsound_get_current_device "input")
+
+  echo "Current Audio Devices:"
+  echo "  Output: $current_output"
+  echo "  Input:  $current_input"
+}
+
+# 出力デバイス切り替え
+_ymt_switchsound_output() {
+  local selected
+  selected=$(_ymt_switchsound_select_device "output")
+
+  if [[ -n "$selected" ]]; then
+    _ymt_switchsound_switch_device "output" "$selected"
+  fi
+}
+
+# 入力デバイス切り替え
+_ymt_switchsound_input() {
+  local selected
+  selected=$(_ymt_switchsound_select_device "input")
+
+  if [[ -n "$selected" ]]; then
+    _ymt_switchsound_switch_device "input" "$selected"
+  fi
+}
+
+# メイン処理
+case "${1:-help}" in
+  list)
+    _ymt_switchsound_list
+    ;;
+  status)
+    _ymt_switchsound_status
+    ;;
+  output)
+    _ymt_switchsound_output
+    ;;
+  input)
+    _ymt_switchsound_input
+    ;;
+  --help|-h|help)
+    _ymt_switchsound_usage
+    ;;
+  *)
+    echo "Error: Unknown subcommand '$1'" >&2
+    echo "Run 'switchsound --help' for usage." >&2
+    return 1
+    ;;
+esac
