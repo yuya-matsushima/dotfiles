@@ -250,14 +250,18 @@ _ymt_fz_cd() {
   hist_dirs=$(dirs -p | tail -n +2)
   
   if (( $+commands[fd] )); then
-    fd_dirs=$(fd -t d --max-depth ${FZ_MAX_DEPTH} . 2>/dev/null | sed 's|^\./||')
-    if [ $? -eq 0 ]; then
-      if [ -n "$fd_dirs" ]; then
-        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_dirs" | awk '!seen[$0]++')
+    local fd_output fd_exit_code
+    fd_output=$(fd -t d --max-depth ${FZ_MAX_DEPTH} . 2>&1 | sed 's|^\./||')
+    fd_exit_code=$?
+    
+    if [ $fd_exit_code -eq 0 ]; then
+      if [ -n "$fd_output" ]; then
+        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_output" | awk '!seen[$0]++')
       else
         dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
       fi
     else
+      echo "Warning: fd failed to search directories, using history only" >&2
       dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
     fi
   else
@@ -387,11 +391,27 @@ _ymt_fz_find() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  files=$(fd -t f . 2>/dev/null)
-  if [ -z "$files" ]; then
-    echo "No files found in current directory" >&2
+  local fd_output fd_exit_code
+  fd_output=$(fd -t f . 2>&1)
+  fd_exit_code=$?
+  
+  if [ $fd_exit_code -ne 0 ]; then
+    echo "Error: fd command failed" >&2
+    echo "Details: $fd_output" >&2
+    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
     return 1
   fi
+  
+  if [ -z "$fd_output" ]; then
+    echo "No files found in current directory" >&2
+    echo "This could be due to:" >&2
+    echo "  - Empty directory" >&2
+    echo "  - All files ignored by .gitignore" >&2
+    echo "  - Permission issues" >&2
+    return 1
+  fi
+  
+  files="$fd_output"
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
@@ -421,11 +441,27 @@ _ymt_fz_view() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  files=$(fd -t f . 2>/dev/null)
-  if [ -z "$files" ]; then
-    echo "No files found in current directory" >&2
+  local fd_output fd_exit_code
+  fd_output=$(fd -t f . 2>&1)
+  fd_exit_code=$?
+  
+  if [ $fd_exit_code -ne 0 ]; then
+    echo "Error: fd command failed" >&2
+    echo "Details: $fd_output" >&2
+    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
     return 1
   fi
+  
+  if [ -z "$fd_output" ]; then
+    echo "No files found in current directory" >&2
+    echo "This could be due to:" >&2
+    echo "  - Empty directory" >&2
+    echo "  - All files ignored by .gitignore" >&2
+    echo "  - Permission issues" >&2
+    return 1
+  fi
+  
+  files="$fd_output"
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
