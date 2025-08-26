@@ -54,7 +54,7 @@ _ymt_switchsound_list() {
   echo "=== Output Devices ==="
   while IFS= read -r device; do
     if [[ "$device" == "$current_output" ]]; then
-      echo "► $device (current)"
+      echo "* $device (current)"
     else
       echo "  $device"
     fi
@@ -64,7 +64,7 @@ _ymt_switchsound_list() {
   echo "=== Input Devices ==="
   while IFS= read -r device; do
     if [[ "$device" == "$current_input" ]]; then
-      echo "► $device (current)"
+      echo "* $device (current)"
     else
       echo "  $device"
     fi
