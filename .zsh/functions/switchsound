@@ -20,16 +20,16 @@ if ! (( $+commands[fzf] )); then
 fi
 
 # ヘルプ関数
-_ymt_soundswitch_usage() {
+_ymt_switchsound_usage() {
   cat <<EOF
-soundswitch - Audio device switcher for macOS using fzf
+switchsound - Audio device switcher for macOS using fzf
 
 Usage:
-    soundswitch               show help
-    soundswitch list          list all available audio devices
-    soundswitch status        show current input/output devices
-    soundswitch input         select and switch input device with fzf
-    soundswitch output        select and switch output device with fzf
+    switchsound               show help
+    switchsound list          list all available audio devices
+    switchsound status        show current input/output devices
+    switchsound input         select and switch input device with fzf
+    switchsound output        select and switch output device with fzf
 
 Options:
     --help, -h               show this help
@@ -39,14 +39,14 @@ Dependencies:
     fzf (brew install fzf)
 
 Examples:
-    soundswitch output       # Select output device interactively
-    soundswitch input        # Select input device interactively
-    soundswitch list         # Show all available devices
+    switchsound output       # Select output device interactively
+    switchsound input        # Select input device interactively
+    switchsound list         # Show all available devices
 EOF
 }
 
 # デバイス一覧表示
-_ymt_soundswitch_list() {
+_ymt_switchsound_list() {
   local current_output current_input
   current_output=$(SwitchAudioSource -t output -c)
   current_input=$(SwitchAudioSource -t input -c)
@@ -72,7 +72,7 @@ _ymt_soundswitch_list() {
 }
 
 # 現在の状態表示
-_ymt_soundswitch_status() {
+_ymt_switchsound_status() {
   local current_output current_input
   current_output=$(SwitchAudioSource -t output -c)
   current_input=$(SwitchAudioSource -t input -c)
@@ -83,7 +83,7 @@ _ymt_soundswitch_status() {
 }
 
 # 出力デバイス切り替え
-_ymt_soundswitch_output() {
+_ymt_switchsound_output() {
   local devices current selected
   current=$(SwitchAudioSource -t output -c)
   
@@ -117,7 +117,7 @@ _ymt_soundswitch_output() {
 }
 
 # 入力デバイス切り替え
-_ymt_soundswitch_input() {
+_ymt_switchsound_input() {
   local devices current selected
   current=$(SwitchAudioSource -t input -c)
   
@@ -153,23 +153,23 @@ _ymt_soundswitch_input() {
 # メイン処理
 case "${1:-help}" in
   list)
-    _ymt_soundswitch_list
+    _ymt_switchsound_list
     ;;
   status)
-    _ymt_soundswitch_status
+    _ymt_switchsound_status
     ;;
   output)
-    _ymt_soundswitch_output
+    _ymt_switchsound_output
     ;;
   input)
-    _ymt_soundswitch_input
+    _ymt_switchsound_input
     ;;
   --help|-h|help)
-    _ymt_soundswitch_usage
+    _ymt_switchsound_usage
     ;;
   *)
     echo "Error: Unknown subcommand '$1'" >&2
-    echo "Run 'soundswitch --help' for usage." >&2
+    echo "Run 'switchsound --help' for usage." >&2
     return 1
     ;;
 esac

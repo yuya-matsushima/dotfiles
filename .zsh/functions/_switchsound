@@ -1,14 +1,14 @@
-#compdef soundswitch
+#compdef switchsound
 
-# soundswitch コマンドの補完定義
+# switchsound コマンドの補完定義
 
-_soundswitch() {
+_switchsound() {
   local context state line
   typeset -A opt_args
 
   _arguments -C \
     '(-h --help)'{-h,--help}'[Show help]' \
-    '1: :_soundswitch_subcommands' \
+    '1: :_switchsound_subcommands' \
     '*::arg:->args'
 
   case $state in
@@ -22,7 +22,7 @@ _soundswitch() {
   esac
 }
 
-_soundswitch_subcommands() {
+_switchsound_subcommands() {
   local -a subcommands
   subcommands=(
     'list:List all available audio devices'
@@ -30,7 +30,7 @@ _soundswitch_subcommands() {
     'input:Select and switch input device with fzf'
     'output:Select and switch output device with fzf'
   )
-  _describe -t subcommands 'soundswitch subcommand' subcommands
+  _describe -t subcommands 'switchsound subcommand' subcommands
 }
 
-_soundswitch "$@"
+_switchsound "$@"
