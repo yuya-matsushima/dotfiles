@@ -46,7 +46,7 @@ _ymt_fz_check_dependencies() {
     fi
   fi
 
-  if [[ "$subcommand" == "find" || "$subcommand" == "view" ]] && ! (( $+commands[fd] )); then
+  if [[ "$subcommand" == "find" || "$subcommand" == "vi" || "$subcommand" == "vim" ]] && ! (( $+commands[fd] )); then
     missing_deps+=("fd")
   fi
 
@@ -99,7 +99,7 @@ Subcommands:
   pr        GitHub Pull Request一覧
   issue     GitHub Issue一覧
   find      ファイル検索（fdを使用）
-  view      ファイル内容表示（batを使用）
+  vi/vim    ファイルをvimで開く（fdを使用）
   help      このヘルプを表示
 
 Examples:
@@ -113,7 +113,8 @@ Examples:
   fz pr         # Pull Requestを選択して詳細表示
   fz issue      # Issueを選択して詳細表示
   fz find       # ファイルを検索して選択
-  fz view       # ファイルを検索してbatで表示
+  fz vi         # ファイルを検索してvimで開く
+  fz vim        # ファイルを検索してvimで開く
 EOF
 }
 
@@ -155,23 +156,19 @@ _ymt_fz_log() {
 
   if (( $+commands[pbcopy] )); then
     git log --graph --color=always \
-      --format="%w(80,0,4)%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+      --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
       --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "$preview_cmd" \
-      --preview-window=right:50% \
-      --height=100% \
       --bind "$enter_cmd"
   else
     git log --graph --color=always \
-      --format="%w(80,0,4)%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
+      --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
       --preview "$preview_cmd" \
-      --preview-window=right:50% \
-      --height=100% \
       --bind "$enter_cmd"
   fi
 }
@@ -440,7 +437,7 @@ _ymt_fz_view() {
       return 1
     fi
     
-    eval "$(_ymt_fz_get_preview_cmd "$selected_file")"
+    vim "$selected_file"
   fi
 }
 
@@ -492,7 +489,7 @@ case "${1:-help}" in
     shift
     _ymt_fz_find "$@"
     ;;
-  view)
+  vi|vim)
     shift
     _ymt_fz_view "$@"
     ;;
