@@ -109,6 +109,8 @@ _ymt_switchsound_output() {
   if [[ -n "$selected" ]]; then
     if SwitchAudioSource -t output -s "$selected"; then
       echo "Output device switched to: $selected"
+      echo ""
+      _ymt_switchsound_status
     else
       echo "Error: Failed to switch output device" >&2
       return 1
@@ -143,6 +145,8 @@ _ymt_switchsound_input() {
   if [[ -n "$selected" ]]; then
     if SwitchAudioSource -t input -s "$selected"; then
       echo "Input device switched to: $selected"
+      echo ""
+      _ymt_switchsound_status
     else
       echo "Error: Failed to switch input device" >&2
       return 1
