@@ -17,6 +17,33 @@ _ymt_fz_get_preview_cmd() {
   fi
 }
 
+# fdでファイル一覧を取得する共通関数
+_ymt_fz_get_files_with_fd() {
+  local fd_args="$1"  # fd引数（例: "-t f"）
+  local fd_output fd_exit_code
+  
+  fd_output=$(fd $fd_args . 2>&1)
+  fd_exit_code=$?
+  
+  if [ $fd_exit_code -ne 0 ]; then
+    echo "Error: fd command failed" >&2
+    echo "Details: $fd_output" >&2
+    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
+    return 1
+  fi
+  
+  if [ -z "$fd_output" ]; then
+    echo "No files found in current directory" >&2
+    echo "This could be due to:" >&2
+    echo "  - Empty directory" >&2
+    echo "  - All files ignored by .gitignore" >&2
+    echo "  - Permission issues" >&2
+    return 1
+  fi
+  
+  echo "$fd_output"
+}
+
 
 
 # 依存コマンドのチェック
@@ -391,27 +418,10 @@ _ymt_fz_find() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  local fd_output fd_exit_code
-  fd_output=$(fd -t f . 2>&1)
-  fd_exit_code=$?
-  
-  if [ $fd_exit_code -ne 0 ]; then
-    echo "Error: fd command failed" >&2
-    echo "Details: $fd_output" >&2
-    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
+  files=$(_ymt_fz_get_files_with_fd "-t f")
+  if [ $? -ne 0 ]; then
     return 1
   fi
-  
-  if [ -z "$fd_output" ]; then
-    echo "No files found in current directory" >&2
-    echo "This could be due to:" >&2
-    echo "  - Empty directory" >&2
-    echo "  - All files ignored by .gitignore" >&2
-    echo "  - Permission issues" >&2
-    return 1
-  fi
-  
-  files="$fd_output"
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
@@ -441,27 +451,10 @@ _ymt_fz_view() {
   local files selected_file
   
   # fdでファイル一覧を取得
-  local fd_output fd_exit_code
-  fd_output=$(fd -t f . 2>&1)
-  fd_exit_code=$?
-  
-  if [ $fd_exit_code -ne 0 ]; then
-    echo "Error: fd command failed" >&2
-    echo "Details: $fd_output" >&2
-    echo "Please check if the current directory is accessible or try running 'fd --version'" >&2
+  files=$(_ymt_fz_get_files_with_fd "-t f")
+  if [ $? -ne 0 ]; then
     return 1
   fi
-  
-  if [ -z "$fd_output" ]; then
-    echo "No files found in current directory" >&2
-    echo "This could be due to:" >&2
-    echo "  - Empty directory" >&2
-    echo "  - All files ignored by .gitignore" >&2
-    echo "  - Permission issues" >&2
-    return 1
-  fi
-  
-  files="$fd_output"
 
   # fzfで選択
   selected_file=$(echo "$files" | fzf \
