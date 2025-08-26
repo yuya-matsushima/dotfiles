@@ -19,6 +19,79 @@ if ! (( $+commands[fzf] )); then
   return 1
 fi
 
+# 共通関数: 現在のデバイス取得
+_ymt_switchsound_get_current_device() {
+  local device_type="$1"
+  SwitchAudioSource -t "$device_type" -c
+}
+
+# 共通関数: デバイス一覧取得
+_ymt_switchsound_get_device_list() {
+  local device_type="$1"
+  SwitchAudioSource -t "$device_type" -a
+}
+
+# 共通関数: デバイス表示（マーク付き）
+_ymt_switchsound_display_devices() {
+  local device_type="$1"
+  local title="$2"
+  local current_device
+  current_device=$(_ymt_switchsound_get_current_device "$device_type")
+  
+  echo "$title"
+  while IFS= read -r device; do
+    if [[ "$device" == "$current_device" ]]; then
+      echo "* $device"
+    else
+      echo "  $device"
+    fi
+  done < <(_ymt_switchsound_get_device_list "$device_type")
+}
+
+# 共通関数: fzfでデバイス選択
+_ymt_switchsound_select_device() {
+  local device_type="$1"
+  local current_device selected_device devices
+  current_device=$(_ymt_switchsound_get_current_device "$device_type")
+  
+  # デバイスリストを作成（現在のデバイスにマークを付ける）
+  devices=""
+  while IFS= read -r device; do
+    if [[ "$device" == "$current_device" ]]; then
+      devices+="► $device (current)\n"
+    else
+      devices+="  $device\n"
+    fi
+  done < <(_ymt_switchsound_get_device_list "$device_type")
+  
+  # fzfで選択
+  selected_device=$(echo -e "$devices" | fzf \
+    --height=40% \
+    --layout=reverse \
+    --header="Select ${device_type^} Device (current: $current_device)" \
+    --preview="echo 'Selected device will be set as audio $device_type'" \
+    --preview-window=down:2 \
+    | sed 's/^[► ] *//' | sed 's/ (current)$//')
+  
+  echo "$selected_device"
+}
+
+# 共通関数: デバイス切り替え
+_ymt_switchsound_switch_device() {
+  local device_type="$1"
+  local device_name="$2"
+  
+  if SwitchAudioSource -t "$device_type" -s "$device_name"; then
+    echo "${device_type^} device switched to: $device_name"
+    echo ""
+    _ymt_switchsound_status
+    return 0
+  else
+    echo "Error: Failed to switch $device_type device" >&2
+    return 1
+  fi
+}
+
 # ヘルプ関数
 _ymt_switchsound_usage() {
   cat <<EOF
@@ -47,35 +120,16 @@ EOF
 
 # デバイス一覧表示
 _ymt_switchsound_list() {
-  local current_output current_input
-  current_output=$(SwitchAudioSource -t output -c)
-  current_input=$(SwitchAudioSource -t input -c)
-  
-  echo "=== Output Devices ==="
-  while IFS= read -r device; do
-    if [[ "$device" == "$current_output" ]]; then
-      echo "* $device"
-    else
-      echo "  $device"
-    fi
-  done < <(SwitchAudioSource -t output -a)
-  
+  _ymt_switchsound_display_devices "output" "=== Output Devices ==="
   echo ""
-  echo "=== Input Devices ==="
-  while IFS= read -r device; do
-    if [[ "$device" == "$current_input" ]]; then
-      echo "* $device"
-    else
-      echo "  $device"
-    fi
-  done < <(SwitchAudioSource -t input -a)
+  _ymt_switchsound_display_devices "input" "=== Input Devices ==="
 }
 
 # 現在の状態表示
 _ymt_switchsound_status() {
   local current_output current_input
-  current_output=$(SwitchAudioSource -t output -c)
-  current_input=$(SwitchAudioSource -t input -c)
+  current_output=$(_ymt_switchsound_get_current_device "output")
+  current_input=$(_ymt_switchsound_get_current_device "input")
   
   echo "Current Audio Devices:"
   echo "  Output: $current_output"
@@ -84,73 +138,21 @@ _ymt_switchsound_status() {
 
 # 出力デバイス切り替え
 _ymt_switchsound_output() {
-  local devices current selected
-  current=$(SwitchAudioSource -t output -c)
-  
-  # デバイスリストを作成（現在のデバイスにマークを付ける）
-  devices=""
-  while IFS= read -r device; do
-    if [[ "$device" == "$current" ]]; then
-      devices+="► $device (current)\n"
-    else
-      devices+="  $device\n"
-    fi
-  done < <(SwitchAudioSource -t output -a)
-  
-  # fzfで選択（現在のデバイスを初期選択）
-  selected=$(echo -e "$devices" | fzf \
-    --height=40% \
-    --layout=reverse \
-    --header="Select Output Device (current: $current)" \
-    --preview="echo 'Selected device will be set as audio output'" \
-    --preview-window=down:2 \
-    | sed 's/^[► ] *//' | sed 's/ (current)$//')
+  local selected
+  selected=$(_ymt_switchsound_select_device "output")
   
   if [[ -n "$selected" ]]; then
-    if SwitchAudioSource -t output -s "$selected"; then
-      echo "Output device switched to: $selected"
-      echo ""
-      _ymt_switchsound_status
-    else
-      echo "Error: Failed to switch output device" >&2
-      return 1
-    fi
+    _ymt_switchsound_switch_device "output" "$selected"
   fi
 }
 
 # 入力デバイス切り替え
 _ymt_switchsound_input() {
-  local devices current selected
-  current=$(SwitchAudioSource -t input -c)
-  
-  # デバイスリストを作成（現在のデバイスにマークを付ける）
-  devices=""
-  while IFS= read -r device; do
-    if [[ "$device" == "$current" ]]; then
-      devices+="► $device (current)\n"
-    else
-      devices+="  $device\n"
-    fi
-  done < <(SwitchAudioSource -t input -a)
-  
-  # fzfで選択（現在のデバイスを初期選択）
-  selected=$(echo -e "$devices" | fzf \
-    --height=40% \
-    --layout=reverse \
-    --header="Select Input Device (current: $current)" \
-    --preview="echo 'Selected device will be set as audio input'" \
-    --preview-window=down:2 \
-    | sed 's/^[► ] *//' | sed 's/ (current)$//')
+  local selected
+  selected=$(_ymt_switchsound_select_device "input")
   
   if [[ -n "$selected" ]]; then
-    if SwitchAudioSource -t input -s "$selected"; then
-      echo "Input device switched to: $selected"
-      echo ""
-      _ymt_switchsound_status
-    else
-      echo "Error: Failed to switch input device" >&2
-      return 1
-    fi
+    _ymt_switchsound_switch_device "input" "$selected"
   fi
 }
 
