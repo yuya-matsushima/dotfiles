@@ -22,7 +22,8 @@ _ymt_fz_quote_for_history() {
   local cmd="$1"
   local arg="$2"
   # スペースや特殊文字を含む場合のみクォート
-  if [[ "$arg" =~ [[:space:]\'\"\\\$\`\(\)\{\}\[\]\&\|\;\<\>\*\?] ]]; then
+  # 正規表現の代わりにパターンマッチングを使用
+  if [[ "$arg" == *[[:space:]\'\"\\\$\`\(\)\{\}\[\]\&\|\;\<\>\*\?]* ]]; then
     echo "$cmd \"$arg\""
   else
     echo "$cmd $arg"
