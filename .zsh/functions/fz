@@ -17,6 +17,18 @@ _ymt_fz_get_preview_cmd() {
   fi
 }
 
+# 履歴用のコマンド文字列を生成（必要に応じてクォート）
+_ymt_fz_quote_for_history() {
+  local cmd="$1"
+  local arg="$2"
+  # スペースや特殊文字を含む場合のみクォート
+  if [[ "$arg" =~ [[:space:]\'\"\\\$\`\(\)\{\}\[\]\&\|\;\<\>\*\?] ]]; then
+    echo "$cmd \"$arg\""
+  else
+    echo "$cmd $arg"
+  fi
+}
+
 # fdでファイル一覧を取得する共通関数
 _ymt_fz_get_files_with_fd() {
   local fd_output fd_exit_code
@@ -334,7 +346,7 @@ _ymt_fz_cd() {
     --header "Directory history + fd search (max depth: ${FZ_MAX_DEPTH})")
 
   if [ -n "$selected_dir" ]; then
-    print -s "cd \"$selected_dir\""
+    print -s "$(_ymt_fz_quote_for_history "cd" "$selected_dir")"
     cd "$selected_dir"
     pwd
   fi
@@ -494,7 +506,7 @@ _ymt_fz_view() {
     fi
     
     # コマンドを履歴に追加してから実行
-    print -s "vim \"$selected_file\""
+    print -s "$(_ymt_fz_quote_for_history "vim" "$selected_file")"
     vim "$selected_file"
   fi
 }
