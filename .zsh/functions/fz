@@ -21,13 +21,9 @@ _ymt_fz_get_preview_cmd() {
 _ymt_fz_quote_for_history() {
   local cmd="$1"
   local arg="$2"
-  # スペースや特殊文字を含む場合のみクォート
-  # 正規表現の代わりにパターンマッチングを使用
-  if [[ "$arg" == *[[:space:]\'\"\\\$\`\(\)\{\}\[\]\&\|\;\<\>\*\?]* ]]; then
-    echo "$cmd \"$arg\""
-  else
-    echo "$cmd $arg"
-  fi
+  # Zshの(q)修飾子を使用して適切にエスケープ
+  # (q)は最小限のクォートでシェルに安全な文字列を生成
+  echo "$cmd ${(q)arg}"
 }
 
 # fdでファイル一覧を取得する共通関数
