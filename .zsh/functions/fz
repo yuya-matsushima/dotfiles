@@ -302,17 +302,19 @@ _ymt_fz_cd() {
     fd_exit_code=$?
     
     if [ $fd_exit_code -eq 0 ]; then
-      if [ -n "$fd_output" ]; then
-        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_output" | awk '!seen[$0]++')
-      else
-        dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
-      fi
+      # 空行を除外して結合
+      dirs_list=$(
+        {
+          [ -n "$hist_dirs" ] && echo "$hist_dirs"
+          [ -n "$fd_output" ] && echo "$fd_output"
+        } | awk '!seen[$0]++ && NF > 0'
+      )
     else
       echo "Warning: fd failed to search directories, using history only" >&2
-      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++ && NF > 0')
     fi
   else
-    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++ && NF > 0')
   fi
 
   # プレビューコマンドの設定（シンプル化）
