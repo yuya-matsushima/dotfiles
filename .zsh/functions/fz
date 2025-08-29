@@ -17,6 +17,15 @@ _ymt_fz_get_preview_cmd() {
   fi
 }
 
+# 履歴用のコマンド文字列を生成（必要に応じてクォート）
+_ymt_fz_quote_for_history() {
+  local cmd="$1"
+  local arg="$2"
+  # Zshの(q)修飾子を使用して適切にエスケープ
+  # (q)は最小限のクォートでシェルに安全な文字列を生成
+  echo "$cmd ${(q)arg}"
+}
+
 # fdでファイル一覧を取得する共通関数
 _ymt_fz_get_files_with_fd() {
   local fd_output fd_exit_code
@@ -156,7 +165,9 @@ _ymt_fz_branch() {
   local branches branch
   branches=$(git branch | grep -v '^\*') &&
   branch=$(echo "$branches" | fzf --height $((2 + $(wc -l <<< "$branches"))) -m) &&
-  git checkout $(echo "$branch" | sed 's/^[ \t]*//')
+  branch=$(echo "$branch" | sed 's/^[ \t]*//') &&
+  print -s "git checkout $branch" &&
+  git checkout "$branch"
 }
 
 # Git commit履歴検索
@@ -209,7 +220,9 @@ _ymt_fz_kill() {
   pid=$(LC_ALL=C ps -eo pid,user,pcpu,pmem,etime,comm | sed 1d | fzf -m \
     --header "Select processes to kill (TAB: multi-select, Enter: kill)" | awk '{print $1}')
   if [ "x$pid" != "x" ]; then
-    echo $pid | xargs kill -${1:-9}
+    local signal=${1:-9}
+    print -s "kill -$signal $pid"
+    echo $pid | xargs kill -$signal
   fi
 }
 
@@ -229,7 +242,13 @@ _ymt_fz_docker() {
   local container
   container=$(docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}" | sed 1d | fzf | awk '{print $1}')
   if [ -n "$container" ]; then
-    docker exec -it $container /bin/bash || docker exec -it $container /bin/sh
+    # bashを試して、失敗したらshを試す
+    if docker exec -it $container /bin/bash 2>/dev/null; then
+      print -s "docker exec -it $container /bin/bash"
+    else
+      print -s "docker exec -it $container /bin/sh"
+      docker exec -it $container /bin/sh
+    fi
   fi
 }
 
@@ -283,17 +302,19 @@ _ymt_fz_cd() {
     fd_exit_code=$?
     
     if [ $fd_exit_code -eq 0 ]; then
-      if [ -n "$fd_output" ]; then
-        dirs_list=$(printf '%s\n%s\n' "$hist_dirs" "$fd_output" | awk '!seen[$0]++')
-      else
-        dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
-      fi
+      # 空行を除外して結合
+      dirs_list=$(
+        {
+          [ -n "$hist_dirs" ] && echo "$hist_dirs"
+          [ -n "$fd_output" ] && echo "$fd_output"
+        } | awk '!seen[$0]++ && NF > 0'
+      )
     else
       echo "Warning: fd failed to search directories, using history only" >&2
-      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+      dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++ && NF > 0')
     fi
   else
-    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++')
+    dirs_list=$(echo "$hist_dirs" | awk '!seen[$0]++ && NF > 0')
   fi
 
   # プレビューコマンドの設定（シンプル化）
@@ -301,20 +322,20 @@ _ymt_fz_cd() {
   if (( $+commands[bat] )); then
     # Cross-platform ls color support  
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd="ls -la --color=always -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la --color=always -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd="ls -la -G -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la -G -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     else
-      preview_cmd="ls -la -- {q} && echo && find {q} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
+      preview_cmd="ls -la -- {} && echo && find {} -maxdepth 1 -type f 2>/dev/null | head -${FZ_PREVIEW_FILES} | while read -r file; do echo \"=== \$file ===\" && bat --style=plain --line-range=:${FZ_PREVIEW_LINES} --color=always \"\$file\" 2>/dev/null || echo \"(binary file)\"; done"
     fi
   else
     # Cross-platform ls color support
     if ls --color=always -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la --color=always -- {q}'
+      preview_cmd='ls -la --color=always -- {}'
     elif ls -G -d . >/dev/null 2>&1; then
-      preview_cmd='ls -la -G -- {q}'
+      preview_cmd='ls -la -G -- {}'
     else
-      preview_cmd='ls -la -- {q}'
+      preview_cmd='ls -la -- {}'
     fi
   fi
 
@@ -324,6 +345,7 @@ _ymt_fz_cd() {
     --header "Directory history + fd search (max depth: ${FZ_MAX_DEPTH})")
 
   if [ -n "$selected_dir" ]; then
+    print -s "$(_ymt_fz_quote_for_history "cd" "$selected_dir")"
     cd "$selected_dir"
     pwd
   fi
@@ -482,6 +504,8 @@ _ymt_fz_view() {
       return 1
     fi
     
+    # コマンドを履歴に追加してから実行
+    print -s "$(_ymt_fz_quote_for_history "vim" "$selected_file")"
     vim "$selected_file"
   fi
 }
