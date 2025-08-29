@@ -156,7 +156,9 @@ _ymt_fz_branch() {
   local branches branch
   branches=$(git branch | grep -v '^\*') &&
   branch=$(echo "$branches" | fzf --height $((2 + $(wc -l <<< "$branches"))) -m) &&
-  git checkout $(echo "$branch" | sed 's/^[ \t]*//')
+  branch=$(echo "$branch" | sed 's/^[ \t]*//') &&
+  print -s "git checkout $branch" &&
+  git checkout "$branch"
 }
 
 # Git commit履歴検索
@@ -209,7 +211,9 @@ _ymt_fz_kill() {
   pid=$(LC_ALL=C ps -eo pid,user,pcpu,pmem,etime,comm | sed 1d | fzf -m \
     --header "Select processes to kill (TAB: multi-select, Enter: kill)" | awk '{print $1}')
   if [ "x$pid" != "x" ]; then
-    echo $pid | xargs kill -${1:-9}
+    local signal=${1:-9}
+    print -s "kill -$signal $pid"
+    echo $pid | xargs kill -$signal
   fi
 }
 
@@ -229,7 +233,13 @@ _ymt_fz_docker() {
   local container
   container=$(docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}" | sed 1d | fzf | awk '{print $1}')
   if [ -n "$container" ]; then
-    docker exec -it $container /bin/bash || docker exec -it $container /bin/sh
+    # bashを試して、失敗したらshを試す
+    if docker exec -it $container /bin/bash 2>/dev/null; then
+      print -s "docker exec -it $container /bin/bash"
+    else
+      print -s "docker exec -it $container /bin/sh"
+      docker exec -it $container /bin/sh
+    fi
   fi
 }
 
@@ -324,6 +334,7 @@ _ymt_fz_cd() {
     --header "Directory history + fd search (max depth: ${FZ_MAX_DEPTH})")
 
   if [ -n "$selected_dir" ]; then
+    print -s "cd \"$selected_dir\""
     cd "$selected_dir"
     pwd
   fi
@@ -482,6 +493,8 @@ _ymt_fz_view() {
       return 1
     fi
     
+    # コマンドを履歴に追加してから実行
+    print -s "vim \"$selected_file\""
     vim "$selected_file"
   fi
 }
