@@ -32,6 +32,7 @@ Plug 'MaxMEllon/vim-jsx-pretty', { 'for': ['javascript', 'javascriptreact', 'typ
 Plug 'peitalin/vim-jsx-typescript', { 'for': ['typescript', 'typescriptreact'] }
 Plug 'styled-components/vim-styled-components', { 'for': ['javascript', 'javascriptreact', 'typescript', 'typescriptreact'] }
 Plug 'jparise/vim-graphql', { 'for': ['graphql', 'javascript', 'typescript'] }
+Plug 'wuelnerdotexe/vim-astro'
 
 " Ruby/Ruby on Rails
 Plug 'tpope/vim-rails', { 'for': 'ruby' }
@@ -466,6 +467,9 @@ let g:vim_markdown_new_list_item_indent = 2
 
 " vim-gitgutter
 let g:gitgutter_diff_base = 'HEAD'
+
+" vim-astro
+let g:astro_typescript = 'enable'
 
 " ============================================================================
 " COLOR SCHEME SETTINGS
