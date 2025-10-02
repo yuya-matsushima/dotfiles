@@ -152,6 +152,7 @@ if (( $+commands[go] )); then
   export ASDF_GOLANG_MOD_VERSION_ENABLED=true
 fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
+(( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 # Use local claude installation if available
