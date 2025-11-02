@@ -233,4 +233,3 @@ if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]] && [[ "$TERM" == alacritty
 fi
 
 [ -n "$ZSH_PROFILE" ] && zprof | less
-

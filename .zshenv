@@ -41,6 +41,7 @@ local add_path_dirs=(
   $HOMEBREW_PREFIX/opt/curl/bin
   $HOMEBREW_PREFIX/opt/mysql-client/bin
   $HOMEBREW_PREFIX/opt/libpq/bin
+  $HOME/.lmstudio/bin
 )
 # Add GOPATH/bin only if GOPATH is defined
 [[ -n "$GOPATH" && -d "$GOPATH/bin" ]] && add_path_dirs+=("$GOPATH/bin")
