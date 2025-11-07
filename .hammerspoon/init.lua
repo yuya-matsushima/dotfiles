@@ -20,7 +20,7 @@ end
 
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
-hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Inkdrop") end)
+hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
 hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
 hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
 
