@@ -8,10 +8,11 @@ brew install --cask \
           1password \
           1passsword-cli \
           adobe-creative-cloud \
+          alt-tab \
           appcleaner \
+          aqua-voice \
           chromedriver \
           deskpad \
-          inkdrop \
           keycastr \
           spotify \
           zoom
