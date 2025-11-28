@@ -24,12 +24,34 @@ hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
 hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
 hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
 
--- IME の英字/ひらがなを右 cmd で切り替え
--- この設定は前提として Mac IME の "日本語-ローマ字入力" を前提
+-- IME の英字/ひらがなを cmd 単体押しで切り替え
 local simpleCmd = false
 local map = hs.keycodes.map
-local hiraganaMode = 'Hiragana'
-local romajiMode = 'Romaji'
+
+-- 利用可能なIMEメソッドから動的に判定
+local function detectIMEMethods()
+  local methods = hs.keycodes.methods()
+  local hasGoogleIME = false
+
+  -- methods は配列形式 {1: "Hiragana", 2: "Romaji", ...} なので値を検索
+  for _, method in pairs(methods) do
+    if method == 'Hiragana (Google)' then
+      hasGoogleIME = true
+      break
+    end
+  end
+
+  -- Google Japanese IME が利用可能かチェック
+  -- NOTE: Mac の設定 > キーボード > 入力ソースを `ひらがな（Google）`, `英数（Google)` に設定してください。
+  if hasGoogleIME then
+    return 'Hiragana (Google)', 'Alphanumeric (Google)'
+  else
+    -- ことえり（Mac標準IME）にフォールバック
+    return 'Hiragana', 'Romaji'
+  end
+end
+
+local hiraganaMode, romajiMode = detectIMEMethods()
 
 local function toggleIMESwitch(event)
   local t = event:getType()
@@ -42,7 +64,7 @@ local function toggleIMESwitch(event)
       simpleCmd = true
     -- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
     elseif not f['cmd'] and simpleCmd then
-      if hs.keycodes.currentMethod() == 'Romaji' then
+      if hs.keycodes.currentMethod() == romajiMode then
         hs.keycodes.setMethod(hiraganaMode)
       else
         hs.keycodes.setMethod(romajiMode)
