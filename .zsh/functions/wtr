@@ -1,0 +1,561 @@
+#!/bin/zsh
+
+_ymt_wtr_usage() {
+  cat <<EOF
+wtr is a command to support git worktree operations.
+
+Usage:
+    wtr add <branch> [name]    create new worktree and copy config files
+    wtr list                   list all worktrees
+    wtr remove [worktree]      remove worktree (fzf selection if not specified)
+    wtr cd [worktree]          change directory to worktree (fzf selection if not specified)
+    wtr copy [source] [target] copy config files between worktrees
+    wtr prune                  prune worktree information
+    wtr help                   print this help
+
+Aliases:
+    l, ls -> list
+    rm    -> remove
+    switch -> cd
+
+Options:
+    --help, -h         print help
+    --no-copy          (add) skip copying config files
+    -f, --force        (remove) force remove
+    -y, --yes          (copy) skip overwrite confirmation
+
+Dependencies:
+    git (required)
+    fzf (optional, for interactive selection)
+
+Config files to copy (default patterns):
+    .env*
+    .envrc
+    *.local
+    .*.local
+EOF
+}
+
+_ymt_wtr_check_dependencies() {
+  local subcommand="$1"
+  local missing_deps=()
+
+  # git is required
+  if ! (( $+commands[git] )); then
+    missing_deps+=("git")
+  fi
+
+  # fzf is optional but needed for some features
+  if [[ "$subcommand" == "remove" || "$subcommand" == "cd" || "$subcommand" == "copy" ]]; then
+    if ! (( $+commands[fzf] )); then
+      echo "Warning: fzf is not installed. Interactive selection will not be available." >&2
+    fi
+  fi
+
+  if [[ ${#missing_deps[@]} -gt 0 ]]; then
+    echo "Error: Missing required dependencies:" >&2
+    printf "  - %s\n" "${missing_deps[@]}" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+_ymt_wtr_get_main_worktree() {
+  git worktree list | head -n 1 | awk '{print $1}'
+}
+
+_ymt_wtr_get_repo_name() {
+  basename "$(git rev-parse --show-toplevel)"
+}
+
+_ymt_wtr_detect_copy_files() {
+  local source_dir="$1"
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "Error: Source directory does not exist: $source_dir" >&2
+    return 1
+  fi
+
+  # Find files matching default patterns
+  find "$source_dir" -maxdepth 1 \( -name '.env*' -o -name '.envrc' -o -name '*.local' -o -name '.*.local' \) -type f
+}
+
+_ymt_wtr_add() {
+  local branch_name="$1"
+  local worktree_name="$2"
+  local no_copy=false
+
+  # Parse options
+  shift 2 2>/dev/null
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --no-copy)
+        no_copy=true
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  # Validate branch name
+  if [[ -z "$branch_name" ]]; then
+    echo "Error: Branch name is required" >&2
+    echo "Usage: wtr add <branch> [name] [--no-copy]" >&2
+    return 1
+  fi
+
+  # Use branch name as worktree name if not specified
+  if [[ -z "$worktree_name" ]]; then
+    # Replace slashes with hyphens for directory name
+    worktree_name="${branch_name//\//-}"
+  fi
+
+  # Get repository name and create worktree path
+  local repo_name
+  repo_name=$(_ymt_wtr_get_repo_name)
+  if [[ $? -ne 0 ]]; then
+    return 1
+  fi
+
+  local main_worktree
+  main_worktree=$(_ymt_wtr_get_main_worktree)
+  if [[ $? -ne 0 ]]; then
+    return 1
+  fi
+
+  local parent_dir
+  parent_dir="$(dirname "$main_worktree")"
+  local worktree_path="${parent_dir}/${repo_name}-${worktree_name}"
+
+  # Check if worktree already exists
+  if [[ -d "$worktree_path" ]]; then
+    echo "Error: Directory already exists at $worktree_path" >&2
+    return 1
+  fi
+
+  # Check if branch exists
+  local branch_exists=false
+  if git show-ref --verify --quiet "refs/heads/$branch_name" || \
+     git show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
+    branch_exists=true
+  fi
+
+  # Create worktree
+  echo "Creating worktree at $worktree_path for branch $branch_name..."
+  if [[ "$branch_exists" == true ]]; then
+    # Use existing branch
+    if ! git worktree add "$worktree_path" "$branch_name"; then
+      echo "Error: Failed to create worktree" >&2
+      return 1
+    fi
+  else
+    # Create new branch from current HEAD or main/master
+    local base_branch
+    if git show-ref --verify --quiet refs/heads/main; then
+      base_branch="main"
+    elif git show-ref --verify --quiet refs/heads/master; then
+      base_branch="master"
+    else
+      base_branch="HEAD"
+    fi
+
+    echo "Branch $branch_name does not exist. Creating new branch from $base_branch..."
+    if ! git worktree add -b "$branch_name" "$worktree_path" "$base_branch"; then
+      echo "Error: Failed to create worktree" >&2
+      return 1
+    fi
+  fi
+
+  echo "Worktree created successfully at $worktree_path"
+
+  # Copy config files unless --no-copy is specified
+  if [[ "$no_copy" == false ]]; then
+    echo "Copying config files..."
+    local copy_files
+    copy_files=$(_ymt_wtr_detect_copy_files "$main_worktree")
+
+    if [[ -n "$copy_files" ]]; then
+      local copied_count=0
+      while IFS= read -r file; do
+        local filename
+        filename="$(basename "$file")"
+        if cp "$file" "$worktree_path/$filename"; then
+          echo "  Copied: $filename"
+          ((copied_count++))
+        else
+          echo "  Failed to copy: $filename" >&2
+        fi
+      done <<< "$copy_files"
+
+      if [[ $copied_count -gt 0 ]]; then
+        echo "Copied $copied_count file(s)"
+      fi
+    else
+      echo "No config files found to copy"
+    fi
+  fi
+
+  return 0
+}
+
+_ymt_wtr_remove() {
+  local worktree_input="$1"
+  local worktree_path=""
+  local force=false
+
+  # Parse options
+  shift 1 2>/dev/null
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -f|--force)
+        force=true
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  # If no worktree specified, use fzf to select
+  if [[ -z "$worktree_input" ]]; then
+    if ! (( $+commands[fzf] )); then
+      echo "Error: fzf is required for interactive selection" >&2
+      echo "Usage: wtr remove <worktree>" >&2
+      return 1
+    fi
+
+    local selected
+    selected=$(git worktree list | sed '1d' | fzf \
+      --header="Select worktree to remove" \
+      --preview='git -C {1} status' \
+      --preview-window=right:50%)
+
+    if [[ -z "$selected" ]]; then
+      echo "No worktree selected"
+      return 0
+    fi
+
+    worktree_path=$(echo "$selected" | awk '{print $1}')
+  else
+    # If input is a directory, use it directly
+    if [[ -d "$worktree_input" ]]; then
+      worktree_path="$worktree_input"
+    else
+      # Search for matching worktree by branch name or path
+      local matching_worktree
+      matching_worktree=$(git worktree list --porcelain | awk '
+        BEGIN { path=""; branch="" }
+        /^worktree / { path=$2 }
+        /^branch / {
+          branch=$2
+          gsub("refs/heads/", "", branch)
+          print path " " branch
+          path=""; branch=""
+        }
+      ' | grep -i "$worktree_input" | head -n 1)
+
+      if [[ -n "$matching_worktree" ]]; then
+        worktree_path=$(echo "$matching_worktree" | awk '{print $1}')
+      else
+        echo "Error: No worktree found matching: $worktree_input" >&2
+        return 1
+      fi
+    fi
+  fi
+
+  # Check if it's the main worktree
+  local main_worktree
+  main_worktree=$(_ymt_wtr_get_main_worktree)
+
+  if [[ "$worktree_path" == "$main_worktree" ]]; then
+    echo "Error: Cannot remove main worktree" >&2
+    return 1
+  fi
+
+  # Remove worktree
+  echo "Removing worktree at $worktree_path..."
+  if [[ "$force" == true ]]; then
+    if ! git worktree remove --force "$worktree_path"; then
+      echo "Error: Failed to remove worktree" >&2
+      return 1
+    fi
+  else
+    if ! git worktree remove "$worktree_path"; then
+      echo "Error: Failed to remove worktree" >&2
+      echo "Try using -f or --force option" >&2
+      return 1
+    fi
+  fi
+
+  echo "Worktree removed successfully"
+  return 0
+}
+
+_ymt_wtr_cd() {
+  local worktree_input="$1"
+  local worktree_path=""
+
+  # Handle cd - (go to previous directory)
+  if [[ "$worktree_input" == "-" ]]; then
+    if [[ -n "$OLDPWD" && -d "$OLDPWD" ]]; then
+      local prev_dir="$OLDPWD"
+
+      # Get branch name for previous directory
+      local branch_name
+      branch_name=$(git worktree list --porcelain | awk -v path="$prev_dir" '
+        /^worktree / { wt=$2 }
+        /^branch / {
+          if (wt == path) {
+            branch=$2
+            gsub("refs/heads/", "", branch)
+            print branch
+            exit
+          }
+        }
+      ')
+
+      cd "$prev_dir" || return 1
+
+      if [[ -n "$branch_name" ]]; then
+        echo "Changed to $branch_name ($prev_dir)"
+      else
+        echo "Changed to $prev_dir"
+      fi
+      return 0
+    else
+      echo "Error: No previous directory" >&2
+      return 1
+    fi
+  fi
+
+  # If no worktree specified, use fzf to select
+  if [[ -z "$worktree_input" ]]; then
+    if ! (( $+commands[fzf] )); then
+      echo "Error: fzf is required for interactive selection" >&2
+      echo "Usage: wtr cd <worktree>" >&2
+      return 1
+    fi
+
+    local selected
+    selected=$(git worktree list | fzf \
+      --header="Select worktree" \
+      --preview='git -C {1} status' \
+      --preview-window=right:50%)
+
+    if [[ -z "$selected" ]]; then
+      echo "No worktree selected"
+      return 0
+    fi
+
+    worktree_path=$(echo "$selected" | awk '{print $1}')
+  else
+    # If input is a directory, use it directly
+    if [[ -d "$worktree_input" ]]; then
+      worktree_path="$worktree_input"
+    else
+      # Search for matching worktree by branch name or path
+      local matching_worktree
+      matching_worktree=$(git worktree list --porcelain | awk '
+        BEGIN { path=""; branch="" }
+        /^worktree / { path=$2 }
+        /^branch / {
+          branch=$2
+          gsub("refs/heads/", "", branch)
+          print path " " branch
+          path=""; branch=""
+        }
+      ' | grep -i "$worktree_input" | head -n 1)
+
+      if [[ -n "$matching_worktree" ]]; then
+        worktree_path=$(echo "$matching_worktree" | awk '{print $1}')
+      else
+        echo "Error: No worktree found matching: $worktree_input" >&2
+        return 1
+      fi
+    fi
+  fi
+
+  # Validate worktree path
+  if [[ ! -d "$worktree_path" ]]; then
+    echo "Error: Worktree does not exist: $worktree_path" >&2
+    return 1
+  fi
+
+  # Get branch name for this worktree
+  local branch_name
+  branch_name=$(git worktree list --porcelain | awk -v path="$worktree_path" '
+    /^worktree / { wt=$2 }
+    /^branch / {
+      if (wt == path) {
+        branch=$2
+        gsub("refs/heads/", "", branch)
+        print branch
+        exit
+      }
+    }
+  ')
+
+  # Change directory
+  cd "$worktree_path" || return 1
+
+  if [[ -n "$branch_name" ]]; then
+    echo "Changed to $branch_name ($worktree_path)"
+  else
+    echo "Changed to $worktree_path"
+  fi
+  return 0
+}
+
+_ymt_wtr_copy() {
+  local source_worktree="$1"
+  local target_worktree="$2"
+  local skip_confirmation=false
+
+  # Parse options
+  shift 2 2>/dev/null
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -y|--yes)
+        skip_confirmation=true
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  # If source not specified, use fzf to select or default to main worktree
+  if [[ -z "$source_worktree" ]]; then
+    if (( $+commands[fzf] )); then
+      local selected
+      selected=$(git worktree list | fzf \
+        --header="Select source worktree" \
+        --preview='git -C {1} status' \
+        --preview-window=right:50%)
+
+      if [[ -z "$selected" ]]; then
+        echo "No source worktree selected, using main worktree"
+        source_worktree=$(_ymt_wtr_get_main_worktree)
+      else
+        source_worktree=$(echo "$selected" | awk '{print $1}')
+      fi
+    else
+      echo "Using main worktree as source"
+      source_worktree=$(_ymt_wtr_get_main_worktree)
+    fi
+  fi
+
+  # If target not specified, use current directory
+  if [[ -z "$target_worktree" ]]; then
+    target_worktree="$(pwd)"
+  fi
+
+  # Validate paths
+  if [[ ! -d "$source_worktree" ]]; then
+    echo "Error: Source worktree does not exist: $source_worktree" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$target_worktree" ]]; then
+    echo "Error: Target worktree does not exist: $target_worktree" >&2
+    return 1
+  fi
+
+  # Detect files to copy
+  local copy_files
+  copy_files=$(_ymt_wtr_detect_copy_files "$source_worktree")
+
+  if [[ -z "$copy_files" ]]; then
+    echo "No config files found to copy in $source_worktree"
+    return 0
+  fi
+
+  echo "Files to copy from $source_worktree to $target_worktree:"
+  echo "$copy_files" | while IFS= read -r file; do
+    echo "  $(basename "$file")"
+  done
+
+  # Confirmation
+  if [[ "$skip_confirmation" == false ]]; then
+    echo -n "Proceed with copying? [y/N]: "
+    read -r response
+    if [[ ! "$response" =~ ^[Yy]$ ]]; then
+      echo "Cancelled"
+      return 0
+    fi
+  fi
+
+  # Copy files
+  local copied_count=0
+  echo "$copy_files" | while IFS= read -r file; do
+    local filename
+    filename="$(basename "$file")"
+    local target_file="$target_worktree/$filename"
+
+    if cp "$file" "$target_file"; then
+      echo "  Copied: $filename"
+      ((copied_count++))
+    else
+      echo "  Failed to copy: $filename" >&2
+    fi
+  done
+
+  echo "Copy completed"
+  return 0
+}
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+  echo "Error: Not a git repository" >&2
+  return 1
+fi
+
+# Main command dispatcher
+case ${1} in
+  -h|--help|help)
+    _ymt_wtr_usage
+    ;;
+
+  add)
+    _ymt_wtr_check_dependencies "add" || return 1
+    shift
+    _ymt_wtr_add "$@"
+    ;;
+
+  list|ls|l)
+    _ymt_wtr_check_dependencies "list" || return 1
+    git worktree list
+    ;;
+
+  remove|rm)
+    _ymt_wtr_check_dependencies "remove" || return 1
+    shift
+    _ymt_wtr_remove "$@"
+    ;;
+
+  cd|switch)
+    _ymt_wtr_check_dependencies "cd" || return 1
+    shift
+    _ymt_wtr_cd "$@"
+    ;;
+
+  copy)
+    _ymt_wtr_check_dependencies "copy" || return 1
+    shift
+    _ymt_wtr_copy "$@"
+    ;;
+
+  prune)
+    _ymt_wtr_check_dependencies "prune" || return 1
+    git worktree prune
+    ;;
+
+  *)
+    _ymt_wtr_usage
+    ;;
+esac

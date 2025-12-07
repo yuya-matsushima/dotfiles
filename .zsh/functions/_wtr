@@ -1,0 +1,90 @@
+#compdef wtr
+
+_wtr() {
+  local -a subcmds worktrees
+  local curcontext="$curcontext" state line
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :->command' \
+    '*:: :->args'
+
+  case $state in
+    command)
+      subcmds=(
+        'add:create new worktree and copy config files'
+        'list:list all worktrees'
+        'ls:list all worktrees'
+        'l:list all worktrees'
+        'remove:remove worktree'
+        'rm:remove worktree'
+        'cd:change directory to worktree'
+        'switch:change directory to worktree'
+        'copy:copy config files between worktrees'
+        'prune:prune worktree information'
+        'help:print help'
+      )
+      _describe 'command' subcmds
+      ;;
+
+    args)
+      case $line[1] in
+        add)
+          _arguments \
+            '1:branch name:__wtr_branches' \
+            '2:worktree name:' \
+            '--no-copy[skip copying config files]'
+          ;;
+
+        remove|rm)
+          _arguments \
+            '1:worktree:__wtr_worktrees' \
+            '(-f --force)'{-f,--force}'[force remove]'
+          ;;
+
+        cd|switch)
+          _arguments \
+            '1:worktree:__wtr_worktrees'
+          ;;
+
+        copy)
+          _arguments \
+            '1:source worktree:__wtr_worktrees' \
+            '2:target worktree:__wtr_worktrees' \
+            '(-y --yes)'{-y,--yes}'[skip overwrite confirmation]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+# Helper function to list git branches
+__wtr_branches() {
+  local -a branches
+  branches=(${(f)"$(git branch --all 2>/dev/null | sed 's/^[* ]*//' | sed 's/remotes\///')"})
+  _describe 'branches' branches
+}
+
+# Helper function to list worktrees (show branch names, exclude current)
+__wtr_worktrees() {
+  local -a worktrees
+  local current_branch
+  current_branch=$(git branch --show-current 2>/dev/null)
+
+  worktrees=(${(f)"$(git worktree list --porcelain 2>/dev/null | awk -v current="$current_branch" '
+    /^worktree / { path=$2 }
+    /^branch / {
+      branch=$2
+      gsub("refs/heads/", "", branch)
+      if (branch != current) {
+        print branch
+      }
+    }
+  ')"})
+
+  if [[ -n "$worktrees" ]]; then
+    _describe 'worktrees' worktrees
+  fi
+}
+
+_wtr "$@"
