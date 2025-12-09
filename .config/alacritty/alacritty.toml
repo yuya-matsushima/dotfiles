@@ -1,9 +1,6 @@
 [general]
 live_config_reload = true
-import = [
-  "~/.config/alacritty/opacity.toml",
-  "~/.config/alacritty/e2esound.toml"
-]
+import = ["~/.config/alacritty/e2esound.toml"]
 
 [bell]
 duration = 0
