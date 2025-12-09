@@ -1,0 +1,115 @@
+#!/bin/zsh
+
+if [[ $OSTYPE != 'darwin'* ]]; then
+  echo "Error: This command is only available on macOS" >&2
+  return 1
+fi
+
+readonly ALACRITTY_CONFIG="$HOME/.config/alacritty/alacritty.toml"
+
+_ymt_opacity_usage() {
+  cat <<EOF
+opacity is a command to change the opacity of Alacritty terminal.
+
+Usage:
+    opacity 0.9          set opacity to 0.9 (available: 0.0-1.0)
+    opacity status       print current opacity value
+    opacity opaque       set opacity to 1.0 (fully opaque)
+    opacity high         set opacity to 0.95 (high opacity)
+    opacity clear        set opacity to 0.92 (default)
+    opacity medium       set opacity to 0.88 (medium opacity)
+    opacity low          set opacity to 0.83 (low opacity)
+    opacity transparent  set opacity to 0.75 (transparent)
+
+Options:
+    --help, -h           print help
+
+Dependencies:
+    macOS, Alacritty
+EOF
+}
+
+_ymt_opacity_status() {
+  if [[ ! -f "$ALACRITTY_CONFIG" ]]; then
+    echo "Error: alacritty.toml not found at $ALACRITTY_CONFIG" >&2
+    return 1
+  fi
+
+  local current_opacity
+  if ! current_opacity=$(grep '^opacity = ' "$ALACRITTY_CONFIG" 2>/dev/null | awk '{print $3}'); then
+    echo "Error: Failed to read opacity value" >&2
+    return 1
+  fi
+
+  echo "Current opacity: $current_opacity"
+}
+
+_ymt_opacity_set() {
+  local value=$1
+
+  if [[ ! -f "$ALACRITTY_CONFIG" ]]; then
+    echo "Error: alacritty.toml not found at $ALACRITTY_CONFIG" >&2
+    return 1
+  fi
+
+  if ! sed -i.bak "s/^opacity = .*/opacity = $value/" "$ALACRITTY_CONFIG"; then
+    echo "Error: Failed to update opacity value" >&2
+    return 1
+  fi
+
+  # Remove backup file
+  rm -f "${ALACRITTY_CONFIG}.bak"
+
+  echo "Opacity set to $value"
+}
+
+case ${1} in
+  --help|-h)
+    _ymt_opacity_usage
+  ;;
+
+  status)
+    _ymt_opacity_status
+  ;;
+
+  opaque)
+    _ymt_opacity_set "1.0"
+  ;;
+
+  high)
+    _ymt_opacity_set "0.95"
+  ;;
+
+  clear)
+    _ymt_opacity_set "0.92"
+  ;;
+
+  medium)
+    _ymt_opacity_set "0.88"
+  ;;
+
+  low)
+    _ymt_opacity_set "0.83"
+  ;;
+
+  transparent)
+    _ymt_opacity_set "0.75"
+  ;;
+
+  *)
+    if [[ $1 =~ ^[01](\.[0-9]+)?$ ]]; then
+      local num_value=$(printf "%.2f" $1)
+      if (( $(echo "$num_value >= 0.0" | bc -l) )) && (( $(echo "$num_value <= 1.0" | bc -l) )); then
+        _ymt_opacity_set "$num_value"
+        _ymt_opacity_status
+      else
+        echo "Error: Value must be between 0.0 and 1.0" >&2
+        return 1
+      fi
+    else
+      echo "Error: Please specify a number between 0.0 and 1.0, or use a preset command." >&2
+      echo "Run 'opacity --help' for usage information." >&2
+      return 1
+    fi
+  ;;
+esac
