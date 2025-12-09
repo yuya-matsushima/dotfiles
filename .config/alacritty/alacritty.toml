@@ -1,7 +1,9 @@
-
 [general]
 live_config_reload = true
-import = ["~/.config/alacritty/e2esound.toml"]
+import = [
+  "~/.config/alacritty/opacity.toml",
+  "~/.config/alacritty/e2esound.toml"
+]
 
 [bell]
 duration = 0
@@ -68,7 +70,7 @@ decorations = "full"
 decorations_theme_variant = "None"
 dynamic_padding = false
 dynamic_title = true
-opacity = 0.86
+opacity = 0.92
 option_as_alt = "Both"
 resize_increments = false
 startup_mode = "Windowed"
