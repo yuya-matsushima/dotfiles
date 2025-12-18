@@ -12,7 +12,6 @@ brew install --cask \
           hammerspoon \
           macvim \
           microsoft-edge \
-          sequel-pro \
           dbeaver-community \
           slack \
           visual-studio-code
