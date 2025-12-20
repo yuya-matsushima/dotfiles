@@ -14,13 +14,20 @@ return {
       'MunifTanjim/nui.nvim',
     },
     keys = {
-      { '-', '<cmd>Neotree toggle<cr>', desc = 'Toggle Neo-tree' },
+      { '-', '<cmd>Neotree reveal<cr>', desc = 'Open Neo-tree at current file' },
     },
     config = function()
       require('neo-tree').setup({
         close_if_last_window = false,
         enable_git_status = true,
         enable_diagnostics = true,
+        default_component_configs = {
+          indent = {
+            with_expanders = true,
+            expander_collapsed = "",
+            expander_expanded = "",
+          },
+        },
         filesystem = {
           filtered_items = {
             hide_dotfiles = false,  -- Match g:molder_show_hidden=1
@@ -29,6 +36,12 @@ return {
           follow_current_file = {
             enabled = true,
           },
+          -- Automatically expand current directory
+          use_libuv_file_watcher = true,
+        },
+        window = {
+          position = "left",
+          width = 30,
         },
       })
     end,
