@@ -1,0 +1,66 @@
+{
+  "Class": {
+    "prefix": "class",
+    "body": [
+      "class $1 {",
+      "\tconstructor($2) {$0}",
+      "}"
+    ]
+  },
+  "Abstract Class": {
+    "prefix": "abstract",
+    "body": [
+      "abstract class $1 {",
+      "\tconstructor($2) {$0}",
+      "}"
+    ]
+  },
+  "Namespace": {
+    "prefix": "namespace",
+    "body": [
+      "namespace $1 {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Interface": {
+    "prefix": "interface",
+    "body": [
+      "interface $1 {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Type": {
+    "prefix": "type",
+    "body": [
+      "type $1 = {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "Allow Function": {
+    "prefix": "()",
+    "body": [
+      "($1) => { $0 }"
+    ]
+  },
+  "Function": {
+    "prefix": "function",
+    "body": [
+      "function $1 () {",
+      "\t$0",
+      "}"
+    ]
+  },
+  "TryCatch": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "\t$0",
+      "} catch (e) {",
+      "\n",
+      "}"
+    ]
+  }
+}

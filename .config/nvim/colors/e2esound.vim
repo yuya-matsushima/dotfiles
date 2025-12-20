@@ -6,15 +6,8 @@ if exists("syntax_on")
   syntax reset
 endif
 
-if has('gui_running')
-  " True Color Support
-  set termguicolors
-  set transparency=12
-  let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
-  let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
-else
-  set notermguicolors
-endif
+" Neovim always uses true color
+set termguicolors
 
 let g:colors_name = "e2esound"
 
@@ -136,3 +129,12 @@ hi link javaScriptNumber      Number
 
 " pupup
 hi PMenu ctermbg=235
+
+" GitGutter - diff-like colors
+hi GitGutterAdd         guifg=#00ff00     guibg=NONE        gui=NONE      ctermfg=2           ctermbg=NONE        cterm=NONE
+hi GitGutterChange      guifg=#ffff00     guibg=NONE        gui=NONE      ctermfg=3           ctermbg=NONE        cterm=NONE
+hi GitGutterDelete      guifg=#ff0000     guibg=NONE        gui=NONE      ctermfg=1           ctermbg=NONE        cterm=NONE
+hi GitGutterChangeDelete guifg=#ff8800    guibg=NONE        gui=NONE      ctermfg=9           ctermbg=NONE        cterm=NONE
+
+" Copilot status color - robotic dark gray
+hi CopilotStatus        guifg=#808080     guibg=black       gui=bold      ctermfg=darkgray    ctermbg=black       cterm=bold

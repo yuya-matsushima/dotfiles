@@ -1,0 +1,17 @@
+{
+  "name": "custom-snippets",
+  "version": "1.0.0",
+  "description": "Custom snippets for Neovim",
+  "contributes": {
+    "snippets": [
+      {
+        "language": "typescript",
+        "path": "./typescript.json"
+      },
+      {
+        "language": "ruby",
+        "path": "./ruby.json"
+      }
+    ]
+  }
+}
