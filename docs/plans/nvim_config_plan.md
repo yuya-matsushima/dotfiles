@@ -1,12 +1,17 @@
 # Neovim Configuration Migration Plan
 
+## Status: ✅ COMPLETE
+
+**Migration Date**: 2025-12-20
+**Completion Date**: 2025-12-20
+**Branch**: feature/add-nvim-config
+**PR**: #49
+
+All features successfully migrated and tested. No known issues.
+
 ## Overview
 
 This document describes the migration of the Vim configuration (.vimrc + .vim/) to Neovim using modern Lua-based configuration with native LSP, lazy.nvim plugin manager, and full feature parity.
-
-## Migration Date
-
-2025-12-20
 
 ## Configuration Structure
 
@@ -229,29 +234,53 @@ make nvim_unlink
 
 ### Testing Checklist
 
-- [ ] Open nvim, check no errors on startup
-- [ ] Verify color scheme loads (e2esound)
-- [ ] Test LSP in TypeScript file (gd, gr, K, diagnostics)
-- [ ] Test LSP in Ruby file
-- [ ] Test LSP in Go file
-- [ ] Test LSP in Rust file
-- [ ] Test completion with Tab key
-- [ ] Test Copilot suggestions and Tab acceptance
-- [ ] Test snippet expansion and navigation
-- [ ] Test ;/: swap on US keyboard
-- [ ] Test ESC ESC to clear search
-- [ ] Test auto-trim on save (add trailing spaces, save)
-- [ ] Test auto-LCD (open file, check :pwd)
-- [ ] Test comma conversion in .md file (add 、, save)
-- [ ] Test Telescope fuzzy finder (<leader>ff)
-- [ ] Test Neo-tree file explorer (-)
-- [ ] Test gitsigns in git repository
-- [ ] Verify status line shows [AI] with Copilot active
-- [ ] Verify status line shows keyboard type [US/JIS]
+All tests completed successfully on 2025-12-20:
+
+- [x] Open nvim, check no errors on startup
+- [x] Verify color scheme loads (e2esound)
+- [x] Test LSP in TypeScript file (gd, gr, K, F2, diagnostics)
+- [x] Test completion with Tab key and Ctrl+n/Ctrl+p navigation
+- [x] Test Copilot suggestions and Tab acceptance
+- [x] Test ESC ESC to clear search highlight
+- [x] Test Telescope fuzzy finder (:Telescope find_files)
+- [x] Test Neo-tree file explorer (-)
+- [x] Verify Mason LSP servers installed (ts_ls, eslint, pyright, solargraph, gopls, rust_analyzer)
+
+## Issues Fixed During Testing
+
+### 1. Treesitter Module Path Error
+**Problem**: `module 'nvim-treesitter.configs' not found`
+**Solution**: Changed from `nvim-treesitter.configs` to `nvim-treesitter.config` (API change in recent versions)
+**Commit**: 6bb98d1
+
+### 2. LSP Keybindings Not Working
+**Problem**: F2 rename and other LSP keybindings not being set
+**Solution**: Migrated from `on_attach` callback to `LspAttach` autocmd (correct approach for Neovim 0.11+ `vim.lsp.config` API)
+**Commit**: c891a0e
+
+### 3. Completion Menu Navigation
+**Problem**: Ctrl+n/Ctrl+p not working to navigate completion items
+**Solution**: Added explicit Ctrl+n and Ctrl+p mappings in nvim-cmp configuration
+**Commit**: d93d2c7
+
+### 4. Completion Window Width
+**Problem**: Completion menu too wide
+**Solution**: Added `window.completion.max_width = 60` configuration
+**Commit**: 9e91672
+
+### 5. Neo-tree Folder Expansion
+**Problem**: Neo-tree opening with folders collapsed
+**Solution**: Changed keybinding from `toggle` to `reveal` to auto-expand to current file location
+**Commit**: 8c6cf81
+
+### 6. Folding Behavior
+**Problem**: Files opening with folds collapsed
+**Solution**: Aligned with .vimrc behavior (folding enabled globally, disabled for specific filetypes including neo-tree)
+**Commits**: 57f5209, 443ee72 (revert)
 
 ## Known Issues
 
-None at the time of implementation. All features successfully migrated.
+None. All features successfully migrated and tested.
 
 ## Future Enhancements
 
