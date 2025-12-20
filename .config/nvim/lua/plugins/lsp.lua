@@ -1,6 +1,6 @@
 -- ============================================================================
 -- LSP Configuration (Mason + nvim-lspconfig)
--- Replaces vim-lsp + asyncomplete
+-- Uses Neovim 0.11+ vim.lsp.config API
 -- ============================================================================
 
 return {
@@ -42,7 +42,6 @@ return {
       'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
-      local lspconfig = require('lspconfig')
       local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
       -- Keybindings (match vim-lsp mappings)
@@ -74,47 +73,32 @@ return {
         end,
       })
 
-      -- TypeScript/JavaScript
-      lspconfig.ts_ls.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
+      -- Use mason-lspconfig's setup_handlers for automatic LSP configuration
+      require('mason-lspconfig').setup_handlers({
+        -- Default handler for all servers
+        function(server_name)
+          vim.lsp.config(server_name, {
+            capabilities = capabilities,
+            on_attach = on_attach,
+          })
+          vim.lsp.enable(server_name)
+        end,
 
-      -- ESLint
-      lspconfig.eslint.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
-
-      -- Python
-      lspconfig.pyright.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
-
-      -- Ruby
-      lspconfig.solargraph.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
-
-      -- Go
-      lspconfig.gopls.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-      })
-
-      -- Rust
-      lspconfig.rust_analyzer.setup({
-        capabilities = capabilities,
-        on_attach = on_attach,
-        settings = {
-          ['rust-analyzer'] = {
-            checkOnSave = {
-              command = 'clippy',
+        -- Rust analyzer with custom settings
+        ['rust_analyzer'] = function()
+          vim.lsp.config('rust_analyzer', {
+            capabilities = capabilities,
+            on_attach = on_attach,
+            settings = {
+              ['rust-analyzer'] = {
+                checkOnSave = {
+                  command = 'clippy',
+                },
+              },
             },
-          },
-        },
+          })
+          vim.lsp.enable('rust_analyzer')
+        end,
       })
     end,
   },
