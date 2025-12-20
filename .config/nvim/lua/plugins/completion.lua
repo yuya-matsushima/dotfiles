@@ -64,6 +64,24 @@ return {
             end
           end, { 'i', 's' }),
 
+          -- Ctrl+n: Next item
+          ['<C-n>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            else
+              fallback()
+            end
+          end, { 'i', 's' }),
+
+          -- Ctrl+p: Previous item
+          ['<C-p>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            else
+              fallback()
+            end
+          end, { 'i', 's' }),
+
           -- Enter: Accept completion
           ['<CR>'] = cmp.mapping(function(fallback)
             if cmp.visible() then
