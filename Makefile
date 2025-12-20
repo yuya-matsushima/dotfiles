@@ -30,6 +30,22 @@ link: ## Set symlinks for configuration file
 unlink: ## Remove symlinks for configuration file
 	sh ./bin/link.sh unlink
 
+.PHONY: nvim_link
+nvim_link: ## Create symlink for Neovim config
+	ln -sfn $(PWD)/.config/nvim ~/.config/nvim
+
+.PHONY: nvim_unlink
+nvim_unlink: ## Remove Neovim config symlink
+	rm -rf ~/.config/nvim
+
+.PHONY: nvim_plugin
+nvim_plugin: ## Install Neovim plugins
+	nvim --headless "+Lazy! sync" +qa
+
+.PHONY: nvim_test
+nvim_test: ## Test Neovim configuration
+	nvim --headless "+checkhealth" +qa
+
 .PHONY: asdf_aws_sam
 asdf_aws_sam: ## Install AWS SAM CLI
 	sh ./bin/asdf/aws/sam.sh
