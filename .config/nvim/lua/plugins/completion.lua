@@ -103,6 +103,18 @@ return {
           { name = 'path', priority = 100 },
         }),
 
+        -- Window appearance
+        window = {
+          completion = {
+            max_width = 60,  -- Maximum width of completion menu
+            max_height = 15, -- Maximum height
+          },
+          documentation = {
+            max_width = 80,
+            max_height = 20,
+          },
+        },
+
         -- Match asyncomplete settings
         completion = {
           autocomplete = { require('cmp.types').cmp.TriggerEvent.TextChanged },
