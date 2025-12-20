@@ -25,8 +25,8 @@ opt.title = false
 opt.completeopt = { 'menuone', 'noinsert', 'noselect' }
 opt.shortmess:append('c')
 
--- Disable increment/decrement for numbers
-vim.cmd('set nf=')
+-- increment/decrement for numbers
+opt.nrformats = { "bin", "hex" }
 
 -- ============================================================================
 -- NO BEEP
@@ -46,7 +46,7 @@ opt.formatoptions:append('mM')
 -- CLIPBOARD
 -- ============================================================================
 
-if vim.fn.has('mac') == 1 then
+if jit.os == 'OSX' or jit.os == 'Windows' == 1 then
   opt.clipboard:append('unnamed')
 end
 
