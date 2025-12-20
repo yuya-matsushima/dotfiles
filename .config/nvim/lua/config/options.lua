@@ -109,6 +109,7 @@ opt.diffopt:append({ 'iwhite', 'horizontal' })
 if vim.fn.has('folding') == 1 then
   opt.foldenable = true
   opt.foldmethod = 'indent'
+  opt.foldlevelstart = 99  -- Start with all folds open
   opt.fillchars = { vert = '|' }
 end
 
