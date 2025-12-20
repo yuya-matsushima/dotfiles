@@ -48,7 +48,7 @@ local fold_group = augroup('FoldingSettings', { clear = true })
 
 autocmd('FileType', {
   group = fold_group,
-  pattern = { 'gitcommit', 'hgcommit', 'quickrun' },
+  pattern = { 'gitcommit', 'hgcommit', 'quickrun', 'neo-tree' },
   callback = function()
     vim.opt_local.foldenable = false
   end,
