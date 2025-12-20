@@ -21,7 +21,7 @@ return {
     config = function()
       require('mason-lspconfig').setup({
         ensure_installed = {
-          'tsserver',        -- TypeScript/JavaScript
+          'ts_ls',           -- TypeScript/JavaScript (formerly tsserver)
           'eslint',          -- ESLint
           'pyright',         -- Python
           'solargraph',      -- Ruby
@@ -75,7 +75,7 @@ return {
       })
 
       -- TypeScript/JavaScript
-      lspconfig.tsserver.setup({
+      lspconfig.ts_ls.setup({
         capabilities = capabilities,
         on_attach = on_attach,
       })
