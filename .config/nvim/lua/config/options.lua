@@ -34,7 +34,6 @@ vim.cmd('set nf=')
 
 opt.visualbell = true
 opt.errorbells = false
-vim.cmd('set t_vb=')
 
 -- ============================================================================
 -- WRAPPING
@@ -47,7 +46,6 @@ opt.formatoptions:append('mM')
 -- CLIPBOARD
 -- ============================================================================
 
-opt.browsedir = 'buffer'
 if vim.fn.has('mac') == 1 then
   opt.clipboard:append('unnamed')
 end
