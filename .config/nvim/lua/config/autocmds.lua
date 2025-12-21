@@ -46,9 +46,9 @@ autocmd('BufWritePre', {
     utils_trim.RTrim()
     utils_trim.LTrimTabAndSpace()
 
-    if vim.bo.filetype == 'markdown' then
-      require('utils.comma').ToComma()
-    end
+    -- if vim.bo.filetype == 'markdown' then
+    --   require('utils.comma').ToComma()
+    -- end
   end,
 })
 
