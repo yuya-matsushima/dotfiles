@@ -21,6 +21,47 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 * 設定ファイルを変更した場合, そのツールの設定として問題ないか必ず確認してください。
     * 例えば `.zshrc` の場合 zsh 上で `source ~/.zshrc` を実行しエラーがないことを確認する必要があります。
 
+### ローカル設定ファイル
+
+マシン固有の設定や dotfiles リポジトリで管理したくない設定は, ローカル設定ファイルで管理できます。
+
+#### Vim
+
+`~/.vimrc_local` を作成すると, `.vimrc` の読み込み後に自動的に source されます。
+
+```vim
+" 例: マシン固有のキーマップ
+nnoremap <leader>local :echo "Local setting"<CR>
+```
+
+#### Neovim
+
+`~/.nvim_local.lua` を作成すると, `init.lua` の読み込み後に自動的に実行されます。
+
+```lua
+-- 例: オプションの上書き
+local opt = vim.opt
+opt.number = false
+
+-- 例: カスタムキーマップ
+local map = vim.keymap.set
+map('n', '<leader>local', ':echo "Local setting"<CR>', { noremap = true })
+
+-- 例: オートコマンド
+local autocmd = vim.api.nvim_create_autocmd
+autocmd('BufWritePre', {
+  pattern = '*.custom',
+  callback = function()
+    -- カスタム処理
+  end,
+})
+```
+
+**注意事項**:
+- これらのファイルはローカル環境専用であり, git 管理対象外です
+- `.nvim_local.lua` は Lua 構文で記述する必要があります (VimScript は使用できません)
+- プラグインの追加は lazy.nvim の仕組み上困難です (既存プラグインの設定上書きは可能)
+
 ## Git 運用ルール
 
 ### ブランチ運用
