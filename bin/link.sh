@@ -32,6 +32,7 @@ TARGETS=( \
          ".zshenv" \
          ".psqlrc" \
          ".config/alacritty" \
+         ".config/ghostty" \
          ".config/nvim" \
          ".hammerspoon" \
        )

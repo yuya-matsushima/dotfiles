@@ -1,0 +1,38 @@
+# Font Configuration
+font-family = JetbrainsMono Nerd Font
+font-size = 14
+
+# Window Configuration
+background-opacity = 0.92
+window-padding-x = 5
+window-padding-y = 5
+
+# Cursor Configuration
+cursor-style = block
+cursor-style-blink = false
+
+# Scrollback Configuration
+scrollback-limit = 1000000
+
+# Clipboard Configuration
+copy-on-select = clipboard
+clipboard-read = allow
+clipboard-write = allow
+
+# Terminal Configuration
+term = xterm-ghostty
+
+# macOS Specific Configuration
+macos-option-as-alt = true
+
+# Shell Integration
+shell-integration = detect
+
+# Link Features
+link-previews = true
+
+# Tab Management
+window-new-tab-position = end
+
+# Keybindings
+keybind = super+n=new_window
