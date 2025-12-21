@@ -1,49 +1,31 @@
 -- ============================================================================
 -- Treesitter Configuration
--- Replaces vim-javascript, typescript-vim, and other syntax plugins
+-- Provides syntax highlighting and code understanding using Tree-sitter
 -- ============================================================================
 
 return {
   {
     'nvim-treesitter/nvim-treesitter',
+    branch = 'master',
     build = ':TSUpdate',
     event = { 'BufReadPost', 'BufNewFile' },
     config = function()
-      require('nvim-treesitter.config').setup({
-        ensure_installed = {
-          'typescript',
-          'tsx',
-          'javascript',
-          'jsx',
-          'ruby',
-          'go',
-          'rust',
-          'python',
-          'vue',
-          'astro',
-          'graphql',
-          'dockerfile',
-          'terraform',
-          'markdown',
-          'markdown_inline',
-          'css',
-          'scss',
-          'html',
-          'lua',
-          'vim',
-          'bash',
-          'json',
-          'yaml',
-        },
-        sync_install = false,
+      require('nvim-treesitter.configs').setup({
+        -- Automatically install missing parsers when entering buffer
         auto_install = true,
+
+        -- Syntax Highlighting
         highlight = {
           enable = true,
           additional_vim_regex_highlighting = false,
         },
+
+        -- Smart Indentation
         indent = {
           enable = true,
         },
+
+        -- Incremental Selection (expand/shrink selection based on syntax tree)
         incremental_selection = {
           enable = true,
           keymaps = {
