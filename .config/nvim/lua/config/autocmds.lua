@@ -21,7 +21,7 @@ local ft_settings = {
   [{ 'javascript', 'coffee' }] = { textwidth = 80 },
   [{ 'scss', 'css' }] = { foldmethod = 'marker', foldmarker = '{,}' },
   [{ 'html', 'xhtml' }] = { foldmethod = 'indent' },
-  [{ 'quickrun', 'neo-tree' }] = { foldenable = false },
+  [{ 'quickrun', 'oil' }] = { foldenable = false },
 }
 
 local config_group = augroup('MyFTConfig', { clear = true })
