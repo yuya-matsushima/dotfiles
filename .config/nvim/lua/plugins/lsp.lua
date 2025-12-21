@@ -1,7 +1,73 @@
 -- ============================================================================
--- LSP Configuration (Mason + nvim-lspconfig)
--- Uses Neovim 0.11+ vim.lsp.config API
+-- LSP Configuration
+-- Uses Neovim 0.11+ native LSP APIs (vim.lsp.config, vim.lsp.enable)
 -- ============================================================================
+
+-- LSP keybindings setup
+local function setup_lsp_keymaps(bufnr)
+  local function map(mode, lhs, rhs, desc)
+    vim.keymap.set(mode, lhs, rhs, {
+      buffer = bufnr,
+      noremap = true,
+      silent = true,
+      desc = desc,
+    })
+  end
+
+  -- Navigation
+  map('n', 'gd', vim.lsp.buf.definition, 'Go to definition')
+  map('n', 'gr', vim.lsp.buf.references, 'Go to references')
+  map('n', 'gi', vim.lsp.buf.implementation, 'Go to implementation')
+  map('n', 'gt', vim.lsp.buf.type_definition, 'Go to type definition')
+
+  -- Documentation
+  map('n', 'K', vim.lsp.buf.hover, 'Hover documentation')
+
+  -- Actions
+  map('n', '<F2>', vim.lsp.buf.rename, 'Rename symbol')
+
+  -- Diagnostics navigation
+  map('n', 'gp', vim.diagnostic.goto_prev, 'Previous diagnostic')
+  map('n', 'gn', vim.diagnostic.goto_next, 'Next diagnostic')
+end
+
+-- Diagnostic configuration
+local function setup_diagnostics()
+  vim.diagnostic.config({
+    virtual_text = false,
+    signs = true,
+    underline = true,
+    update_in_insert = false,
+    severity_sort = true,
+  })
+
+  -- Show diagnostics on cursor hold
+  vim.api.nvim_create_autocmd('CursorHold', {
+    group = vim.api.nvim_create_augroup('LspDiagnostics', { clear = true }),
+    callback = function()
+      vim.diagnostic.open_float(nil, { focusable = false })
+    end,
+  })
+end
+
+-- LSP server configurations
+local servers = {
+  lua_ls = {},
+  ts_ls = {},
+  eslint = {},
+  pyright = {},
+  solargraph = {},
+  gopls = {},
+  rust_analyzer = {
+    settings = {
+      ['rust-analyzer'] = {
+        checkOnSave = {
+          command = 'clippy',
+        },
+      },
+    },
+  },
+}
 
 return {
   -- Mason: LSP server installer
@@ -13,7 +79,7 @@ return {
     end,
   },
 
-  -- LSP Config (must be loaded before mason-lspconfig)
+  -- nvim-lspconfig: Base LSP configuration
   {
     'neovim/nvim-lspconfig',
     lazy = false,
@@ -21,25 +87,19 @@ return {
       'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
-      -- Diagnostic settings (match .vimrc settings)
-      vim.diagnostic.config({
-        virtual_text = false,  -- Disabled in .vimrc
-        signs = true,
-        underline = true,
-        update_in_insert = false,
-        severity_sort = true,
-      })
+      setup_diagnostics()
 
-      -- Show diagnostics on cursor hold (match echo_cursor behavior)
-      vim.api.nvim_create_autocmd('CursorHold', {
-        callback = function()
-          vim.diagnostic.open_float(nil, { focusable = false })
+      -- Setup keybindings on LSP attach
+      vim.api.nvim_create_autocmd('LspAttach', {
+        group = vim.api.nvim_create_augroup('LspKeymaps', { clear = true }),
+        callback = function(args)
+          setup_lsp_keymaps(args.buf)
         end,
       })
     end,
   },
 
-  -- Mason-LSP bridge
+  -- mason-lspconfig: Bridge between Mason and lspconfig
   {
     'williamboman/mason-lspconfig.nvim',
     lazy = false,
@@ -51,55 +111,21 @@ return {
     config = function()
       local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-      -- Setup keybindings when LSP attaches (Neovim 0.11+ approach)
-      vim.api.nvim_create_autocmd('LspAttach', {
-        callback = function(args)
-          local bufnr = args.buf
-          local opts = { buffer = bufnr, noremap = true, silent = true }
-          vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
-          vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
-          vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-          vim.keymap.set('n', 'gt', vim.lsp.buf.type_definition, opts)
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-          vim.keymap.set('n', '<F2>', vim.lsp.buf.rename, opts)
-          vim.keymap.set('n', 'gp', vim.diagnostic.goto_prev, opts)
-          vim.keymap.set('n', 'gn', vim.diagnostic.goto_next, opts)
-        end,
-      })
+      -- Configure LSP servers
+      local function setup_server(server_name)
+        local config = vim.tbl_deep_extend('force', {
+          capabilities = capabilities,
+        }, servers[server_name] or {})
+
+        vim.lsp.config(server_name, config)
+        vim.lsp.enable(server_name)
+      end
 
       require('mason-lspconfig').setup({
-        ensure_installed = {
-          'ts_ls',           -- TypeScript/JavaScript (formerly tsserver)
-          'eslint',          -- ESLint
-          'pyright',         -- Python
-          'solargraph',      -- Ruby
-          'gopls',           -- Go
-          'rust_analyzer',   -- Rust
-        },
+        ensure_installed = vim.tbl_keys(servers),
         automatic_installation = true,
         handlers = {
-          -- Default handler for all servers
-          function(server_name)
-            vim.lsp.config(server_name, {
-              capabilities = capabilities,
-            })
-            vim.lsp.enable(server_name)
-          end,
-
-          -- Rust analyzer with custom settings
-          ['rust_analyzer'] = function()
-            vim.lsp.config('rust_analyzer', {
-              capabilities = capabilities,
-              settings = {
-                ['rust-analyzer'] = {
-                  checkOnSave = {
-                    command = 'clippy',
-                  },
-                },
-              },
-            })
-            vim.lsp.enable('rust_analyzer')
-          end,
+          setup_server,
         },
       })
     end,

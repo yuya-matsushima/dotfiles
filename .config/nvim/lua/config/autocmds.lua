@@ -1,145 +1,58 @@
--- ============================================================================
--- Autocommands Configuration
--- Migrated from .vimrc lines 173-297
--- ============================================================================
-
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 
--- ============================================================================
--- INDENTATION SETTINGS
--- ============================================================================
-
-local indent_group = augroup('IndentSettings', { clear = true })
-
-autocmd('FileType', {
-  group = indent_group,
-  pattern = { 'html', 'css', 'javascript', 'markdown', 'slim', 'haml' },
-  callback = function()
-    vim.opt_local.tabstop = 2
-    vim.opt_local.shiftwidth = 2
-  end,
+vim.filetype.add({
+  extension = {
+    ["md.erb"] = "markdown",
+    ["envrc"] = "sh",
+    ["scss.css"] = "scss",
+  },
+  pattern = {
+    [".*%.sql"] = "mysql",
+  },
 })
 
-autocmd('FileType', {
-  group = indent_group,
-  pattern = { 'php', 'python' },
-  callback = function()
-    vim.opt_local.tabstop = 4
-    vim.opt_local.shiftwidth = 4
-  end,
-})
+local ft_settings = {
+  [{ 'html', 'css', 'javascript', 'markdown', 'slim', 'haml' }] = { tabstop = 2, shiftwidth = 2 },
+  [{ 'php', 'python' }] = { tabstop = 4, shiftwidth = 4, textwidth = 80 },
+  [{ 'go' }] = { expandtab = false, tabstop = 2, shiftwidth = 2 },
+  [{ 'gitcommit', 'hgcommit' }] = { foldenable = false, textwidth = 72, colorcolumn = '+1' },
+  [{ 'rst' }] = { textwidth = 80, colorcolumn = '+1' },
+  [{ 'javascript', 'coffee' }] = { textwidth = 80 },
+  [{ 'scss', 'css' }] = { foldmethod = 'marker', foldmarker = '{,}' },
+  [{ 'html', 'xhtml' }] = { foldmethod = 'indent' },
+  [{ 'quickrun', 'oil' }] = { foldenable = false },
+}
 
-autocmd('FileType', {
-  group = indent_group,
-  pattern = 'go',
-  callback = function()
-    vim.opt_local.expandtab = false
-    vim.opt_local.tabstop = 2
-    vim.opt_local.shiftwidth = 2
-  end,
-})
-
--- ============================================================================
--- FOLDING SETTINGS
--- ============================================================================
-
-local fold_group = augroup('FoldingSettings', { clear = true })
-
-autocmd('FileType', {
-  group = fold_group,
-  pattern = { 'gitcommit', 'hgcommit', 'quickrun', 'neo-tree' },
-  callback = function()
-    vim.opt_local.foldenable = false
-  end,
-})
-
-autocmd('FileType', {
-  group = fold_group,
-  pattern = { 'scss', 'css' },
-  callback = function()
-    vim.opt_local.foldmethod = 'marker'
-    vim.opt_local.foldmarker = '{,}'
-  end,
-})
-
-autocmd('FileType', {
-  group = fold_group,
-  pattern = { 'html', 'xhtml' },
-  callback = function()
-    vim.opt_local.foldmethod = 'indent'
-  end,
-})
-
--- ============================================================================
--- FILE TYPE ALIASES
--- ============================================================================
-
-local alias_group = augroup('FileTypeAliases', { clear = true })
-
-autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = alias_group,
-  pattern = { '*.md', '*.md.erb' },
-  callback = function()
-    vim.bo.filetype = 'markdown'
-  end,
-})
-
-autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = alias_group,
-  pattern = '*.scala.html',
-  callback = function()
-    vim.bo.filetype = 'scala'
-  end,
-})
-
-autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = alias_group,
-  pattern = '*.ts',
-  callback = function()
-    vim.bo.filetype = 'typescript'
-  end,
-})
-
-autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = alias_group,
-  pattern = { 'Vagrantfile', 'Guardfile' },
-  callback = function()
-    vim.bo.filetype = 'ruby'
-  end,
-})
-
-autocmd({ 'BufRead', 'BufNewFile' }, {
-  group = alias_group,
-  pattern = '*.envrc',
-  callback = function()
-    vim.bo.filetype = 'sh'
-  end,
-})
-
-autocmd('FileType', {
-  group = alias_group,
-  pattern = 'sql',
-  callback = function()
-    vim.bo.filetype = 'mysql'
-  end,
-})
-
-autocmd('FileType', {
-  group = alias_group,
-  pattern = 'scss.css',
-  callback = function()
-    vim.bo.filetype = 'scss'
-  end,
-})
-
--- ============================================================================
--- BUFFER EVENTS
--- ============================================================================
+local config_group = augroup('MyFTConfig', { clear = true })
+for types, settings in pairs(ft_settings) do
+  autocmd('FileType', {
+    group = config_group,
+    pattern = types,
+    callback = function()
+      for opt, val in pairs(settings) do
+        vim.opt_local[opt] = val
+      end
+    end,
+  })
+end
 
 local buffer_group = augroup('BufferEvents', { clear = true })
 
--- Auto-change directory to current file
+autocmd('BufWritePre', {
+  group = buffer_group,
+  callback = function()
+    local utils_trim = require('utils.trim')
+    utils_trim.RTrim()
+    utils_trim.LTrimTabAndSpace()
+
+    if vim.bo.filetype == 'markdown' then
+      require('utils.comma').ToComma()
+    end
+  end,
+})
+
+-- Change Directory
 autocmd('BufEnter', {
   group = buffer_group,
   callback = function()
@@ -147,60 +60,12 @@ autocmd('BufEnter', {
   end,
 })
 
--- Trim whitespace and convert commas on save
-autocmd('BufWritePre', {
-  group = buffer_group,
-  callback = function()
-    require('utils.trim').RTrim()
-    require('utils.trim').LTrimTabAndSpace()
-  end,
-})
-
-autocmd('BufWritePre', {
-  group = buffer_group,
-  pattern = '*.md',
-  callback = function()
-    require('utils.comma').ToComma()
-  end,
-})
-
--- Prevent saving files with forbidden names
+-- Disable saving files with forbidden names like ":" or ";"
 autocmd('BufWritePre', {
   group = buffer_group,
   pattern = { ':*', ';*' },
   callback = function()
     vim.api.nvim_err_writeln('Forbidden file name: ' .. vim.fn.expand('<afile>'))
-  end,
-})
-
--- ============================================================================
--- TEXT WIDTH SETTINGS
--- ============================================================================
-
-local width_group = augroup('TextWidth', { clear = true })
-
-autocmd('FileType', {
-  group = width_group,
-  pattern = { 'gitcommit', 'hgcommit' },
-  callback = function()
-    vim.opt_local.textwidth = 72
-    vim.opt_local.colorcolumn = '+1'
-  end,
-})
-
-autocmd('FileType', {
-  group = width_group,
-  pattern = 'rst',
-  callback = function()
-    vim.opt_local.textwidth = 80
-    vim.opt_local.colorcolumn = '+1'
-  end,
-})
-
-autocmd('FileType', {
-  group = width_group,
-  pattern = { 'javascript', 'coffee', 'php' },
-  callback = function()
-    vim.opt_local.textwidth = 80
+    return true -- 保存を中断させたい場合はここで制御を検討
   end,
 })

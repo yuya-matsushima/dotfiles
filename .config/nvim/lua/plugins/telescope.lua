@@ -17,27 +17,35 @@ return {
       { '<leader>fb', '<cmd>Telescope buffers<cr>', desc = 'Buffers' },
       { '<leader>fh', '<cmd>Telescope help_tags<cr>', desc = 'Help tags' },
     },
-    config = function()
-      require('telescope').setup({
-        defaults = {
-          mappings = {
-            i = {
-              ['<C-u>'] = false,
-              ['<C-d>'] = false,
-            },
+    opts = {
+      defaults = {
+        layout_config = {
+          width = 0.9,
+          height = 0.9,
+          horizontal = {
+            preview_width = 0.6,
           },
         },
-        extensions = {
-          fzf = {
-            fuzzy = true,
-            override_generic_sorter = true,
-            override_file_sorter = true,
-            case_mode = 'smart_case',
+        mappings = {
+          i = {
+            ['<C-u>'] = false,
+            ['<C-d>'] = false,
           },
         },
-      })
-
-      require('telescope').load_extension('fzf')
+      },
+      extensions = {
+        fzf = {
+          fuzzy = true,
+          override_generic_sorter = true,
+          override_file_sorter = true,
+          case_mode = 'smart_case',
+        },
+      },
+    },
+    config = function(_, opts)
+      local telescope = require('telescope')
+      telescope.setup(opts)
+      telescope.load_extension('fzf')
     end,
   },
 }
