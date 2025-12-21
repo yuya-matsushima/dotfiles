@@ -28,6 +28,7 @@ brew install \
           libpq \
           make \
           mysql-client \
+          ncurses \
           peco \
           qrencode \
           ripgrep \

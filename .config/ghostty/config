@@ -6,6 +6,7 @@ font-size = 14
 background-opacity = 0.92
 window-padding-x = 5
 window-padding-y = 5
+confirm-close-surface = false
 
 # Cursor Configuration
 cursor-style = block
@@ -24,6 +25,8 @@ term = xterm-ghostty
 
 # macOS Specific Configuration
 macos-option-as-alt = true
+macos-titlebar-style = transparent
+macos-titlebar-proxy-icon = hidden
 
 # Shell Integration
 shell-integration = detect
