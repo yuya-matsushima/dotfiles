@@ -187,7 +187,7 @@ augroup END
 
 " Folding settings
 if has('folding')
-  set foldenable
+  set nofoldenable
   set foldmethod=indent
   set fillchars=vert:\|
 

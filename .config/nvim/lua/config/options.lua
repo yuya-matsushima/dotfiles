@@ -107,7 +107,7 @@ opt.diffopt:append({ 'iwhite', 'horizontal' })
 -- ============================================================================
 
 if vim.fn.has('folding') == 1 then
-  opt.foldenable = true
+  opt.foldenable = false
   opt.foldmethod = 'indent'
   opt.fillchars = { vert = '|' }
 end
