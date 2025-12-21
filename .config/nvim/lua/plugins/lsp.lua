@@ -52,6 +52,7 @@ end
 
 -- LSP server configurations
 local servers = {
+  lua_ls = {},
   ts_ls = {},
   eslint = {},
   pyright = {},
