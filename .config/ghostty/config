@@ -38,4 +38,4 @@ link-previews = true
 window-new-tab-position = end
 
 # Keybindings
-keybind = super+n=new_window
+keybind = super+n=new_tab
