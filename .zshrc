@@ -155,6 +155,7 @@ fi
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
+(( $+commands[nvim] )) && alias ni="nvim"
 # Use local claude installation if available
 [[ -x "$HOME/.claude/local/claude" ]] && alias claude="$HOME/.claude/local/claude"
 # Tiny prompt mode for screen recording
