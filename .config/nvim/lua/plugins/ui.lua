@@ -1,29 +1,46 @@
 -- ============================================================================
 -- UI Configuration
--- Status line, icons, and color preview
+-- Minimalist status line and color preview (based on .vimrc style)
 -- ============================================================================
 
+-- Copilot status indicator
+local function copilot_status()
+  local ok, copilot = pcall(require, 'copilot.api')
+  if ok and copilot.is_enabled then
+    return '[AI]'
+  end
+  return ''
+end
+
+-- Keyboard type indicator (JIS/US)
+local function keyboard_type()
+  return '[' .. (vim.g.keyboard_type or 'JIS') .. ']'
+end
+
+-- Line location indicator (current/total)
+local function line_location()
+  local line = vim.fn.line('.')
+  local total = vim.fn.line('$')
+  return '[' .. string.format('%d/%d', line, total) .. ']'
+end
+
+-- File type without icon
+local function filetype_no_icon()
+  return '[' .. vim.bo.filetype .. ']'
+end
+
+-- Encoding with brackets
+local function encoding_bracketed()
+  return '[' .. vim.bo.fileencoding .. ']'
+end
+
 return {
-  -- Status line
+  -- Status line: Simple and clean like .vimrc
   {
     'nvim-lualine/lualine.nvim',
     event = 'VeryLazy',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
-      -- Function to check Copilot status
-      local function copilot_status()
-        local ok, copilot = pcall(require, 'copilot.api')
-        if ok and copilot.is_enabled then
-          return '[AI]'
-        end
-        return ''
-      end
-
-      -- Function to get keyboard type
-      local function keyboard_type()
-        return '[' .. (vim.g.keyboard_type or 'JIS') .. ']'
-      end
-
       require('lualine').setup({
         options = {
           theme = 'auto',
@@ -31,32 +48,43 @@ return {
           section_separators = '',
         },
         sections = {
-          lualine_a = { 'mode' },
-          lualine_b = { 'branch', 'diff', 'diagnostics' },
+          -- Left side
+          lualine_a = {},  -- No mode indicator (simplified)
+          lualine_b = {},  -- No git branch/diff (shown in tmux)
           lualine_c = {
             {
               'filename',
               path = 1,  -- Relative path
-            }
+            },
+            {
+              'diagnostics',
+              symbols = {
+                error = 'E',
+                warn = 'W',
+                info = 'I',
+                hint = 'H',
+              },
+            },
           },
+          -- Right side
           lualine_x = {
-            copilot_status,
-            keyboard_type,
-            'encoding',
-            'fileformat',
-            'filetype',
+            { line_location, padding = 0 },  -- Line/total (leftmost on right side)
+            { filetype_no_icon, padding = 0 },
+            { encoding_bracketed, padding = 0 },
+            { keyboard_type, padding = 0 },
+            { copilot_status, padding = 0 },
           },
-          lualine_y = { 'progress' },
-          lualine_z = { 'location' }
+          lualine_y = {},
+          lualine_z = {}
         },
       })
     end,
   },
 
-  -- File icons
+  -- File icons (required by other plugins)
   { 'nvim-tree/nvim-web-devicons', lazy = true },
 
-  -- Color preview (replaces vim-css-color)
+  -- Color preview
   {
     'NvChad/nvim-colorizer.lua',
     event = { 'BufReadPre', 'BufNewFile' },
