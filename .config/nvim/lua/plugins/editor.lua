@@ -1,10 +1,10 @@
 -- ============================================================================
--- Editor Enhancement Plugins
--- Auto-close tags, EditorConfig support
+-- Editor Enhancement
+-- Auto-close tags and EditorConfig support
 -- ============================================================================
 
 return {
-  -- Auto-close HTML/JSX tags (replaces vim-closetag)
+  -- Auto-close HTML/JSX tags using Tree-sitter
   {
     'windwp/nvim-ts-autotag',
     event = 'InsertEnter',
@@ -26,12 +26,12 @@ return {
     end,
   },
 
-  -- EditorConfig support
+  -- EditorConfig: Maintain consistent coding styles
   {
     'editorconfig/editorconfig-vim',
     event = { 'BufReadPre', 'BufNewFile' },
     init = function()
-      -- Disable for git commit messages (match .vimrc)
+      -- Disable for commit messages to preserve git defaults
       vim.api.nvim_create_autocmd('FileType', {
         pattern = { 'gitcommit', 'hgcommit' },
         callback = function()
