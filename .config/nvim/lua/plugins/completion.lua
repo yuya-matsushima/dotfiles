@@ -11,9 +11,12 @@ return {
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-buffer',
       'hrsh7th/cmp-path',
+      'hrsh7th/cmp-cmdline',
+      'hrsh7th/cmp-nvim-lua',
       'L3MON4D3/LuaSnip',
       'saadparwaiz1/cmp_luasnip',
       'zbirenbaum/copilot-cmp',
+      'onsails/lspkind.nvim',
     },
     config = function()
       local cmp = require('cmp')
@@ -97,21 +100,48 @@ return {
 
         sources = cmp.config.sources({
           { name = 'nvim_lsp', priority = 1000 },
+          { name = 'nvim_lua', priority = 900 },
           { name = 'luasnip', priority = 750 },
           { name = 'copilot', priority = 500 },
           { name = 'buffer', priority = 250 },
           { name = 'path', priority = 100 },
         }),
 
+        -- Formatting with icons
+        formatting = {
+          format = require('lspkind').cmp_format({
+            mode = 'symbol_text',  -- Show icon + text
+            maxwidth = 50,
+            ellipsis_char = '...',
+            before = function(entry, vim_item)
+              local source_names = {
+                nvim_lsp = '[LSP]',
+                nvim_lua = '[Lua]',
+                luasnip = '[Snip]',
+                copilot = '[AI]',
+                buffer = '[Buf]',
+                path = '[Path]',
+                cmdline = '[Cmd]',
+              }
+              vim_item.menu = source_names[entry.source.name] or '[?]'
+              return vim_item
+            end,
+          }),
+        },
+
         -- Window appearance
         window = {
           completion = {
             max_width = 60,  -- Maximum width of completion menu
             max_height = 15, -- Maximum height
+            border = 'rounded',
+            winhighlight = 'Normal:Pmenu,FloatBorder:Pmenu,Search:None',
           },
           documentation = {
             max_width = 80,
             max_height = 20,
+            border = 'rounded',
+            winhighlight = 'Normal:Pmenu,FloatBorder:Pmenu,Search:None',
           },
         },
 
@@ -125,6 +155,30 @@ return {
           ghost_text = false,
         },
       })
+
+      -- Cmdline completion for '/' (search)
+      cmp.setup.cmdline('/', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = {
+          { name = 'buffer' }
+        }
+      })
+
+      -- Cmdline completion for ':' (commands)
+      cmp.setup.cmdline(':', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = cmp.config.sources({
+          { name = 'path' }
+        }, {
+          { name = 'cmdline', option = { ignore_cmds = { 'Man', '!' } } }
+        })
+      })
+
+      -- Integrate with nvim-autopairs if available
+      local ok, cmp_autopairs = pcall(require, 'nvim-autopairs.completion.cmp')
+      if ok then
+        cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+      end
     end,
   },
 

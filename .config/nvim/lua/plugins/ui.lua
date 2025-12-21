@@ -4,6 +4,8 @@
 -- ============================================================================
 
 -- Copilot status indicator
+-- Note: This checks enablement status, not suggestion visibility
+-- For suggestion handling, see completion.lua Smart Tab
 local function copilot_status()
   local ok, copilot = pcall(require, 'copilot.api')
   if ok and copilot.is_enabled then

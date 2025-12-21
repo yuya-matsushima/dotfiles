@@ -22,7 +22,7 @@ opt.listchars = { eol = '$', tab = '> ', extends = '<' }
 opt.ambiwidth = 'double'
 opt.showmatch = true
 opt.title = false
-opt.completeopt = { 'menuone', 'noinsert', 'noselect' }
+-- Note: completeopt is configured in completion.lua
 opt.shortmess:append('c')
 
 -- increment/decrement for numbers

@@ -20,7 +20,10 @@ local function setup_snippet_keymaps()
     luasnip.expand()
   end, 'Expand snippet')
 
-  -- Jump to next snippet placeholder (Shift-Tab handled in completion.lua)
+  -- Jump to next snippet placeholder
+  -- Note: This uses <C-L> for snippet navigation
+  -- Copilot accept is handled by Smart Tab in completion.lua (not <C-L>)
+  -- Shift-Tab for reverse navigation is handled in completion.lua
   map({ 'i', 's' }, '<C-L>', function()
     if luasnip.expand_or_jumpable() then
       luasnip.expand_or_jump()

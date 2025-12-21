@@ -40,4 +40,22 @@ return {
       })
     end,
   },
+
+  -- Auto-pairs: Automatic bracket/quote pairing
+  {
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    config = function()
+      require('nvim-autopairs').setup({
+        check_ts = true,  -- Use TreeSitter for context-aware pairing
+        ts_config = {
+          lua = { 'string' },  -- Disable in Lua strings
+          javascript = { 'template_string' },  -- Disable in JS template strings
+        },
+        fast_wrap = {
+          map = '<M-e>',  -- Alt-e for fast wrapping
+        },
+      })
+    end,
+  },
 }

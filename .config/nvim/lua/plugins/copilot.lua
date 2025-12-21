@@ -21,7 +21,7 @@ return {
           auto_trigger = true,
           debounce = 75,
           keymap = {
-            accept = '<C-L>',        -- Alternative to Tab
+            accept = false,          -- Handled by Smart Tab in completion.lua
             accept_word = false,
             accept_line = false,
             next = '<M-]>',
