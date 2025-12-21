@@ -46,7 +46,7 @@ opt.formatoptions:append('mM')
 -- CLIPBOARD
 -- ============================================================================
 
-if jit.os == 'OSX' or jit.os == 'Windows' == 1 then
+if jit.os == 'OSX' or jit.os == 'Windows' then
   opt.clipboard:append('unnamed')
 end
 
