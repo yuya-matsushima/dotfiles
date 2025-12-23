@@ -1,0 +1,21 @@
+description = "Generate a commit message (use --auto to skip confirmation)"
+
+prompt = """
+## Arguments
+{{args}}
+
+## Instructions
+1. **Auto mode detection**: Check if the arguments contain "--auto" flag.
+2. **Analyze**: Run `git diff --cached` to see staged changes.
+3. **Context Check**: Look for an `AGENTS.md` file in the root directory.
+4. **Commit Rule Selection**:
+   - IF `AGENTS.md` contains specific commit rules, follow them strictly.
+   - ELSE (or if no specific rules are found), use **Conventional Commits** format.
+5. **Conventional Commits Standard** (Fallback):
+   - Use types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`.
+   - Format: `<type>(<scope>): <subject>` (Subject in Japanese if not specified).
+   - Provide a body explaining the "Why" if the change is significant.
+6. **Execution Logic**:
+   - If arguments contain "--auto": Execute `git commit -m "[message]"` immediately without asking for confirmation. Display the commit message after execution.
+   - Otherwise: Show the proposed message, show the command `git commit -m "[message]"`, and ask "Apply this commit? (y/n)"
+"""
