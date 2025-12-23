@@ -30,6 +30,14 @@ link: ## Set symlinks for configuration file
 unlink: ## Remove symlinks for configuration file
 	sh ./bin/link.sh unlink
 
+.PHONY: coding_agent_link
+coding_agent_link: ## Set symlinks for coding agent configurations
+	sh ./bin/coding-agent.sh
+
+.PHONY: coding_agent_unlink
+coding_agent_unlink: ## Remove symlinks for coding agent configurations
+	sh ./bin/coding-agent.sh unlink
+
 .PHONY: nvim_link
 nvim_link: ## Create symlink for Neovim config
 	ln -sfn $(PWD)/.config/nvim ~/.config/nvim

@@ -1,0 +1,17 @@
+description = "Generate a commit message (Default: Conventional Commits)."
+
+prompt = """
+1. **Analyze**: Run `git diff --cached` to see staged changes.
+2. **Context Check**: Look for an `AGENTS.md` file in the root directory.
+3. **Commit Rule Selection**:
+   - IF `AGENTS.md` contains specific commit rules, follow them strictly.
+   - ELSE (or if no specific rules are found), use **Conventional Commits** format.
+4. **Conventional Commits Standard** (Fallback):
+   - Use types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`.
+   - Format: `<type>(<scope>): <subject>` (Subject in Japanese if not specified).
+   - Provide a body explaining the "Why" if the change is significant.
+5. **Output**:
+   - Show the proposed message.
+   - Show the command: `git commit -m "[message]"`
+   - Ask: "Apply this commit? (y/n)"
+"""
