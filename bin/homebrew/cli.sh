@@ -40,6 +40,7 @@ brew install \
           tmux \
           tree \
           uv \
+          yazi \
           wget \
           zsh \
           zsh-completions \
