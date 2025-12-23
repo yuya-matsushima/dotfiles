@@ -1,9 +1,12 @@
 ---
-description: Analyze staged changes and commit using AGENTS.md rules or default Conventional Commits.
-argument-hint: [SCOPE=<scope>]
+description: Analyze staged changes and commit using AGENTS.md rules (use --auto to skip confirmation)
+argument-hint: [SCOPE=<scope>] [--auto]
 ---
 
 # commit command instructions
+
+## Auto mode detection
+Check if $ARGUMENTS contains "--auto" flag.
 
 1. **Context Acquisition**:
    - Run `git diff --cached` to see staged changes.
@@ -15,6 +18,6 @@ argument-hint: [SCOPE=<scope>]
    - Title: `<type>($SCOPE): <summary>` (Max 50 chars).
    - Body: Explain the "Why" behind the changes.
    - Language: Default to Japanese unless specified otherwise.
-4. **Finalization**:
-   - Show the proposed command: `git commit -m "[message]"`
-   - Ask for confirmation: "Proceed with this commit? (y/n)"
+4. **Execution Logic**:
+   - **If $ARGUMENTS contains "--auto"**: Execute `git commit -m "[message]"` immediately without asking for confirmation. Display the commit message after execution.
+   - **Otherwise**: Show the proposed command: `git commit -m "[message]"`, ask for confirmation "Proceed with this commit? (y/n)", and execute only if confirmed.

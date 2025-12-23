@@ -1,5 +1,13 @@
-# Description
-Create a high-quality GitHub Pull Request by analyzing code changes.
+---
+description: Create a high-quality GitHub Pull Request (use --auto to skip confirmation)
+argument-hint: [--auto]
+allowed-tools: Bash(test:*)
+---
+
+# Pull Request Creation Command
+
+## Auto mode detection
+!`if [[ "$ARGUMENTS" == *"--auto"* ]]; then echo "AUTO_MODE"; fi`
 
 # Instructions
 1. **Analyze Changes**:
@@ -11,9 +19,12 @@ Create a high-quality GitHub Pull Request by analyzing code changes.
      - **Summary**: What does this PR do?
      - **Key Changes**: Bullet points of technical changes.
      - **Impact**: Any potential side effects or areas to review.
-3. **Execution**:
-   - Push the current branch: `git push origin HEAD`.
-   - Create the PR using the drafted content:
-     `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me`
-4. **Final Result**:
-   - Show the user the final PR URL and a summary of what you wrote.
+3. **Execution Logic**:
+   - **If AUTO_MODE is detected**:
+     - Push the current branch: `git push origin HEAD`
+     - Create the PR immediately: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me --label "Claude Code"`
+     - Show the final PR URL and summary
+   - **Otherwise**:
+     - Display the drafted PR title and body
+     - Ask: "Do you want to create this PR? (y/n)"
+     - If confirmed, push and create the PR with the command above
