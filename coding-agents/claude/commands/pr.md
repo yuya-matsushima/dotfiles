@@ -1,15 +1,13 @@
 ---
 description: Create a high-quality GitHub Pull Request (use --auto to skip confirmation)
 argument-hint: [--auto]
-allowed-tools: Bash(test:*)
 ---
 
 # Pull Request Creation Command
 
-## Auto mode detection
-!`if [[ "$ARGUMENTS" == *"--auto"* ]]; then echo "AUTO_MODE"; fi`
+## Instructions
 
-# Instructions
+**Auto mode detection**: Check if $ARGUMENTS contains "--auto" flag.
 1. **Analyze Changes**:
    - Run `git diff main...HEAD` (or the base branch) to understand exactly what was changed.
    - Review the commit history to understand the context.

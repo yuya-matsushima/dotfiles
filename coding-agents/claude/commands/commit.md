@@ -1,13 +1,11 @@
 ---
 description: Analyze staged changes and commit using CLAUDE.md rules (use --auto to skip confirmation)
 argument-hint: [--auto]
-allowed-tools: Bash(test:*)
 ---
 
 # commit command
 
-## Auto mode detection
-!`if [[ "$ARGUMENTS" == *"--auto"* ]]; then echo "AUTO_MODE"; fi`
+**Auto mode detection**: Check if $ARGUMENTS contains "--auto" flag.
 
 1. **Check Staged Changes**: Run `git diff --cached`. If there are no changes, inform the user and stop.
 2. **Determine Guidelines**:
