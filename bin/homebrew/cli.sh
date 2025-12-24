@@ -28,6 +28,7 @@ brew install \
           imagemagick \
           jq \
           jnv \
+          lazygit \
           libpq \
           make \
           mysql-client \
