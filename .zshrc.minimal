@@ -6,6 +6,14 @@ case ${UID} in
     ;;
 esac
 
+local zshrc_path=$HOME/.zshrc.minimal
+[ -L $zshrc_path ] && local zshrc_path=$(readlink $HOME/.zshrc.minimal)
+
+if [ ! -e $HOME/.zshrc.minimal.zwc ] || [ $zshrc_path -nt $HOME/.zshrc.minimal.zwc ]; then
+  zcompile $HOME/.zshrc.minimal
+  [ -n "$DEBUG_ZSHRC" ] && echo "compiled the \$HOME/.zshrc.minimal file.: .zshrc.minimal is changed"
+fi
+
 [ -f $HOME/.zshenv ] && source $HOME/.zshenv
 
 autoload colors && colors
@@ -91,6 +99,7 @@ if (( $+commands[asdf] )); then
 fi
 (( $+commands[awsume] )) && alias awsume="source awsume"
 (( $+commands[direnv] )) && eval "$(direnv hook zsh)"
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh --cmd cd)"
 # Use GNU grep if available (for personal use only)
 (( $+commands[ggrep] )) && alias ggrep="$HOMEBREW_PREFIX/bin/ggrep"
 if (( $+commands[git] )); then
@@ -105,11 +114,22 @@ fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
+(( $+commands[nvim] )) && alias ni="nvim"
+# Use local claude installation if available
+[[ -x "$HOME/.claude/local/claude" ]] && alias claude="$HOME/.claude/local/claude"
+# tinyvim: vim with minimal configuration
+if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
+  alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
+fi
 # tealdeer: tldr client
 (( $+commands[tldr] )) && alias tldr="tldr --language=en"
 # Tiny prompt mode for screen recording
 alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
 alias normalprompt='unset TINY_PROMPT && exec zsh'
+if (( $+commands[fzf] )); then
+  source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
+fi
+(( $+commands[lazygit] )) && alias lg='lazygit'
 
 case "${TERM}" in
 screen)
@@ -132,4 +152,7 @@ REPORTTIME=3
 
 [ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
 (( $+commands[less] )) && source $HOME/.zsh/config/less.zsh
+
+[ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
+
 [ -n "$ZSH_PROFILE" ] && zprof | less
