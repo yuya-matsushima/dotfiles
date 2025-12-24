@@ -87,6 +87,15 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("fd")
   fi
 
+  if [[ "$subcommand" == "lazygit" ]]; then
+    if ! (( $+commands[lazygit] )); then
+      missing_deps+=("lazygit")
+    fi
+    if ! (( $+commands[fd] )); then
+      missing_deps+=("fd")
+    fi
+  fi
+
   # オプショナルな依存（警告のみ）
   local optional_deps=()
   if ! (( $+commands[bat] )); then
@@ -135,6 +144,7 @@ Subcommands:
   cd        ディレクトリ履歴から移動（fdで拡張検索）
   pr        GitHub Pull Request一覧
   issue     GitHub Issue一覧
+  lazygit   Git リポジトリを検索して lazygit で開く
   find      ファイル検索（fdを使用）
   vi/vim    ファイルをvimで開く（fdを使用）
 
@@ -148,6 +158,7 @@ Examples:
   fz cd         # ディレクトリ履歴から選択して移動
   fz pr         # Pull Requestを選択して詳細表示
   fz issue      # Issueを選択して詳細表示
+  fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz find       # ファイルを検索して選択
   fz vi         # ファイルを検索してvimで開く
   fz vim        # ファイルを検索してvimで開く
@@ -441,6 +452,28 @@ _ymt_fz_issue() {
   fi
 }
 
+# Git リポジトリ検索・lazygit起動
+_ymt_fz_lazygit() {
+  if ! (( $+commands[fzf] )) || ! (( $+commands[fd] )); then
+    echo "Error: fzf and fd are required for lazygit subcommand" >&2
+    return 1
+  fi
+
+  if ! (( $+commands[lazygit] )); then
+    echo "Error: lazygit command not found" >&2
+    return 1
+  fi
+
+  local repo
+  repo=$(fd -H -t d '^\.git$' --max-depth 5 --exec dirname {} \; | fzf \
+    --preview 'cd {} && git log --oneline --graph --all -20 2>/dev/null || echo "No git history"' \
+    --header "Select git repository")
+
+  if [[ -n "$repo" ]]; then
+    lazygit -p "$repo"
+  fi
+}
+
 # ファイル検索
 _ymt_fz_find() {
   # fdコマンドの存在チェック
@@ -553,6 +586,10 @@ case "${1:-help}" in
   issue)
     shift
     _ymt_fz_issue "$@"
+    ;;
+  lazygit)
+    shift
+    _ymt_fz_lazygit "$@"
     ;;
   find)
     shift
