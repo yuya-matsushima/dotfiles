@@ -14,7 +14,11 @@ typeset -U fpath
 [[ -t 0 ]] && export GPG_TTY=$(tty)
 
 # Editor
-export EDITOR=vim
+if (( $+commands[nvim] )); then
+  export EDITOR=nvim
+else
+  export EDITOR=vim
+fi
 
 # XDG Base Directory
 export XDG_CONFIG_HOME="$HOME/.config"
