@@ -34,6 +34,7 @@ yazi の統合パターンに従い、以下の原則で実装：
 **パス**: `/Users/yuya.matsushima/Project/Personal/dotfiles/.config/lazygit/config.yml`
 
 **内容**:
+- 英語表示設定（`language: "en"`）
 - Nerd Fonts アイコン有効化（`showIcons: true`, `nerdFontsVersion: "3"`）
 - シンプルなテーマ設定（緑/青/赤のカラースキーム）
 - Git 設定の尊重（`overrideGpg: false`）
@@ -46,34 +47,26 @@ yazi の統合パターンに従い、以下の原則で実装：
 - XDG Base Directory 仕様に準拠し、他のツール（yazi, nvim など）と統一
 - カスタムコマンドは空配列で開始し、必要に応じて追加可能
 
-#### 2. `.zsh/lazygit.zsh`
+#### 2. `.zsh/functions/fz` への統合
 
-**パス**: `/Users/yuya.matsushima/Project/Personal/dotfiles/.zsh/lazygit.zsh`
+**パス**: `/Users/yuya.matsushima/Project/Personal/dotfiles/.zsh/functions/fz`
 
-**機能**:
+**追加機能**: `lazygit` サブコマンド
 
-1. **`lg` エイリアス**: lazygit のクイック起動
-   ```bash
-   alias lg='lazygit'
-   ```
+**実装内容**:
+- `fz lazygit` コマンドでリポジトリを検索して lazygit を起動
+- `fd` で `.git` ディレクトリを検索（最大深さ5）
+- fzf でプレビュー表示（`git log --oneline --graph --all -20`）
+- 選択したリポジトリで lazygit を起動
 
-2. **`lgg [path]` 関数**: 指定パスのリポジトリを開く
-   ```bash
-   lgg ~/path/to/repo
-   ```
-   - Git リポジトリかどうかを確認（`.git` ディレクトリの存在チェック）
-   - エラーハンドリング付き
-
-3. **`lgf` 関数**: fzf で Git リポジトリを選択して開く
-   ```bash
-   lgf
-   ```
-   - `fd` で `.git` ディレクトリを検索（最大深さ5）
-   - fzf でプレビュー表示（`git log --oneline --graph --all -20`）
-   - 選択したリポジトリで lazygit を起動
+**旧実装からの移行**:
+- `.zsh/lazygit.zsh` の `lgf` 関数を `fz lazygit` に統合
+- `lgg` 関数は削除（`fz lazygit` で代替可能）
+- `lg` エイリアスは `.zshrc` に移動
 
 **依存関係**:
-- `lgf` 関数: fzf と fd が必要（両方とも既にインストール済み）
+- fzf と fd が必要（両方とも既にインストール済み）
+- lazygit コマンド
 
 #### 3. `docs/plans/add-lazygit.md`
 
@@ -90,19 +83,19 @@ yazi の統合パターンに従い、以下の原則で実装：
 **追加内容**:
 ```tmux
 # lazygit in popup
-bind g display-popup -d '#{pane_current_path}' -w90% -h90% -E lazygit
+bind g display-popup -d '#{pane_current_path}' -w98% -h98% -E lazygit
 ```
 
 **説明**:
 - `bind g`: prefix（`Ctrl+E`）の後に `g` を押して起動
 - `-d '#{pane_current_path}'`: 現在のパスで lazygit を起動
-- `-w90% -h90%`: 画面の 90% サイズで表示
+- `-w98% -h98%`: 画面の 98% サイズで表示
 - `-E`: lazygit 終了時に popup を自動で閉じる
 
 **設計上の決定**:
 - キーバインド `g` を選択した理由: **g**it の頭文字で覚えやすい
 - 既存のキーバインドと衝突しない（`g` は未使用）
-- popup サイズ 90%: 最大限の視認性を確保しつつ、popup であることが分かる
+- popup サイズ 98%: 最大限の視認性を確保しつつ、popup であることが分かる
 
 #### 2. `bin/link.sh`
 
@@ -125,19 +118,17 @@ TARGETS=( \
 
 #### 3. `.zshrc`
 
-**変更箇所**: 行175（yazi ブロックの後）
+**変更箇所**: 行176（yazi ブロックの後）
 
 **追加内容**:
 ```bash
-if (( $+commands[lazygit] )); then
-  [ -f "$HOME/.zsh/lazygit.zsh" ] && source "$HOME/.zsh/lazygit.zsh"
-fi
+(( $+commands[lazygit] )) && alias lg='lazygit'
 ```
 
 **説明**:
-- lazygit コマンドが存在する場合のみ読み込み
-- `.zsh/lazygit.zsh` ファイルが存在する場合のみ source
-- yazi と同じパターンで統一性を保つ
+- lazygit コマンドが存在する場合のみ `lg` エイリアスを設定
+- 1行で簡潔に記述
+- `lg` でクイック起動可能
 
 ## 使用方法
 
@@ -150,7 +141,7 @@ Ctrl+E  g
 ```
 
 **動作**:
-1. 90% サイズの popup が表示される
+1. 98% サイズの popup が表示される
 2. 現在のディレクトリで lazygit が起動する
 3. Git 操作を行う
 4. `q` キーで popup が閉じる
@@ -171,21 +162,19 @@ lg
 
 現在のディレクトリで lazygit を起動します。
 
-#### パス指定起動
-
-```bash
-lgg ~/Project/Personal/dotfiles
-```
-
-指定したパスで lazygit を起動します。
-
 #### リポジトリ選択起動
 
 ```bash
-lgf
+fz lazygit
 ```
 
 fzf を使って Git リポジトリを選択し、lazygit を起動します。
+
+**動作**:
+1. `fd` で `.git` ディレクトリを検索（最大深さ5）
+2. fzf でリポジトリ一覧を表示
+3. プレビューで各リポジトリの git log を表示
+4. 選択したリポジトリで lazygit を起動
 
 ### 3. lazygit 内での基本操作
 
@@ -219,17 +208,23 @@ lazygit の主要なキーバインド：
 - コミット履歴の確認
 - rebase、cherry-pick、stash などの複雑な操作
 
-### fz 関数との役割分担
+### fz 関数との統合
 
 **fz 関数（素早い検索・選択）**:
 - `fz branch`: ブランチ切り替え
 - `fz log`: コミット履歴検索・hash コピー
+- `fz lazygit`: リポジトリを検索して lazygit を起動
 
 **lazygit（包括的な Git 操作）**:
 - 複数のファイルをまとめてステージング
 - コンフリクト解消
 - インタラクティブな rebase
 - Stash の管理
+
+**統合の利点**:
+- 一貫したインターフェース（すべて `fz` コマンド配下）
+- fzf のプレビュー機能を活用
+- 他の fz サブコマンドと同じ使用感
 
 ### tmux workflow との統合
 
@@ -305,9 +300,10 @@ symlink が正しく作成されていることを確認します。
 tmux セッション内で `Ctrl+E` → `g` を押します。
 
 **確認項目**:
-- ✓ popup が 90% サイズで表示される
+- ✓ popup が 98% サイズで表示される
 - ✓ 現在のディレクトリで lazygit が起動する
 - ✓ Nerd Fonts アイコンが表示される
+- ✓ 英語表示になっている
 - ✓ `q` キーで popup が閉じる
 - ✓ 元のペインに戻る
 
@@ -317,11 +313,8 @@ tmux セッション内で `Ctrl+E` → `g` を押します。
 # lg エイリアス
 lg
 
-# lgg 関数
-lgg ~/Project/Personal/dotfiles
-
-# lgf 関数
-lgf
+# fz lazygit サブコマンド
+fz lazygit
 ```
 
 ### 5. Git 操作の確認
@@ -380,9 +373,9 @@ lazygit は自動的に `~/.config/lazygit/` を探すので、通常は問題�
 export XDG_CONFIG_HOME="$HOME/.config"
 ```
 
-### zsh 関数が読み込まれない
+### lg エイリアスや fz lazygit が使えない
 
-**原因**: `.zshrc` の再読み込みが必要
+**原因**: `.zshrc` や fz 関数の再読み込みが必要
 
 **対処**:
 ```bash
@@ -390,6 +383,12 @@ source ~/.zshrc
 ```
 
 または新しいシェルセッションを開始。
+
+fz 関数の確認:
+```bash
+which fz
+# fz is a shell function from /Users/yuya.matsushima/.zsh/functions/fz
+```
 
 ## 将来の拡張
 
@@ -443,15 +442,17 @@ gui:
 
 ### 4. 複数の popup サイズ
 
-異なるサイズの popup を追加：
+異なるサイズの popup を追加（必要に応じて）：
 
 ```tmux
-# フルスクリーン
+# フルスクリーン（Shift+G）
 bind G display-popup -d '#{pane_current_path}' -w100% -h100% -E lazygit
 
-# 小さいサイズ
-bind C-g display-popup -d '#{pane_current_path}' -w70% -h70% -E lazygit
+# 小さいサイズ（Ctrl+G）
+bind C-g display-popup -d '#{pane_current_path}' -w80% -h80% -E lazygit
 ```
+
+デフォルトの 98% サイズで十分な場合は不要です。
 
 ### 5. Git commit template
 
