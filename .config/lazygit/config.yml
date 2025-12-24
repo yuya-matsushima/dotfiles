@@ -2,6 +2,8 @@
 # See: https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
 
 gui:
+  # Language setting
+  language: "en"
   # Use Nerd Fonts icons
   showIcons: true
   nerdFontsVersion: "3"
