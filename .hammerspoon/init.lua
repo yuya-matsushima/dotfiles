@@ -20,7 +20,7 @@ end
 
 -- Determine Terminal App (Ghostty or Alacritty)
 local terminalApp = "Alacritty"
-if application.pathForName and application.pathForName("Ghostty") then
+if hs.application.infoForBundleID("com.mitchellh.ghostty") ~= nil then
   terminalApp = "Ghostty"
 end
 
