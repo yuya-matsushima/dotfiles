@@ -18,8 +18,14 @@ local toggleApp = function(appName)
   end
 end
 
+-- Determine Terminal App (Ghostty or Alacritty)
+local terminalApp = "Alacritty"
+if application.pathForName and application.pathForName("Ghostty") then
+  terminalApp = "Ghostty"
+end
+
 -- US MacBook Pro
-hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp("Alacritty") end)
+hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp(terminalApp) end)
 hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
 hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
 hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
