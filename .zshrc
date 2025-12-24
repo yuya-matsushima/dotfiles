@@ -140,6 +140,7 @@ if (( $+commands[asdf] )); then
 fi
 (( $+commands[awsume] )) && alias awsume="source awsume"
 (( $+commands[direnv] )) && eval "$(direnv hook zsh)"
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh --cmd cd)"
 # Use GNU grep if available (for personal use only)
 (( $+commands[ggrep] )) && alias ggrep="$HOMEBREW_PREFIX/bin/ggrep"
 if (( $+commands[git] )); then
@@ -168,6 +169,9 @@ fi
 if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
   [ -f "$HOME/.zsh/fzf.zsh" ] && source "$HOME/.zsh/fzf.zsh"
+fi
+if (( $+commands[yazi] )); then
+  [ -f "$HOME/.zsh/yazi.zsh" ] && source "$HOME/.zsh/yazi.zsh"
 fi
 
 ## named directories

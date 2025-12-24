@@ -14,6 +14,7 @@ brew install \
           diff-pdf \
           direnv \
           fd \
+          ffmpeg \
           gh \
           git \
           git-secrets \
@@ -21,8 +22,10 @@ brew install \
           gnu-sed \
           gossm \
           grep \
+          font-symbols-only-nerd-font \
           fzf \
           htop \
+          imagemagick \
           jq \
           jnv \
           libpq \
@@ -30,9 +33,12 @@ brew install \
           mysql-client \
           ncurses \
           peco \
+          poppler \
           qrencode \
+          resvg \
           ripgrep \
           sd \
+          sevenzip \
           stern \
           tealdeer \
           the_silver_searcher \
@@ -40,7 +46,9 @@ brew install \
           tmux \
           tree \
           uv \
+          yazi \
           wget \
           zsh \
           zsh-completions \
-          zsh-git-prompt
+          zsh-git-prompt \
+          zoxide

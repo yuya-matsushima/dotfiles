@@ -1,0 +1,12 @@
+# Yazi configuration
+# See: https://yazi-rs.github.io/docs/configuration/yazi
+
+[mgr]
+# Show hidden files by default
+show_hidden = true
+# Sort directories first
+sort_dir_first = true
+
+[preview]
+# Enable image preview
+image_quality = 90

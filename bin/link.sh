@@ -34,6 +34,7 @@ TARGETS=( \
          ".config/alacritty" \
          ".config/ghostty" \
          ".config/nvim" \
+         ".config/yazi" \
          ".hammerspoon" \
        )
 
