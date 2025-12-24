@@ -173,6 +173,7 @@ fi
 if (( $+commands[yazi] )); then
   [ -f "$HOME/.zsh/yazi.zsh" ] && source "$HOME/.zsh/yazi.zsh"
 fi
+(( $+commands[lazygit] )) && alias lg='lazygit'
 
 ## named directories
 OBSIDIAN_VAULT_DIR="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"

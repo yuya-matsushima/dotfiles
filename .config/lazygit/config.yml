@@ -1,0 +1,43 @@
+# Lazygit configuration
+# See: https://github.com/jesseduffield/lazygit/blob/master/docs/Config.md
+
+gui:
+  # Language setting
+  language: "en"
+  # Use Nerd Fonts icons
+  showIcons: true
+  nerdFontsVersion: "3"
+  # Theme
+  theme:
+    activeBorderColor:
+      - green
+      - bold
+    inactiveBorderColor:
+      - white
+    selectedLineBgColor:
+      - blue
+    unstagedChangesColor:
+      - red
+  # Better commit message editing
+  commitLength:
+    show: true
+  # UI preferences
+  showRandomTip: false
+  showCommandLog: true
+  border: rounded
+git:
+  pagers:
+    - colorArg: always
+      pager: ""
+  commit:
+    signOff: false
+    autoWrapCommitMessage: true
+    autoWrapWidth: 72
+  # Respect your .gitconfig settings
+  overrideGpg: false
+  pull:
+    mode: 'rebase'
+  allBranchesLogCmds:
+    - git log --graph --all --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName}} --
+# Custom commands (can be expanded later)
+customCommands: []
