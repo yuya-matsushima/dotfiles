@@ -53,3 +53,17 @@
 | `Prefix` + `r` | `.tmux.conf` のリロード | `.tmux.conf` |
 | `Prefix` + `g` | `lazygit` をポップアップウィンドウで開く | `.tmux.conf` |
 | `C-z` | Prefixキーを内側のアプリケーションに送信 | `.tmux.conf` |
+
+### キーバインド注意事項
+
+#### Ctrl+E の競合について
+
+**問題**: Ctrl+E は tmux の Prefix キーとして設定されているため、tmux 内で zsh の「行末に移動」機能が使えません。
+
+**回避方法**:
+- tmux 内で zsh の Ctrl+E (end-of-line) を使いたい場合: `Ctrl+Z` → `Ctrl+E`
+- `Ctrl+Z` は send-prefix として設定されており、次のキーを tmux ではなく zsh に送ります
+
+**代替手段**:
+- Vi モードを活用: `ESC` → `$` で行末に移動
+- macOS の End キーを使用（Fn + →）

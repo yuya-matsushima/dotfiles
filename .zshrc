@@ -72,7 +72,7 @@ bindkey '\e\e' vi-cmd-mode
 
 # move locator
 bindkey '^a' beginning-of-line
-bindkey '^e' end-of-line
+bindkey '^e' end-of-line  # Note: Inside tmux, use Ctrl+Z Ctrl+E due to prefix conflict
 
 # historical backward/forward search with linehead string binded to ^P/^N
 autoload history-search-end
