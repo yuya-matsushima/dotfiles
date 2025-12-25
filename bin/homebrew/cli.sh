@@ -41,9 +41,9 @@ brew install \
           sd \
           sevenzip \
           stern \
-          tealdeer \
           the_silver_searcher \
           tig \
+          tldr \
           tmux \
           tree \
           uv \
