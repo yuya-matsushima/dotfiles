@@ -401,9 +401,9 @@ which fz
 ```yaml
 customCommands:
   - key: 'P'
-    command: 'gh pr create --assignee @me --label "Claude Code"'
+    command: 'gh pr create --assignee @me'
     context: 'global'
-    description: 'Create PR with Claude Code label'
+    description: 'Create PR'
 
   - key: 'C'
     command: 'gh pr view --web'

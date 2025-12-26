@@ -20,7 +20,7 @@ argument-hint: [--auto]
 3. **Execution Logic**:
    - **If AUTO_MODE is detected**:
      - Push the current branch: `git push origin HEAD`
-     - Create the PR immediately: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me --label "Claude Code"`
+     - Create the PR immediately: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me`
      - Show the final PR URL and summary
    - **Otherwise**:
      - Display the drafted PR title and body
