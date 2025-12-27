@@ -1,16 +1,33 @@
-description = "Create a high-quality GitHub Pull Request (use --auto to skip confirmation)"
+description = "Create a high-quality GitHub Pull Request (use [base-branch] [--auto])"
 
 prompt = """
 ## Arguments
 {{args}}
+
+## Base Branch Determination
+
+1. **Parse arguments**:
+   - Check for "--auto" flag
+   - Extract base branch (first non-flag argument from arguments):
+     - Remove "--auto" from arguments to get the branch name
+     - If branch name is specified, validate: `git rev-parse --verify <branch> 2>/dev/null`
+     - If branch doesn't exist, display: "Branch '<branch>' not found. Use default detection? (y/n)"
+     - If user declines (n), exit without creating PR
+
+2. **Auto-detect if no branch name is specified**:
+   - Try in order: develop → main → master
+   - Use first that exists via: `git rev-parse --verify <branch_name> 2>/dev/null`
+   - If none exist, fallback to: main
+
+3. **Store as** `$BASE_BRANCH` for use in subsequent git commands
 
 ## Instructions
 
 1. **Auto mode detection**: Check if the arguments contain "--auto" flag.
 
 2. **Analyze Current Changes**:
-   - Run `git diff main...HEAD` to understand exactly what was changed in this branch
-   - Run `git log main...HEAD --oneline` to review the commit history and understand the context
+   - Run `git diff $BASE_BRANCH...HEAD` to understand exactly what was changed in this branch
+   - Run `git log $BASE_BRANCH...HEAD --oneline` to review the commit history and understand the context
 
 3. **Context Check**: Look for an `AGENTS.md` file in the root directory.
 

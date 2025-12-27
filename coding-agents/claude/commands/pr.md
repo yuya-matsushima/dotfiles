@@ -1,16 +1,29 @@
 ---
 description: Create a high-quality GitHub Pull Request (use --auto to skip confirmation)
-argument-hint: [--auto]
+argument-hint: [<base-branch>] [--auto]
 ---
 
 # Pull Request Creation Command
 
 ## Instructions
 
-**Auto mode detection**: Check if $ARGUMENTS contains "--auto" flag.
+**Argument Parsing**:
+- Check if $ARGUMENTS contains "--auto" flag for auto mode
+- Extract base branch from $ARGUMENTS (first non-flag argument):
+  - Remove "--auto" from arguments to get the branch name
+  - If branch name is specified:
+    - Validate branch exists: `git rev-parse --verify <branch> 2>/dev/null`
+    - If invalid, ask user: "Branch '<branch>' not found. Use default branch detection? (y/n)"
+    - If no (n), exit without creating PR
+  - If no branch name is specified, auto-detect base branch:
+    1. Check `git rev-parse --verify develop 2>/dev/null` → use 'develop' if exists
+    2. Check `git rev-parse --verify main 2>/dev/null` → use 'main' if exists
+    3. Check `git rev-parse --verify master 2>/dev/null` → use 'master' if exists
+    4. If none exist, use 'main' as fallback
+
 1. **Analyze Changes**:
-   - Run `git diff main...HEAD` (or the base branch) to understand exactly what was changed.
-   - Review the commit history to understand the context.
+   - Run `git diff $BASE_BRANCH...HEAD` to understand exactly what was changed.
+   - Run `git log $BASE_BRANCH...HEAD --oneline` to review the commit history and understand the context.
 2. **Context Check**:
    - Read `CLAUDE.md` if it exists.
    - **Language Selection for PR**:
