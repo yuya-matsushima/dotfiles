@@ -1,0 +1,45 @@
+description = "Create a high-quality GitHub Pull Request (use --auto to skip confirmation)"
+
+prompt = """
+## Arguments
+{{args}}
+
+## Instructions
+
+1. **Auto mode detection**: Check if the arguments contain "--auto" flag.
+
+2. **Analyze Current Changes**:
+   - Run `git diff main...HEAD` to understand exactly what was changed in this branch
+   - Run `git log main...HEAD --oneline` to review the commit history and understand the context
+
+3. **Context Check**: Look for an `AGENTS.md` file in the root directory.
+
+4. **Language Selection for PR**:
+   - IF `AGENTS.md` contains specific language rules for PR (English specification), follow them.
+   - ELSE (or if no specific rules are found), use **Japanese** as the default language for PR title and body.
+
+5. **Draft PR Content**:
+   - **Title**: Create a concise, descriptive title following Conventional Commit format
+     - Examples (Japanese): `feat: ユーザー認証機能を追加`, `fix: ログイン時のバグを修正`
+     - Examples (English): `feat: add user authentication logic`, `fix: resolve login bug`
+   - **Body**: Write a professional PR description in Markdown. Include:
+     - **Summary**: What does this PR do? (1-2 sentences)
+     - **Key Changes**: Bullet points of technical changes
+     - **Impact**: Any potential side effects or areas to review
+
+6. **Execution Logic**:
+   - **If arguments contain "--auto"**:
+     - Execute: `git push origin HEAD` to push the current branch
+     - Execute: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me` to create the PR
+     - Display the final PR URL and summary of what was done
+   - **Otherwise (Interactive mode)**:
+     - Display the drafted PR title and body
+     - Show the exact commands that would be executed:
+       ```
+       git push origin HEAD
+       gh pr create --title "[Title]" --body "[Body]" --assignee @me
+       ```
+     - Ask: "このPRを作成しますか？ (y/n)" (or in English if applicable: "Do you want to create this PR? (y/n)")
+     - If confirmed (y), execute the commands above
+     - If denied (n), cancel without any changes
+"""
