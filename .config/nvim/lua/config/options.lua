@@ -145,3 +145,15 @@ g.has_external_us_keyboard = #external_keyboard > 0
 if g.has_external_us_keyboard then
   g.keyboard_type = 'US'
 end
+
+-- ============================================================================
+-- MOUSE SETTINGS
+-- ============================================================================
+
+-- Enable mouse in all modes (visual, normal, insert, command-line)
+-- This allows:
+-- 1. Mouse selection and copying in visual mode
+-- 2. Window/pane focus with mouse clicks
+-- 3. Seamless integration with terminal emulator's auto-copy feature
+-- 4. Compatible with tmux mouse mode (set -g mouse on)
+opt.mouse = 'a'
