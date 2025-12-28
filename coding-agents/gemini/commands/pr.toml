@@ -17,7 +17,7 @@ prompt = """
 2. **Auto-detect if no branch name is specified**:
    - Try in order: develop → main → master
    - Use first that exists via: `git rev-parse --verify <branch_name> 2>/dev/null`
-   - If none exist, fallback to: main
+   - If none exist, show error: "Error: No default base branch found (tried: develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
 
 3. **Store as** `$BASE_BRANCH` for use in subsequent git commands
 
