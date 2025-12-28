@@ -27,6 +27,8 @@ Check if $ARGUMENTS contains "--auto" flag.
    - Run `git log $BASE_BRANCH...HEAD --oneline` to review the commit history and understand context
 3. **Context Check**:
    - Read `AGENTS.md` if it exists (not CLAUDE.md, as codex agents follow AGENTS.md)
+   - Run `git status -sb` and ensure the working tree is clean before creating a PR
+   - (Optional, network) If available, prefer the remote default branch (e.g., `gh repo view --json defaultBranchRef`) over local heuristics
    - **Language Selection for PR**:
      - If `AGENTS.md` contains specific language rules for PR (e.g., English specification), follow them
      - Otherwise, default to **Japanese** as per AGENTS.md mandate: "すべての回答は日本語で記述すること" (all responses in Japanese)
@@ -34,7 +36,7 @@ Check if $ARGUMENTS contains "--auto" flag.
 4. **Draft PR Content**:
    - **Title**: Create a concise, descriptive title following Conventional Commit format
      - Use format: `<type>(<scope>): <summary>` or `<type>: <summary>` if no scope
-     - Max 50 characters (per AGENTS.md requirement)
+     - Keep it concise; do not enforce a hard limit unless AGENTS.md explicitly requires it
      - Types: feat, fix, docs, refactor, style, test, perf, chore
      - Examples (Japanese): `feat: ユーザー認証機能を追加`, `fix: ログイン時のバグを修正`
      - Examples (English, if specified in AGENTS.md): `feat: add user authentication logic`, `fix: resolve login bug`
@@ -42,9 +44,11 @@ Check if $ARGUMENTS contains "--auto" flag.
      - **Summary**: 1-2 sentences describing what this PR accomplishes
      - **Key Changes**: Bullet points listing technical changes (3-5 bullets)
      - **Impact**: Potential side effects, areas requiring review, testing notes
+     - **Verification**: Commands or manual checks performed (as required by AGENTS.md)
    - **Language**: Use Japanese by default (per AGENTS.md), or English if AGENTS.md specifies
 5. **Execution Logic**:
    - **If AUTO_MODE is detected (--auto flag present)**:
+     - Display a brief summary (title, key changes, and a short diff summary) before executing
      - Push the current branch: `git push origin HEAD`
      - Create the PR: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me`
      - Display the final PR URL and summary
