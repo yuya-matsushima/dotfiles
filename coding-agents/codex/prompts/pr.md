@@ -20,7 +20,7 @@ Check if $ARGUMENTS contains "--auto" flag.
        1. Check `git rev-parse --verify develop 2>/dev/null` → use 'develop' if exists
        2. Check `git rev-parse --verify main 2>/dev/null` → use 'main' if exists
        3. Check `git rev-parse --verify master 2>/dev/null` → use 'master' if exists
-       4. If none exist, use 'main' as fallback
+       4. If none exist, show error: "Error: No default base branch found (tried: develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
    - Store resolved base branch in $BASE_BRANCH variable for use in subsequent steps
 2. **Analyze Changes**:
    - Run `git diff $BASE_BRANCH...HEAD` to understand what was changed
