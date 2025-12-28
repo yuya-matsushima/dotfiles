@@ -16,6 +16,10 @@ prompt = """
    - Format: `<type>(<scope>): <subject>` (Subject in Japanese if not specified).
    - Provide a body explaining the "Why" if the change is significant.
 6. **Execution Logic**:
-   - If arguments contain "--auto": Execute `git commit -m "[message]"` immediately without asking for confirmation. Display the commit message after execution.
-   - Otherwise: Show the proposed message, show the command `git commit -m "[message]"`, and ask "Apply this commit? (y/n)"
+   - **Check for Auto Mode**: Does the argument list explicitly contain the substring "--auto"?
+     - **YES**: Execute `git commit -m "[message]"` immediately.
+     - **NO** (Default): You MUST NOT execute the command yet. Instead:
+       1. Display the proposed commit message.
+       2. Display the command to be run.
+       3. Ask the user: "Apply this commit? (y/n)"
 """
