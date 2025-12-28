@@ -19,15 +19,17 @@ prompt = """
    - Use first that exists via: `git rev-parse --verify <branch_name> 2>/dev/null`
    - If none exist, show error: "Error: No default base branch found (tried: develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
 
-3. **Store as** `$BASE_BRANCH` for use in subsequent git commands
+3. **Result**:
+   - Remember the determined base branch name (e.g., `main`, `develop`) for use in subsequent steps.
+   - **Important**: Do not assume shell variables (like `$BASE_BRANCH`) persist between commands. Use the actual branch name explicitly.
 
 ## Instructions
 
 1. **Auto mode detection**: Check if the arguments contain "--auto" flag.
 
 2. **Analyze Current Changes**:
-   - Run `git diff $BASE_BRANCH...HEAD` to understand exactly what was changed in this branch
-   - Run `git log $BASE_BRANCH...HEAD --oneline` to review the commit history and understand the context
+   - Run `git diff <base_branch>...HEAD` (replace `<base_branch>` with the actual determined branch name)
+   - Run `git log <base_branch>...HEAD --oneline` to review the commit history and understand the context
 
 3. **Context Check**: Look for an `AGENTS.md` file in the root directory.
 
