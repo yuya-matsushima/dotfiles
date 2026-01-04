@@ -12,6 +12,7 @@ brew install --cask \
           aqua-voice \
           chromedriver \
           deskpad \
+          ghostty \
           keycastr \
           spotify \
           zoom
