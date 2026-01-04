@@ -33,6 +33,7 @@ brew install \
           make \
           mysql-client \
           ncurses \
+          neovim \
           peco \
           poppler \
           qrencode \
