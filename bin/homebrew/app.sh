@@ -3,7 +3,6 @@
 set -e
 
 brew install --cask \
-          alacritty \
           docker \
           displayplacer \
           firefox \
