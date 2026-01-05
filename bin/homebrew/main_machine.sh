@@ -9,9 +9,7 @@ brew install --cask \
           1passsword-cli \
           appcleaner \
           aqua-voice \
-          chromedriver \
           deskpad \
           ghostty \
           keycastr \
-          spotify \
           zoom
