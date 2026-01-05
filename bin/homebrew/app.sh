@@ -8,6 +8,7 @@ brew install --cask \
           displayplacer \
           firefox \
           google-chrome \
+          google-chrome@beta \
           google-japanese-ime \
           hammerspoon \
           macvim \
