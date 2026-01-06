@@ -44,7 +44,6 @@ brew install \
           sd \
           sevenzip \
           stern \
-          the_silver_searcher \
           tig \
           tldr \
           tmux \

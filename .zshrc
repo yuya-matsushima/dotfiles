@@ -153,7 +153,6 @@ if (( $+commands[erd] )); then
   alias tree='erd --color=auto'
   alias erdless='erd --color=force | less -R'
 fi
-alias agless='ag --pager="less -XgmR"'
 (( $+commands[rg] )) && alias rgless='rg --pcre2 --pretty --context 2 --no-heading --color=always'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
 (( $+commands[bat] )) && alias cat='bat --style=plain --paging=never'
