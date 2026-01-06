@@ -155,7 +155,7 @@ if (( $+commands[erd] )); then
 fi
 (( $+commands[rg] )) && alias rgless='rg --pcre2 --pretty --context 2 --no-heading --color=always'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
-(( $+commands[bat] )) && alias cat='bat --style=plain --paging=never'
+(( $+commands[bat] )) && alias cat='bat --style=plain --paging=never' # cat互換だがバイナリ/巨大ファイルでは遅くなる場合あり
 if (( $+commands[asdf] )); then
   local asdf_path="$(brew --prefix asdf 2>/dev/null)/libexec/asdf.sh"
   [[ -f "$asdf_path" ]] && . "$asdf_path"

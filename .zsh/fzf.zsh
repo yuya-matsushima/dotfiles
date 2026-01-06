@@ -16,7 +16,7 @@ export FZF_DEFAULT_OPTS='
 export FZF_PREVIEW_COMMAND='
   if [[ -d {} ]]; then
     if command -v erd >/dev/null 2>&1; then
-      erd -C {} | head -100
+      erd --color=auto {} | head -100
     elif command -v eza >/dev/null 2>&1; then
       eza --tree --color=always {} | head -100
     else
