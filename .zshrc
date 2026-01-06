@@ -154,6 +154,7 @@ if (( $+commands[go] )); then
 fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
+(( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 (( $+commands[nvim] )) && alias ni="nvim"
