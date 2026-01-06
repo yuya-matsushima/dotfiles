@@ -121,19 +121,42 @@ setopt complete_aliases     # aliased ls needs if file/dir completions work
 
 case "${OSTYPE}" in
 freebsd*|darwin*)
-    alias ls="ls -G -w"
+    if (( $+commands[eza] )); then
+      alias ls="eza"
+      alias la="eza -a"
+      alias ll="eza -l --time-style=long-iso"
+      alias lt="eza --sort=modified"
+    else
+      alias ls="ls -G -w"
+      alias la="ls -a"
+      alias ll="ls -l"
+      alias lt="ls -t"
+    fi
     ;;
 linux*)
-    alias ls="ls --color"
+    if (( $+commands[eza] )); then
+      alias ls="eza"
+      alias la="eza -a"
+      alias ll="eza -l --time-style=long-iso"
+      alias lt="eza --sort=modified"
+    else
+      alias ls="ls --color"
+      alias la="ls -a"
+      alias ll="ls -l"
+      alias lt="ls -t"
+    fi
     ;;
 esac
 alias l="ls"
-alias la="ls -a"
-alias ll="ls -l"
-alias lt="ls -t"
 alias j="jobs -l"
+if (( $+commands[erd] )); then
+  alias tree='erd --color=auto'
+  alias erdless='erd --color=force | less -R'
+fi
 alias agless='ag --pager="less -XgmR"'
+(( $+commands[rg] )) && alias rgless='rg --pcre2 --pretty --context 2 --no-heading --color=always'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
+(( $+commands[bat] )) && alias cat='bat --style=plain --paging=never'
 if (( $+commands[asdf] )); then
   local asdf_path="$(brew --prefix asdf 2>/dev/null)/libexec/asdf.sh"
   [[ -f "$asdf_path" ]] && . "$asdf_path"

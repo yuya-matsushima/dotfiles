@@ -14,6 +14,7 @@ brew install \
           diff-pdf \
           direnv \
           fd \
+          eza \
           ffmpeg \
           gh \
           git \
@@ -39,6 +40,7 @@ brew install \
           qrencode \
           resvg \
           ripgrep \
+          erdtree \
           sd \
           sevenzip \
           stern \
