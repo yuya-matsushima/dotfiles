@@ -122,10 +122,10 @@ setopt complete_aliases     # aliased ls needs if file/dir completions work
 case "${OSTYPE}" in
 freebsd*|darwin*)
     if (( $+commands[eza] )); then
-      alias ls="eza"
-      alias la="eza -a"
+      alias ls="eza --time-style=long-iso"
+      alias la="eza -a --time-style=long-iso"
       alias ll="eza -l --time-style=long-iso"
-      alias lt="eza --sort=modified"
+      alias lt="eza --sort=modified --time-style=long-iso"
     else
       alias ls="ls -G -w"
       alias la="ls -a"
@@ -135,10 +135,10 @@ freebsd*|darwin*)
     ;;
 linux*)
     if (( $+commands[eza] )); then
-      alias ls="eza"
-      alias la="eza -a"
+      alias ls="eza --time-style=long-iso"
+      alias la="eza -a --time-style=long-iso"
       alias ll="eza -l --time-style=long-iso"
-      alias lt="eza --sort=modified"
+      alias lt="eza --sort=modified --time-style=long-iso"
     else
       alias ls="ls --color"
       alias la="ls -a"
