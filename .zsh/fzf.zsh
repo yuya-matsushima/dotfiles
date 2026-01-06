@@ -15,7 +15,13 @@ export FZF_DEFAULT_OPTS='
 # プレビューコマンド (Shift+N/P でプレビュー内をスクロール)
 export FZF_PREVIEW_COMMAND='
   if [[ -d {} ]]; then
-    tree -C {} | head -100
+    if command -v erd >/dev/null 2>&1; then
+      erd --color=auto {} | head -100
+    elif command -v eza >/dev/null 2>&1; then
+      eza --tree --color=always {} | head -100
+    else
+      tree -C {} | head -100
+    fi
   elif [[ -f {} ]]; then
     case {} in
       *.jpg|*.jpeg|*.png|*.gif|*.webp) echo "Image: {}" ;;
