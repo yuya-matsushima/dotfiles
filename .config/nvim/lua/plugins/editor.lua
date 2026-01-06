@@ -58,4 +58,99 @@ return {
       })
     end,
   },
+
+  -- Image rendering in terminal
+  {
+    '3rd/image.nvim',
+    ft = 'markdown',
+    config = function()
+      require('image').setup({
+        backend = 'kitty',  -- Ghostty + tmux: Kitty protocol with passthrough
+        tmux_show_only_in_active_window = true,
+        integrations = {
+          markdown = {
+            enabled = true,
+            clear_in_insert_mode = false,
+            download_remote_images = true,
+            only_render_image_at_cursor = false,
+            filetypes = { 'markdown', 'vimwiki' },
+          },
+        },
+        max_width = nil,
+        max_height = nil,
+        max_width_window_percentage = nil,
+        max_height_window_percentage = 50,
+        window_overlap_clear_enabled = false,
+        window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', '' },
+      })
+    end,
+  },
+
+  -- Markdown rendering with image support
+  {
+    'MeanderingProgrammer/render-markdown.nvim',
+    ft = 'markdown',
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter',
+      '3rd/image.nvim',
+    },
+    config = function()
+      require('render-markdown').setup({
+        file_types = { 'markdown' },
+        render_modes = { 'n', 'c' },
+        anti_conceal = {
+          enabled = true,
+        },
+        sign = {
+          enabled = false,
+        },
+        heading = {
+          enabled = false,
+        },
+      })
+    end,
+  },
+
+  -- Markdown preview in browser
+  {
+    'iamcco/markdown-preview.nvim',
+    ft = 'markdown',
+    build = 'cd app && npx --yes yarn install',
+    config = function()
+      vim.g.mkdp_auto_start = 0
+      vim.g.mkdp_auto_close = 1
+      vim.g.mkdp_refresh_slow = 0
+      vim.g.mkdp_command_for_global = 0
+      vim.g.mkdp_open_to_the_world = 0
+      vim.g.mkdp_open_ip = ''
+      vim.g.mkdp_browser = ''
+      vim.g.mkdp_echo_preview_url = 0
+      vim.g.mkdp_browserfunc = ''
+      vim.g.mkdp_preview_options = {
+        mkit = {},
+        katex = {},
+        uml = {},
+        maid = {},
+        disable_sync_scroll = 0,
+        sync_scroll_type = 'middle',
+        hide_yaml_meta = 1,
+        sequence_diagrams = {},
+        flowchart_diagrams = {},
+        content_editable = false,
+        disable_filename = 0,
+        toc = {}
+      }
+      vim.g.mkdp_markdown_css = ''
+      vim.g.mkdp_highlight_css = ''
+      vim.g.mkdp_port = ''
+      vim.g.mkdp_page_title = '「${name}」'
+      vim.g.mkdp_filetypes = { 'markdown' }
+      vim.g.mkdp_theme = 'dark'
+
+      -- Keymaps
+      vim.keymap.set('n', '<leader>mp', '<Plug>MarkdownPreview', { desc = 'Markdown Preview' })
+      vim.keymap.set('n', '<leader>ms', '<Plug>MarkdownPreviewStop', { desc = 'Markdown Preview Stop' })
+      vim.keymap.set('n', '<leader>mt', '<Plug>MarkdownPreviewToggle', { desc = 'Markdown Preview Toggle' })
+    end,
+  },
 }
