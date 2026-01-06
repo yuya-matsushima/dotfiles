@@ -72,7 +72,7 @@ return {
             enabled = true,
             clear_in_insert_mode = false,
             download_remote_images = true,
-            only_render_image_at_cursor = false,
+            only_render_image_at_cursor = true,
             filetypes = { 'markdown', 'vimwiki' },
           },
         },
@@ -82,31 +82,6 @@ return {
         max_height_window_percentage = 50,
         window_overlap_clear_enabled = false,
         window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', '' },
-      })
-    end,
-  },
-
-  -- Markdown rendering with image support
-  {
-    'MeanderingProgrammer/render-markdown.nvim',
-    ft = 'markdown',
-    dependencies = {
-      'nvim-treesitter/nvim-treesitter',
-      '3rd/image.nvim',
-    },
-    config = function()
-      require('render-markdown').setup({
-        file_types = { 'markdown' },
-        render_modes = { 'n', 'c' },
-        anti_conceal = {
-          enabled = true,
-        },
-        sign = {
-          enabled = false,
-        },
-        heading = {
-          enabled = false,
-        },
       })
     end,
   },
