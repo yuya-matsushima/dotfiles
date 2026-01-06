@@ -47,7 +47,6 @@ brew install \
           tig \
           tldr \
           tmux \
-          tree \
           uv \
           yazi \
           wget \
