@@ -262,9 +262,13 @@ which less > /dev/null && source $HOME/.zsh/config/less.zsh
 # start tmux via tmx for Alacritty and Ghostty
 if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]]; then
   if [[ "$TERM" == alacritty* ]]; then
-    tmx
+    if ! tmux has-session -t alacritty 2>/dev/null; then
+      tmx alacritty
+    fi
   elif [[ "$TERM" == xterm-ghostty ]]; then
-    tmx ghostty
+    if ! tmux has-session -t ghostty 2>/dev/null; then
+      tmx ghostty
+    fi
   fi
 fi
 
