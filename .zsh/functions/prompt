@@ -1,0 +1,72 @@
+#!/bin/zsh
+
+_ymt_prompt_usage() {
+  cat <<EOF
+prompt is a command to toggle RPROMPT display.
+
+Usage:
+    prompt on          Enable RPROMPT (git status + AWS profile)
+    prompt off         Disable RPROMPT completely
+    prompt toggle      Toggle RPROMPT on/off
+    prompt status      Show current state (default)
+
+Options:
+    --help, -h         Show this help message
+
+Note:
+    This command modifies RPROMPT in the current shell session.
+    When enabled, displays git status and AWS profile ([aws:PROFILE]).
+    When disabled, RPROMPT is completely hidden.
+EOF
+}
+
+_ymt_prompt_status() {
+  if [[ "$RPROMPT" == *'git_super_status'* ]]; then
+    echo "RPROMPT: enabled"
+    return 0
+  else
+    echo "RPROMPT: disabled"
+    return 1
+  fi
+}
+
+_ymt_prompt_on() {
+  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+  echo "RPROMPT enabled"
+}
+
+_ymt_prompt_off() {
+  RPROMPT=''
+  echo "RPROMPT disabled"
+}
+
+_ymt_prompt_toggle() {
+  if _ymt_prompt_status > /dev/null 2>&1; then
+    _ymt_prompt_off
+  else
+    _ymt_prompt_on
+  fi
+}
+
+case "${1:-status}" in
+  on|enable)
+    _ymt_prompt_on
+    ;;
+  off|disable)
+    _ymt_prompt_off
+    ;;
+  toggle)
+    _ymt_prompt_toggle
+    ;;
+  status)
+    _ymt_prompt_status
+    ;;
+  --help|-h|help)
+    _ymt_prompt_usage
+    ;;
+  *)
+    echo "Error: Unknown subcommand '$1'" >&2
+    echo "Run 'prompt --help' for usage." >&2
+    return 1
+    ;;
+esac

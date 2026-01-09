@@ -10,4 +10,8 @@ ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}%{✔%G%}"
 
 # show git status & awsume profile
 # Note: git_super_status function is provided by zsh-git-prompt
-RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+# Set initial RPROMPT only if not already set
+# This allows prompt command settings to persist across sourcing
+if [[ -z "$RPROMPT" ]]; then
+  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+fi
