@@ -144,7 +144,7 @@ alias l="ls"
 alias j="jobs -l"
 if (( $+commands[erd] )); then
   alias tree='erd --color=auto'
-  alias erdless='erd --color=force | less -R'
+  alias treeless='erd --color=force | less -R'
 fi
 (( $+commands[rg] )) && alias rgless='rg --pcre2 --pretty --context 2 --no-heading --color=always'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
