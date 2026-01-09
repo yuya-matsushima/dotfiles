@@ -25,18 +25,11 @@ case ${UID} in
     SPROMPT="%B%{${fg[white]}%}%r is correct? [n,y,a,e]:%{${reset_color}%}%b "
     ;;
 *)
-    # シンプルなプロンプト（個人情報を含まない）
-    if [[ "$TINY_PROMPT" == "1" ]]; then
-        PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
-        PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
-        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-    else
-        PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
-        PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
-        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-        [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-            PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
-    fi
+    PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+    PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
+    SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+    [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+        PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
     ;;
 esac
 
@@ -179,9 +172,6 @@ fi
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 (( $+commands[nvim] )) && alias ni="nvim"
-# Tiny prompt mode for screen recording
-alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
-alias normalprompt='unset TINY_PROMPT && exec zsh'
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
