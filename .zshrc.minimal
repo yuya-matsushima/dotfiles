@@ -25,18 +25,11 @@ case ${UID} in
     SPROMPT="%B%{${fg[white]}%}%r is correct? [n,y,a,e]:%{${reset_color}%}%b "
     ;;
 *)
-    # シンプルなプロンプト（個人情報を含まない）
-    if [[ "$TINY_PROMPT" == "1" ]]; then
-        PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
-        PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
-        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-    else
-        PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
-        PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
-        SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
-        [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
-            PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
-    fi
+    PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+    PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
+    SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+    [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
+        PROMPT="%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') ${PROMPT}"
     ;;
 esac
 
