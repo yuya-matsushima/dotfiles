@@ -2,70 +2,211 @@
 
 _ymt_prompt_usage() {
   cat <<EOF
-prompt is a command to toggle RPROMPT display.
+prompt - Control shell prompt display
 
 Usage:
-    prompt on          Enable RPROMPT (git status + AWS profile)
-    prompt off         Disable RPROMPT completely
-    prompt toggle      Toggle RPROMPT on/off
-    prompt status      Show current state (default)
+    prompt left [on|off|toggle|status]   Control left prompt (PROMPT)
+    prompt right [on|off|toggle|status]  Control right prompt (RPROMPT)
+    prompt [on|off|toggle|status]        Control both prompts
+
+Subcommands:
+    left                                 Control left prompt display
+        on      Show full path in prompt
+        off     Show simple "\$ " prompt (tiny mode)
+        toggle  Switch between modes
+        status  Show current state (default)
+
+    right                                Control right prompt display
+        on      Show git status + AWS profile
+        off     Hide right prompt completely
+        toggle  Switch between modes
+        status  Show current state (default)
+
+Actions (without subcommand):
+    on          Enable both prompts
+    off         Disable both prompts (minimal display)
+    toggle      Toggle both prompts
+    status      Show current state of both prompts (default)
 
 Options:
-    --help, -h         Show this help message
+    --help, -h  Show this help message
+
+Examples:
+    prompt left off          # Minimal left prompt for screen recording
+    prompt right off         # Hide git status
+    prompt off               # Minimal both prompts
+    prompt toggle            # Quick toggle both prompts
 
 Note:
-    This command modifies RPROMPT in the current shell session.
-    When enabled, displays git status and AWS profile ([aws:PROFILE]).
-    When disabled, RPROMPT is completely hidden.
+    Changes take effect immediately in the current shell session.
+    The "left off" mode is useful for screen recordings to hide personal info.
 EOF
 }
 
-_ymt_prompt_status() {
-  if [[ "$RPROMPT" == *'git_super_status'* ]]; then
-    echo "RPROMPT: enabled"
+_ymt_prompt_is_remote() {
+  [[ -n "${REMOTEHOST}${SSH_CONNECTION}" ]]
+  return $?
+}
+
+_ymt_prompt_get_hostname() {
+  if _ymt_prompt_is_remote; then
+    echo "%{${fg[red]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') "
+  else
+    echo ""
+  fi
+}
+
+_ymt_prompt_left_status() {
+  if [[ "$PROMPT" == *'%/'* ]]; then
+    echo "Left prompt: normal (path visible)"
     return 0
   else
-    echo "RPROMPT: disabled"
+    echo "Left prompt: simple (tiny mode)"
     return 1
   fi
 }
 
-_ymt_prompt_on() {
-  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
-  echo "RPROMPT enabled"
+_ymt_prompt_left_on() {
+  local hostname_prefix=""
+  hostname_prefix="$(_ymt_prompt_get_hostname)"
+
+  PROMPT="${hostname_prefix}%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+  PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
+  SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+
+  echo "Left prompt enabled (path visible)"
 }
 
-_ymt_prompt_off() {
-  RPROMPT=''
-  echo "RPROMPT disabled"
+_ymt_prompt_left_off() {
+  PROMPT="%{${fg[cyan]}%}$ %{${reset_color}%}"
+  PROMPT2="%{${fg[red]}%}> %{${reset_color}%}"
+  SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
+
+  echo "Left prompt disabled (simple mode)"
 }
 
-_ymt_prompt_toggle() {
-  if _ymt_prompt_status > /dev/null 2>&1; then
-    _ymt_prompt_off
+_ymt_prompt_left_toggle() {
+  if _ymt_prompt_left_status > /dev/null 2>&1; then
+    _ymt_prompt_left_off
   else
-    _ymt_prompt_on
+    _ymt_prompt_left_on
+  fi
+}
+
+_ymt_prompt_right_status() {
+  if [[ "$RPROMPT" == *'git_super_status'* ]]; then
+    echo "Right prompt: enabled"
+    return 0
+  else
+    echo "Right prompt: disabled"
+    return 1
+  fi
+}
+
+_ymt_prompt_right_on() {
+  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+  echo "Right prompt enabled"
+}
+
+_ymt_prompt_right_off() {
+  RPROMPT=''
+  echo "Right prompt disabled"
+}
+
+_ymt_prompt_right_toggle() {
+  if _ymt_prompt_right_status > /dev/null 2>&1; then
+    _ymt_prompt_right_off
+  else
+    _ymt_prompt_right_on
+  fi
+}
+
+_ymt_prompt_both_status() {
+  _ymt_prompt_left_status
+  _ymt_prompt_right_status
+}
+
+_ymt_prompt_both_on() {
+  _ymt_prompt_left_on
+  _ymt_prompt_right_on
+}
+
+_ymt_prompt_both_off() {
+  _ymt_prompt_left_off
+  _ymt_prompt_right_off
+}
+
+_ymt_prompt_both_toggle() {
+  if _ymt_prompt_left_status > /dev/null 2>&1 || _ymt_prompt_right_status > /dev/null 2>&1; then
+    _ymt_prompt_both_off
+  else
+    _ymt_prompt_both_on
   fi
 }
 
 case "${1:-status}" in
+  left)
+    case "${2:-status}" in
+      on|enable)
+        _ymt_prompt_left_on
+        ;;
+      off|disable)
+        _ymt_prompt_left_off
+        ;;
+      toggle)
+        _ymt_prompt_left_toggle
+        ;;
+      status)
+        _ymt_prompt_left_status
+        ;;
+      *)
+        echo "Error: Unknown action '$2' for 'left'" >&2
+        echo "Valid actions: on, off, toggle, status" >&2
+        echo "Run 'prompt --help' for usage." >&2
+        return 1
+        ;;
+    esac
+    ;;
+  right)
+    case "${2:-status}" in
+      on|enable)
+        _ymt_prompt_right_on
+        ;;
+      off|disable)
+        _ymt_prompt_right_off
+        ;;
+      toggle)
+        _ymt_prompt_right_toggle
+        ;;
+      status)
+        _ymt_prompt_right_status
+        ;;
+      *)
+        echo "Error: Unknown action '$2' for 'right'" >&2
+        echo "Valid actions: on, off, toggle, status" >&2
+        echo "Run 'prompt --help' for usage." >&2
+        return 1
+        ;;
+    esac
+    ;;
   on|enable)
-    _ymt_prompt_on
+    _ymt_prompt_both_on
     ;;
   off|disable)
-    _ymt_prompt_off
+    _ymt_prompt_both_off
     ;;
   toggle)
-    _ymt_prompt_toggle
+    _ymt_prompt_both_toggle
     ;;
   status)
-    _ymt_prompt_status
+    _ymt_prompt_both_status
     ;;
   --help|-h|help)
     _ymt_prompt_usage
     ;;
   *)
     echo "Error: Unknown subcommand '$1'" >&2
+    echo "Valid subcommands: left, right, on, off, toggle, status" >&2
     echo "Run 'prompt --help' for usage." >&2
     return 1
     ;;

@@ -179,9 +179,6 @@ fi
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 (( $+commands[nvim] )) && alias ni="nvim"
-# Tiny prompt mode for screen recording
-alias tinyprompt='export TINY_PROMPT=1 && exec zsh'
-alias normalprompt='unset TINY_PROMPT && exec zsh'
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'

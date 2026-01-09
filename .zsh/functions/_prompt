@@ -1,13 +1,46 @@
 #compdef prompt
 
-local -a subcmds
-subcmds=(
-  'on:enable RPROMPT display'
-  'enable:enable RPROMPT display'
-  'off:disable RPROMPT display'
-  'disable:disable RPROMPT display'
-  'toggle:toggle RPROMPT on/off'
-  'status:show current state'
-)
+_prompt() {
+  local -a actions
+  actions=(
+    'on:enable display'
+    'enable:enable display'
+    'off:disable display'
+    'disable:disable display'
+    'toggle:toggle on/off'
+    'status:show current state'
+  )
 
-_describe 'command' subcmds
+  local -a subcmds
+  subcmds=(
+    'left:control left prompt (PROMPT)'
+    'right:control right prompt (RPROMPT)'
+  )
+
+  local -a help_opts
+  help_opts=(
+    '--help:show help message'
+    '-h:show help message'
+    'help:show help message'
+  )
+
+  if (( CURRENT == 2 )); then
+    # First argument: combine all options and use _describe
+    local -a all_options
+    all_options=(
+      $subcmds
+      $actions
+      $help_opts
+    )
+    _describe 'command' all_options
+  elif (( CURRENT == 3 )); then
+    # Second argument: action for left/right subcommands
+    case "$words[2]" in
+      left|right)
+        _describe 'action' actions
+        ;;
+    esac
+  fi
+}
+
+_prompt "$@"
