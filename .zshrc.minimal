@@ -129,7 +129,10 @@ fi
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
-(( $+commands[nvim] )) && alias ni="nvim"
+if (( $+commands[nvim] )); then
+  alias ni="nvim"
+  alias vi="nvim"
+fi
 # Use local claude installation if available
 [[ -x "$HOME/.claude/local/claude" ]] && alias claude="$HOME/.claude/local/claude"
 # tinyvim: vim with minimal configuration

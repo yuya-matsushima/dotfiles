@@ -171,7 +171,10 @@ fi
 (( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
-(( $+commands[nvim] )) && alias ni="nvim"
+if (( $+commands[nvim] )); then
+  alias ni="nvim"
+  alias vi="nvim"
+fi
 # tinyvim: vim with minimal configuration
 if [[ -f "$HOME/.vimrc.minimal" || -L "$HOME/.vimrc.minimal" ]]; then
   alias tinyvim='vim -u "$HOME/.vimrc.minimal"'
