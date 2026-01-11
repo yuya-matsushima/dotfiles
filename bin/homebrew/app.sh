@@ -11,6 +11,7 @@ brew install --cask \
           google-japanese-ime \
           hammerspoon \
           macvim \
+          vimr \
           microsoft-edge \
           dbeaver-community \
           slack \

@@ -62,6 +62,21 @@ autocmd('BufWritePre', {
 - `.nvim_local.lua` は Lua 構文で記述する必要があります (VimScript は使用できません)
 - プラグインの追加は lazy.nvim の仕組み上困難です (既存プラグインの設定上書きは可能)
 
+#### VimR
+
+`~/.ginit_local.vim` を作成すると, `ginit.vim` の読み込み後に自動的に source されます。
+
+```vim
+" 例: VimR 固有のフォント設定
+VimRSetFontAndSize "SF Mono", 16
+VimRSetLinespacing 1.2
+```
+
+**注意事項**:
+- VimR は Neovim の GUI クライアントのため, `~/.config/nvim/init.lua` の設定を共有します
+- `ginit.vim` は VimScript で記述する必要があります (Lua は使用できません)
+- VimR 固有のコマンドは `VimRSetFontAndSize` と `VimRSetLinespacing` のみです
+
 ## Git 運用ルール
 
 ### ブランチ運用
