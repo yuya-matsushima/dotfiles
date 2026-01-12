@@ -22,6 +22,7 @@ TARGETS=( \
          ".gitconfig" \
          "_.gitignore" \
          ".tigrc" \
+         ".tmux" \
          ".tmux.conf" \
          ".vim" \
          ".vimrc" \
