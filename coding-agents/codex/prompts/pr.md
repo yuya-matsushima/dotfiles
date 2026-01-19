@@ -50,14 +50,23 @@ Check if $ARGUMENTS contains "--auto" flag.
    - **If AUTO_MODE is detected (--auto flag present)**:
      - Display a brief summary (title, key changes, and a short diff summary) before executing
      - Push the current branch: `git push origin HEAD`
-     - Create the PR: `gh pr create --title "[Generated Title]" --body "[Generated Body]" --assignee @me`
+     - **Safety**: Never pass the PR body directly inside double quotes (backticks will execute). Always write the body to a temp file using a single-quoted heredoc:
+       ```
+       cat <<'EOF' > /tmp/pr-body.md
+       ...body...
+       EOF
+       ```
+     - Create the PR with `gh pr create --title "[Generated Title]" --body-file /tmp/pr-body.md --assignee @me`
      - Display the final PR URL and summary
    - **Otherwise (Interactive mode)**:
      - Display the drafted PR title and body clearly
      - Show the exact commands that would be executed:
        ```
        git push origin HEAD
-       gh pr create --title "[Title]" --body "[Body]" --assignee @me
+       cat <<'EOF' > /tmp/pr-body.md
+       ...body...
+       EOF
+       gh pr create --title "[Title]" --body-file /tmp/pr-body.md --assignee @me
        ```
      - Ask: "このPRを作成しますか？ (y/n)" (Japanese, default per AGENTS.md)
      - If confirmed (y), execute the commands above

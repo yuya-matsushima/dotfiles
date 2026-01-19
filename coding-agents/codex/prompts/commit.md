@@ -20,5 +20,9 @@ Check if $ARGUMENTS contains "--auto" flag.
    - Body: Explain the "Why" behind the changes. If AGENTS.md requires a specific format, follow it.
    - Language: Default to Japanese unless the user explicitly requests another language.
 4. **Execution Logic**:
-   - **If $ARGUMENTS contains "--auto"**: Show the proposed commit message and a brief staged-change summary, then execute `git commit -m "[message]"` without asking for confirmation. Display the commit message after execution.
-   - **Otherwise**: Show the proposed command: `git commit -m "[message]"`, ask for confirmation "Proceed with this commit? (y/n)", and execute only if confirmed.
+   - **Safety**: Never embed backticks or user-generated content directly inside double-quoted shell arguments. Use a temp file to avoid command substitution.
+   - **If $ARGUMENTS contains "--auto"**: Show the proposed commit message and a brief staged-change summary, then:
+     - Write message to a temp file via `cat <<'EOF' > /tmp/commit-msg.txt` (or `mktemp`)
+     - Execute `git commit -F /tmp/commit-msg.txt` without asking for confirmation
+     - Display the commit message after execution
+   - **Otherwise**: Show the proposed command `git commit -F /tmp/commit-msg.txt`, ask for confirmation "Proceed with this commit? (y/n)", and execute only if confirmed.
