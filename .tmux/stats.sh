@@ -31,12 +31,13 @@ get_cpu() {
 # Get Memory usage percentage (0-100%)
 get_memory() {
     local total=$(sysctl -n hw.memsize)
-    local mem_pct=$(vm_stat | awk -v total="$total" '
+    local pagesize=$(getconf PAGESIZE)
+    local mem_pct=$(vm_stat | awk -v total="$total" -v pagesize="$pagesize" '
         /Pages active/ {active=$3}
         /Pages wired/ {wired=$4}
         /Pages occupied by compressor/ {occ=$5}
         END {
-            used=(active+wired+occ)*16384
+            used=(active+wired+occ)*pagesize
             print int(used/total*100)
         }
     ')
