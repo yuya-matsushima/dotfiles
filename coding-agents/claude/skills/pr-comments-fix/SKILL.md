@@ -19,15 +19,46 @@ Automatically collect and categorize PR review comments, then address each one w
 
 ### 2. Collect Review Comments
 
-Fetch comments using these commands:
+Fetch comments using GraphQL for complete data including resolution status:
 
 ```bash
-# PR basic info and review info
-gh pr view <PR> --json reviews,comments,latestReviews,reviewDecision
+# Get repository info
+REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
 
-# Inline comments (with file and line number)
-gh api repos/{owner}/{repo}/pulls/<PR>/comments
+# Fetch review threads with resolution status via GraphQL
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $pr: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $pr) {
+        reviewThreads(first: 100) {
+          nodes {
+            isResolved
+            comments(first: 100) {
+              nodes {
+                author { login }
+                body
+                path
+                line
+                createdAt
+              }
+            }
+          }
+        }
+        reviews(first: 100) {
+          nodes {
+            author { login }
+            body
+            state
+            createdAt
+          }
+        }
+      }
+    }
+  }
+' -f owner="${REPO%/*}" -f repo="${REPO#*/}" -F pr=<PR>
 ```
+
+**Note**: For PRs with >100 comments, use pagination with `after` cursor.
 
 ### 3. Categorize Comments
 
@@ -51,8 +82,8 @@ Categorize by **type of issue** pointed out:
 ### 4. Filtering
 
 Exclude the following comments:
-- **Resolved**: Threads with `isResolved: true`
-- **Own comments**: Matching username from `gh api user`
+- **Resolved**: Threads with `isResolved: true` (from GraphQL reviewThreads)
+- **Own comments**: Matching username from `gh api user -q '.login'`
 - **No Action Required category**: LGTM, +1, approval comments, etc.
 
 ### 5. Triage: Auto vs Manual
