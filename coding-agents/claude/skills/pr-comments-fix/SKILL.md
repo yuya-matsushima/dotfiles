@@ -1,145 +1,145 @@
 ---
 name: pr-comments-fix
-description: PRレビューコメントを収集・分類し、順番に対応する
+description: Collect and categorize PR review comments, then address them sequentially
 argument-hint: [<pr-number>]
 ---
 
 # PR Comments Fix Command
 
-PRレビューコメントを自動収集・分類し、1つずつ対応してコミットする。
+Automatically collect and categorize PR review comments, then address each one with commits.
 
 ## Instructions
 
-### 1. 引数パースとPR番号取得
+### 1. Parse Arguments and Get PR Number
 
-**PR番号の決定**:
-- `$ARGUMENTS` に PR 番号が指定されている場合: その番号を使用
-- 指定がない場合: `gh pr view --json number -q '.number'` で現在ブランチから自動検出
-- PR が見つからない場合: エラーメッセージを表示して終了
+**Determine PR number**:
+- If PR number is specified in `$ARGUMENTS`: use that number
+- If not specified: auto-detect from current branch using `gh pr view --json number -q '.number'`
+- If no PR found: display error message and exit
 
-### 2. レビューコメント収集
+### 2. Collect Review Comments
 
-以下のコマンドでコメントを取得:
+Fetch comments using these commands:
 
 ```bash
-# PR の基本情報とレビュー情報
+# PR basic info and review info
 gh pr view <PR> --json reviews,comments,latestReviews,reviewDecision
 
-# インラインコメント（ファイル・行番号付き）
+# Inline comments (with file and line number)
 gh api repos/{owner}/{repo}/pulls/<PR>/comments
 ```
 
-### 3. コメント分類
+### 3. Categorize Comments
 
-コメントの**指摘内容の種類**に基づいて優先度を分類:
+Categorize by **type of issue** pointed out:
 
-| Priority | カテゴリ | 指摘内容の例 |
-|----------|---------|-------------|
-| 1 | セキュリティ | 脆弱性、認証・認可の問題、機密情報の露出、入力検証の不備 |
-| 2 | バグ・ロジックエラー | 実行時エラー、境界条件の漏れ、null/undefined の未処理、競合状態 |
-| 3 | パフォーマンス | N+1クエリ、不要なループ、メモリリーク、非効率なアルゴリズム |
-| 4 | 保守性・設計 | 責務の分離、重複コード、命名の改善、型定義の追加 |
-| 5 | コードスタイル | フォーマット、lint指摘、コメント追加、import順序 |
-| - | 質問・確認 | 実装意図の確認、仕様の質問（コード変更不要、返信のみ） |
-| - | 対応不要 | LGTM、+1、承認コメント |
+| Priority | Category | Examples |
+|----------|----------|----------|
+| 1 | Security | Vulnerabilities, auth issues, sensitive data exposure, input validation flaws |
+| 2 | Bug / Logic Error | Runtime errors, boundary condition misses, unhandled null/undefined, race conditions |
+| 3 | Performance | N+1 queries, unnecessary loops, memory leaks, inefficient algorithms |
+| 4 | Maintainability / Design | Separation of concerns, duplicate code, naming improvements, type definitions |
+| 5 | Code Style | Formatting, lint issues, comment additions, import order |
+| - | Question / Clarification | Implementation intent, spec questions (no code change needed, reply only) |
+| - | No Action Required | LGTM, +1, approval comments |
 
-**分類の判断基準**:
-- コメントが指摘している問題の**影響度**で判断
-- 文面のキーワード（"must", "should" など）は参考程度
-- 複数カテゴリに該当する場合は、より高い優先度を適用
+**Classification criteria**:
+- Judge by the **impact** of the issue pointed out
+- Keywords in text ("must", "should", etc.) are secondary reference
+- If multiple categories apply, use the higher priority
 
-### 4. フィルタリング
+### 4. Filtering
 
-以下のコメントを除外:
-- **解決済み**: `isResolved: true` のスレッド
-- **自分のコメント**: `gh api user` で取得した自分のユーザー名と一致
-- **対応不要カテゴリ**: LGTM、+1、承認コメントなど
+Exclude the following comments:
+- **Resolved**: Threads with `isResolved: true`
+- **Own comments**: Matching username from `gh api user`
+- **No Action Required category**: LGTM, +1, approval comments, etc.
 
-### 5. 一覧表示
+### 5. Display Summary
 
-分類結果をサマリー表示:
+Show categorized results:
 
 ```
-## PR #<number> レビューコメント
+## PR #<number> Review Comments
 
-### Priority 1: セキュリティ (X件)
-- [ ] auth.ts:42 - "入力値のサニタイズが必要" (@reviewer)
+### Priority 1: Security (X items)
+- [ ] auth.ts:42 - "Input sanitization needed" (@reviewer)
 
-### Priority 2: バグ・ロジックエラー (X件)
-- [ ] handler.ts:78 - "null チェックが漏れている" (@reviewer)
+### Priority 2: Bug / Logic Error (X items)
+- [ ] handler.ts:78 - "Missing null check" (@reviewer)
 
-### Priority 3: パフォーマンス (X件)
-- [ ] query.ts:100 - "N+1 クエリになっている" (@reviewer)
+### Priority 3: Performance (X items)
+- [ ] query.ts:100 - "This is an N+1 query" (@reviewer)
 
-### Priority 4: 保守性・設計 (X件)
-- [ ] service.ts:55 - "この処理は別クラスに切り出すべき" (@reviewer)
+### Priority 4: Maintainability / Design (X items)
+- [ ] service.ts:55 - "This should be extracted to a separate class" (@reviewer)
 
-### Priority 5: コードスタイル (X件)
-- [ ] utils.ts:20 - "変数名を明確にしてほしい" (@reviewer)
+### Priority 5: Code Style (X items)
+- [ ] utils.ts:20 - "Please clarify variable name" (@reviewer)
 
-### 質問・確認 (X件)
-- [ ] config.ts:30 - "この設定値の意図は？" (@reviewer)
+### Question / Clarification (X items)
+- [ ] config.ts:30 - "What's the intent of this setting?" (@reviewer)
 
 ---
-対応対象: X件 / 全体: Y件 (除外: Z件)
+To address: X items / Total: Y items (Excluded: Z items)
 ```
 
-### 6. 順次対応（自動実行）
+### 6. Address Sequentially (Auto-execute)
 
-**常に自動実行モード**: 確認なしで順番に対応を開始
+**Always auto-execute mode**: Start addressing without confirmation
 
-Priority 1 → 2 → 3 → 4 → 5 → 質問 の順で各コメントに対応:
+Address each comment in order: Priority 1 → 2 → 3 → 4 → 5 → Questions
 
-**コード変更が必要な場合** (Priority 1-5):
-1. 該当ファイルを読み込む
-2. コメント内容に従ってコードを修正
-3. 変更をステージング: `git add <file>`
-4. `/commit --auto` を実行（Conventional Commits ルールでコミット）
+**When code changes are needed** (Priority 1-5):
+1. Read the target file
+2. Modify code according to comment
+3. Stage changes: `git add <file>`
+4. Run `/commit --auto` (commits using Conventional Commits rules)
 
-**質問への回答が必要な場合** (質問・確認カテゴリ):
-1. コードを確認して質問に回答
-2. PR にコメントで返信:
+**When reply is needed** (Question / Clarification category):
+1. Review code and answer the question
+2. Reply via PR comment:
    ```bash
-   gh pr comment <PR> --body "<回答内容>"
+   gh pr comment <PR> --body "<reply content>"
    ```
 
-### 7. 最終サマリー
+### 7. Final Summary
 
-すべての対応完了後、サマリーを表示:
+After all items are addressed, display summary:
 
 ```
-## 対応完了
+## Completed
 
-- コード修正: X件
-- コミット作成: Y件
-- 質問への返信: Z件
+- Code fixes: X items
+- Commits created: Y items
+- Questions replied: Z items
 
-### 作成されたコミット:
-- abc1234: fix(review): 〜を修正
-- def5678: fix(review): 〜を追加
+### Created commits:
+- abc1234: fix: resolve null check issue
+- def5678: perf: optimize database query
 ```
 
-### 8. 自動プッシュ
+### 8. Auto Push
 
-変更がある場合、リモートにプッシュ:
+If there are changes, push to remote:
 
 ```bash
 git push origin HEAD
 ```
 
-## 使用例
+## Examples
 
 ```bash
-# 現在のブランチの PR コメントに対応
+# Address comments on current branch's PR
 /pr-comments-fix
 
-# PR 番号を指定して対応
+# Specify PR number
 /pr-comments-fix 123
 ```
 
-## 注意事項
+## Notes
 
-- **自動実行**: すべての対応は確認なしで自動実行される
-- **コミット単位**: 各コメントへの対応は個別のコミットとして作成される
-- **返信形式**: 質問への返信は簡潔かつ技術的に正確な内容にする
-- **対応不可の場合**: 技術的に対応が困難なコメントは、理由を説明するコメントを投稿
+- **Auto-execute**: All actions are executed without confirmation
+- **Commit granularity**: Each comment is addressed with an individual commit
+- **Reply format**: Replies to questions should be concise and technically accurate
+- **When unable to address**: Post a comment explaining why technical resolution is difficult
