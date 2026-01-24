@@ -120,39 +120,13 @@ Show overall assessment and categorized results:
 Auto: X items / Manual: Y items / Total: Z items
 ```
 
-### 7. Select Items to Address
+### 7. Auto-fix: Address Auto-addressable Items
 
-Display interactive checklist for user to select which items to fix:
+**Automatically fix all auto-addressable items without user confirmation.**
 
-```
-## Select items to address
+Process in priority order (P0 -> P1 -> P2 -> P3):
 
-### Auto-addressable
-- [x] 1. src/auth.ts:42-45 - "[P0] SQL injection vulnerability" (P0, confidence: 0.95)
-- [x] 2. src/handler.ts:78-80 - "[P1] Missing null check" (P1, confidence: 0.85)
-- [ ] 3. src/utils.ts:20 - "[P3] Variable naming" (P3, confidence: 0.75)
-
-### Requires Human Decision
-- [ ] 4. src/service.ts:55-70 - "[P2] Consider splitting this service"
-      -> Reason: Low confidence, architecture change
-- [ ] 5. src/api.ts:100-110 - "[P1] Error handling approach unclear"
-      -> Reason: Specification decision required
-
-Enter item numbers to address (e.g., "1,2,4" or "all" or "auto"):
-- all: Address all items (including manual)
-- auto: Address only auto-addressable items (default checked)
-- Numbers: Address specific items only
-```
-
-- Default: All auto-addressable items are pre-checked
-- User can uncheck items to skip, or check manual items to include
-- If user enters nothing or "auto": proceed with pre-checked items only
-
-### 8. Address Selected Items
-
-Address only user-selected items in priority order (P0 -> P1 -> P2 -> P3).
-
-For each selected finding:
+For each auto-addressable finding:
 1. Read the target file at `code_location.file`
 2. Review lines from `line_start` to `line_end`
 3. Modify code according to the finding's `body` description
@@ -187,29 +161,55 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 **Note**: The format and example above describe the expected commit message style. When invoking `/commit --auto`, the commit skill will auto-generate a message following this format based on the staged changes. You do not need to pass the message as an argument.
 
+### 8. Human Decision: Ask About Manual Items
+
+**Only if there are "Requires human decision" items**, ask the user which ones to address:
+
+```
+## Requires Human Decision (Y items)
+
+The following items need your input:
+
+- [ ] 1. src/service.ts:55-70 - "[P2] Consider splitting this service"
+      -> Reason: Low confidence, architecture change
+- [ ] 2. src/api.ts:100-110 - "[P1] Error handling approach unclear"
+      -> Reason: Specification decision required
+
+Enter item numbers to address (e.g., "1,2" or "all" or "skip"):
+- all: Address all items
+- skip: Skip all items (default)
+- Numbers: Address specific items only
+```
+
+- Default: Skip all (user must explicitly opt-in)
+- If user selects items: address them in priority order
+- If user enters "skip" or nothing: proceed to final summary
+
 ### 9. Final Summary
 
-After all selected items are addressed, display summary:
+After all items are processed, display summary:
 
 ```
 ## Completed
 
-- Findings addressed: X items
-- Commits created: Y items
+- Auto-fixed: X items
+- Human decision items addressed: Y items
+- Commits created: Z items
 
 ### Created commits:
 - abc1234: fix(auth): sanitize SQL query parameters
 - def5678: fix(handler): add null check for user input
 
-### Addressed findings:
+### Auto-fixed findings:
 - [x] src/auth.ts:42-45 - "[P0] SQL injection vulnerability"
 - [x] src/handler.ts:78-80 - "[P1] Missing null check"
 
-### Not addressed (requires human decision):
+### Human decision items addressed:
+- [x] src/api.ts:100-110 - "[P1] Error handling approach unclear"
+
+### Skipped (not addressed):
 - src/service.ts:55-70 - "[P2] Consider splitting this service"
   -> Reason: Low confidence, architecture change
-- src/api.ts:100-110 - "[P1] Error handling approach unclear"
-  -> Reason: Specification decision required
 ```
 
 ## Examples
@@ -228,8 +228,9 @@ After all selected items are addressed, display summary:
 ## Notes
 
 - **No PR required**: Works with any branch, compares against base branch
-- **Interactive selection**: User selects which items to address via checklist (Step 7)
+- **Auto-fix by default**: Auto-addressable items are fixed automatically without confirmation
+- **Human decision opt-in**: Items requiring judgment are skipped by default; user must explicitly select
 - **Commit granularity**: Each finding is addressed with an individual commit
 - **Confidence display**: Shows AI confidence score for each finding
 - **Priority order**: Items are processed in priority order (P0 first)
-- **When unable to address**: Skip the item and include in "Not addressed" summary
+- **When unable to address**: Skip the item and include in "Skipped" summary
