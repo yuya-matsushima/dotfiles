@@ -32,6 +32,7 @@ gh api graphql -f query='
       pullRequest(number: $pr) {
         reviewThreads(first: 100) {
           nodes {
+            id
             isResolved
             comments(first: 100) {
               nodes {
@@ -180,16 +181,34 @@ Address only user-selected items in priority order.
 2. Modify code according to comment
 3. Stage changes: `git add <file>`
 4. Run `/commit --auto` (commits using Conventional Commits rules)
+5. Resolve the review thread:
+   ```bash
+   gh api graphql -f query='
+     mutation($threadId: ID!) {
+       resolveReviewThread(input: {threadId: $threadId}) {
+         thread { isResolved }
+       }
+     }
+   ' -f threadId="<thread_id>"
+   ```
 
 **When reply is needed** (Question / Clarification category):
 1. Review code and answer the question
 2. Reply directly to the review thread (not top-level comment):
    ```bash
-   # Get the comment ID from the GraphQL response, then reply to the thread
    gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment_id>/replies \
      -f body="<reply content>"
    ```
-   This keeps the discussion anchored to the original inline comment.
+3. Resolve the review thread:
+   ```bash
+   gh api graphql -f query='
+     mutation($threadId: ID!) {
+       resolveReviewThread(input: {threadId: $threadId}) {
+         thread { isResolved }
+       }
+     }
+   ' -f threadId="<thread_id>"
+   ```
 
 ### 9. Final Summary
 
@@ -201,10 +220,15 @@ After all auto-addressable items are addressed, display summary:
 - Code fixes: X items
 - Commits created: Y items
 - Questions replied: Z items
+- Threads resolved: W items
 
 ### Created commits:
 - abc1234: fix: resolve null check issue
 - def5678: perf: optimize database query
+
+### Resolved threads:
+- ✓ auth.ts:42 - "Input sanitization needed"
+- ✓ handler.ts:78 - "Missing null check"
 
 ### Requires Human Decision (not addressed):
 - service.ts:55 - "Consider splitting this into separate services"
