@@ -19,7 +19,6 @@ Check if $ARGUMENTS contains "--auto" flag.
    - Title: `<type>($SCOPE): <summary>` (Max 50 chars). If no scope is provided, omit `($SCOPE)`.
    - Body: Explain the "Why" behind the changes. If AGENTS.md requires a specific format, follow it.
    - Language: Default to Japanese unless the user explicitly requests another language.
-   - Co-Authored-By: Always end the commit message with `Co-Authored-By: OpenAI Codex <noreply@openai.com>`
 4. **Execution Logic**:
    - **Safety**: Never embed backticks or user-generated content directly inside double-quoted shell arguments. Use a temp file to avoid command substitution.
    - **If $ARGUMENTS contains "--auto"**: Show the proposed commit message and a brief staged-change summary, then:

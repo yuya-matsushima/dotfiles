@@ -15,7 +15,6 @@ prompt = """
    - Use types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`.
    - Format: `<type>(<scope>): <subject>` (Subject in Japanese if not specified).
    - Provide a body explaining the "Why" if the change is significant.
-   - Co-Authored-By: Always end the commit message with `Co-Authored-By: Gemini <noreply@google.com>`
 6. **Execution Logic**:
    - **Check for Auto Mode**: Does the argument list explicitly contain the substring "--auto"?
      - **YES**: Execute `git commit -m "[message]"` immediately.
