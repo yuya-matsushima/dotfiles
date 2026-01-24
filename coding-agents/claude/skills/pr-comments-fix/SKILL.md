@@ -31,14 +31,22 @@ gh api repos/{owner}/{repo}/pulls/<PR>/comments
 
 ### 3. コメント分類
 
-コメントを以下の優先度で分類:
+コメントの**指摘内容の種類**に基づいて優先度を分類:
 
-| Priority | カテゴリ | 判定基準 |
-|----------|---------|---------|
-| 1 | 変更要求 | CHANGES_REQUESTED、"fix", "must", "should", "need to", "required" |
-| 2 | 提案 | "suggest", "consider", "might", "could", "nit", "optional" |
-| 3 | 質問 | "?" で終わる、"why", "how", "what", "can you explain" |
-| 4 | 対応不要 | "LGTM", "+1", "looks good", "approved", "great", "nice" |
+| Priority | カテゴリ | 指摘内容の例 |
+|----------|---------|-------------|
+| 1 | セキュリティ | 脆弱性、認証・認可の問題、機密情報の露出、入力検証の不備 |
+| 2 | バグ・ロジックエラー | 実行時エラー、境界条件の漏れ、null/undefined の未処理、競合状態 |
+| 3 | パフォーマンス | N+1クエリ、不要なループ、メモリリーク、非効率なアルゴリズム |
+| 4 | 保守性・設計 | 責務の分離、重複コード、命名の改善、型定義の追加 |
+| 5 | コードスタイル | フォーマット、lint指摘、コメント追加、import順序 |
+| - | 質問・確認 | 実装意図の確認、仕様の質問（コード変更不要、返信のみ） |
+| - | 対応不要 | LGTM、+1、承認コメント |
+
+**分類の判断基準**:
+- コメントが指摘している問題の**影響度**で判断
+- 文面のキーワード（"must", "should" など）は参考程度
+- 複数カテゴリに該当する場合は、より高い優先度を適用
 
 ### 4. フィルタリング
 
@@ -54,14 +62,23 @@ gh api repos/{owner}/{repo}/pulls/<PR>/comments
 ```
 ## PR #<number> レビューコメント
 
-### Priority 1: 変更要求 (X件)
-- [ ] file.ts:42 - "この処理は〜に変更してください" (@reviewer)
+### Priority 1: セキュリティ (X件)
+- [ ] auth.ts:42 - "入力値のサニタイズが必要" (@reviewer)
 
-### Priority 2: 提案 (X件)
-- [ ] file.ts:100 - "〜した方が良いかもしれません" (@reviewer)
+### Priority 2: バグ・ロジックエラー (X件)
+- [ ] handler.ts:78 - "null チェックが漏れている" (@reviewer)
 
-### Priority 3: 質問 (X件)
-- [ ] file.ts:55 - "なぜこの実装にしたのですか？" (@reviewer)
+### Priority 3: パフォーマンス (X件)
+- [ ] query.ts:100 - "N+1 クエリになっている" (@reviewer)
+
+### Priority 4: 保守性・設計 (X件)
+- [ ] service.ts:55 - "この処理は別クラスに切り出すべき" (@reviewer)
+
+### Priority 5: コードスタイル (X件)
+- [ ] utils.ts:20 - "変数名を明確にしてほしい" (@reviewer)
+
+### 質問・確認 (X件)
+- [ ] config.ts:30 - "この設定値の意図は？" (@reviewer)
 
 ---
 対応対象: X件 / 全体: Y件 (除外: Z件)
@@ -71,9 +88,9 @@ gh api repos/{owner}/{repo}/pulls/<PR>/comments
 
 **常に自動実行モード**: 確認なしで順番に対応を開始
 
-Priority 1 → 2 → 3 の順で各コメントに対応:
+Priority 1 → 2 → 3 → 4 → 5 → 質問 の順で各コメントに対応:
 
-**コード変更が必要な場合** (Priority 1, 2):
+**コード変更が必要な場合** (Priority 1-5):
 1. 該当ファイルを読み込む
 2. コメント内容に従ってコードを修正
 3. 変更をステージング: `git add <file>`
@@ -87,7 +104,7 @@ Priority 1 → 2 → 3 の順で各コメントに対応:
    Co-Authored-By: Claude <noreply@anthropic.com>"
    ```
 
-**質問への回答が必要な場合** (Priority 3):
+**質問への回答が必要な場合** (質問・確認カテゴリ):
 1. コードを確認して質問に回答
 2. PR にコメントで返信:
    ```bash
