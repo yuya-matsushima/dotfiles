@@ -25,5 +25,5 @@ for branch in develop main master; do
 done
 
 # 3. Error
-echo "Error: No default base branch found (tried: upstream, develop, main, master)" >&2
+echo "Error: No default base branch found (tried: upstream, develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" >&2
 exit 1
