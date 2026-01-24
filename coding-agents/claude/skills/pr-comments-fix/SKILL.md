@@ -111,7 +111,25 @@ Show categorized results with triage status:
 Auto: X items / Manual: Y items / Excluded: Z items
 ```
 
-### 7. Address Sequentially (Auto-execute)
+### 7. Confirm Before Starting (if manual items exist)
+
+**If "Requires Human Decision" items exist**:
+
+Display confirmation prompt:
+```
+⚠️  Y items require human decision and will be skipped.
+
+Proceed with auto-fixing X items? (y/n)
+- y: Start auto-fixing auto-addressable items
+- n: Abort and review manual items first
+```
+
+- If user answers `n`: Stop execution and let user review manual items
+- If user answers `y`: Proceed to step 8
+
+**If no manual items exist**: Skip this step and proceed directly to step 8.
+
+### 8. Address Sequentially (Auto-execute)
 
 **Auto-execute for auto-addressable items only**
 
@@ -132,7 +150,7 @@ Skip items marked as "Requires Human Decision".
    gh pr comment <PR> --body "<reply content>"
    ```
 
-### 8. Final Summary
+### 9. Final Summary
 
 After all auto-addressable items are addressed, display summary:
 
@@ -154,7 +172,7 @@ After all auto-addressable items are addressed, display summary:
   → Reason: Specification decision required
 ```
 
-### 9. Auto Push
+### 10. Auto Push
 
 If there are changes, push to remote:
 
