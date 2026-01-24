@@ -35,6 +35,7 @@ gh api graphql -f query='
             isResolved
             comments(first: 100) {
               nodes {
+                databaseId
                 author { login }
                 body
                 path
@@ -182,10 +183,13 @@ Address only user-selected items in priority order.
 
 **When reply is needed** (Question / Clarification category):
 1. Review code and answer the question
-2. Reply via PR comment:
+2. Reply directly to the review thread (not top-level comment):
    ```bash
-   gh pr comment <PR> --body "<reply content>"
+   # Get the comment ID from the GraphQL response, then reply to the thread
+   gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment_id>/replies \
+     -f body="<reply content>"
    ```
+   This keeps the discussion anchored to the original inline comment.
 
 ### 9. Final Summary
 
@@ -229,7 +233,7 @@ git push origin HEAD
 
 ## Notes
 
-- **Auto-execute**: All actions are executed without confirmation
+- **Interactive selection**: User selects which items to address via checklist (Step 7), then selected items are executed without further confirmation
 - **Commit granularity**: Each comment is addressed with an individual commit
 - **Reply format**: Replies to questions should be concise and technically accurate
 - **When unable to address**: Post a comment explaining why technical resolution is difficult
