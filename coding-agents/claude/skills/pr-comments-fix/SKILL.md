@@ -53,7 +53,7 @@ gh api repos/{owner}/{repo}/pulls/<PR>/comments
 以下のコメントを除外:
 - **解決済み**: `isResolved: true` のスレッド
 - **自分のコメント**: `gh api user` で取得した自分のユーザー名と一致
-- **対応不要 (Priority 4)**: LGTM などのポジティブコメント
+- **対応不要カテゴリ**: LGTM、+1、承認コメントなど
 
 ### 5. 一覧表示
 
