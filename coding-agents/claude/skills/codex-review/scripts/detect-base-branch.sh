@@ -12,16 +12,18 @@ CANDIDATES="develop main master"
 default_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 if [ -n "$default_ref" ]; then
     branch=$(echo "$default_ref" | sed 's@refs/remotes/origin/@@')
-    # ローカルブランチまたはリモート追跡ブランチが存在すれば有効
-    if git rev-parse --verify "$branch" >/dev/null 2>&1 || \
-       git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+    # ローカルブランチを優先、なければリモート追跡ブランチ
+    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
         echo "$branch"
+        exit 0
+    elif git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+        echo "origin/$branch"
         exit 0
     fi
 fi
 
 # 2. merge-base 距離計算で最も近いブランチを選択
-closest_branch=""
+closest_ref=""
 min_distance=999999
 
 for candidate in $CANDIDATES; do
@@ -43,23 +45,25 @@ for candidate in $CANDIDATES; do
     # HEAD から merge-base までのコミット数 (= 分岐してからのコミット数)
     distance=$(git rev-list --count "$merge_base"..HEAD 2>/dev/null || echo 999999)
 
-    # 最も距離が短いブランチを記録
+    # 最も距離が短いブランチを記録 (実際に解決可能な ref を保存)
     if [ "$distance" -lt "$min_distance" ]; then
         min_distance=$distance
-        closest_branch=$candidate
+        closest_ref=$ref
     fi
 done
 
-if [ -n "$closest_branch" ]; then
-    echo "$closest_branch"
+if [ -n "$closest_ref" ]; then
+    echo "$closest_ref"
     exit 0
 fi
 
-# 3. フォールバック: 候補ブランチを順に探索 (ローカルまたはリモート)
+# 3. フォールバック: 候補ブランチを順に探索 (ローカル優先、なければリモート)
 for branch in $CANDIDATES; do
-    if git rev-parse --verify "$branch" >/dev/null 2>&1 || \
-       git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
         echo "$branch"
+        exit 0
+    elif git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+        echo "origin/$branch"
         exit 0
     fi
 done
