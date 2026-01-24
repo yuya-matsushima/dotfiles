@@ -185,6 +185,8 @@ Codex review finding:
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+**Note**: The format and example above describe the expected commit message style. When invoking `/commit --auto`, the commit skill will auto-generate a message following this format based on the staged changes. You do not need to pass the message as an argument.
+
 ### 9. Final Summary
 
 After all selected items are addressed, display summary:
