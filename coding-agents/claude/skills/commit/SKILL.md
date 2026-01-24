@@ -1,7 +1,6 @@
 ---
 name: commit
 description: Analyze staged changes and commit using CLAUDE.md rules (use --auto to skip confirmation)
-disable-model-invocation: true
 argument-hint: [--auto]
 ---
 

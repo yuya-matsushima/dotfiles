@@ -1,7 +1,6 @@
 ---
 name: pr
 description: Create a high-quality GitHub Pull Request (use --auto to skip confirmation)
-disable-model-invocation: true
 argument-hint: [<base-branch>] [--auto]
 ---
 
