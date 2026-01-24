@@ -5,18 +5,11 @@ set -e
 # 成功時: ブランチ名を stdout に出力して exit 0
 # 失敗時: エラーメッセージを stderr に出力して exit 1
 
-# 1. upstream tracking branch をチェック
-upstream=$(git rev-parse --abbrev-ref @{upstream} 2>/dev/null || true)
-if [ -n "$upstream" ]; then
-    # remote prefix を除去 (origin/feature/big-feature → feature/big-feature)
-    branch=${upstream#*/}
-    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
-        echo "$branch"
-        exit 0
-    fi
-fi
+# Note: PR スキルとは異なり、upstream tracking branch は使用しない
+# upstream は通常 origin/feature/... で現在のブランチ自身を指すため、
+# レビュー用途では適切なベースブランチにならない
 
-# 2. Fallback to default branches
+# デフォルトブランチを順に探索
 for branch in develop main master; do
     if git rev-parse --verify "$branch" >/dev/null 2>&1; then
         echo "$branch"
