@@ -94,15 +94,7 @@ Priority 1 → 2 → 3 → 4 → 5 → 質問 の順で各コメントに対応:
 1. 該当ファイルを読み込む
 2. コメント内容に従ってコードを修正
 3. 変更をステージング: `git add <file>`
-4. コミット作成:
-   ```bash
-   git commit -m "fix(review): <コメント内容の要約>
-
-   Addresses review comment by @<reviewer>
-   - <変更内容の説明>
-
-   Co-Authored-By: Claude <noreply@anthropic.com>"
-   ```
+4. `/commit --auto` を実行（Conventional Commits ルールでコミット）
 
 **質問への回答が必要な場合** (質問・確認カテゴリ):
 1. コードを確認して質問に回答
