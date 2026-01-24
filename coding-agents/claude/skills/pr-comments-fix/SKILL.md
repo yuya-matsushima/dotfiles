@@ -111,31 +111,37 @@ Show categorized results with triage status:
 Auto: X items / Manual: Y items / Excluded: Z items
 ```
 
-### 7. Confirm Before Starting (if manual items exist)
+### 7. Select Items to Address
 
-**If "Requires Human Decision" items exist**:
+Display interactive checklist for user to select which items to fix:
 
-Display confirmation prompt:
 ```
-⚠️  Y items require human decision and will be skipped.
+## Select items to address
 
-Proceed with auto-fixing X items? (y/n)
-- y: Start auto-fixing auto-addressable items
-- n: Abort and review manual items first
+### Auto-addressable
+- [x] 1. auth.ts:42 - "Input sanitization needed" (Security)
+- [x] 2. handler.ts:78 - "Missing null check" (Bug)
+- [ ] 3. utils.ts:20 - "Rename variable for clarity" (Style)
+
+### Requires Human Decision
+- [ ] 4. service.ts:55 - "Consider splitting into separate services"
+      → Reason: Architecture change across multiple files
+- [ ] 5. api.ts:100 - "Should this return 404 or empty array?"
+      → Reason: Specification decision required
+
+Enter item numbers to address (e.g., "1,2,4" or "all" or "auto"):
+- all: Address all items (including manual)
+- auto: Address only auto-addressable items (default checked)
+- Numbers: Address specific items only
 ```
 
-- If user answers `n`: Stop execution and let user review manual items
-- If user answers `y`: Proceed to step 8
+- Default: All auto-addressable items are pre-checked
+- User can uncheck items to skip, or check manual items to include
+- If user enters nothing or "auto": proceed with pre-checked items only
 
-**If no manual items exist**: Skip this step and proceed directly to step 8.
+### 8. Address Selected Items
 
-### 8. Address Sequentially (Auto-execute)
-
-**Auto-execute for auto-addressable items only**
-
-Address in order: Priority 1 → 2 → 3 → 4 → 5 → Questions
-
-Skip items marked as "Requires Human Decision".
+Address only user-selected items in priority order.
 
 **When code changes are needed** (Priority 1-5):
 1. Read the target file
