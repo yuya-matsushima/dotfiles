@@ -12,7 +12,9 @@ CANDIDATES="develop main master"
 default_ref=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
 if [ -n "$default_ref" ]; then
     branch=$(echo "$default_ref" | sed 's@refs/remotes/origin/@@')
-    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+    # ローカルブランチまたはリモート追跡ブランチが存在すれば有効
+    if git rev-parse --verify "$branch" >/dev/null 2>&1 || \
+       git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
         echo "$branch"
         exit 0
     fi
@@ -23,13 +25,17 @@ closest_branch=""
 min_distance=999999
 
 for candidate in $CANDIDATES; do
-    # 候補ブランチが存在するか確認
-    if ! git rev-parse --verify "$candidate" >/dev/null 2>&1; then
+    # 候補ブランチが存在するか確認 (ローカルまたはリモート)
+    if git rev-parse --verify "$candidate" >/dev/null 2>&1; then
+        ref="$candidate"
+    elif git rev-parse --verify "origin/$candidate" >/dev/null 2>&1; then
+        ref="origin/$candidate"
+    else
         continue
     fi
 
     # 現在のブランチと候補の共通祖先を見つける
-    merge_base=$(git merge-base HEAD "$candidate" 2>/dev/null || true)
+    merge_base=$(git merge-base HEAD "$ref" 2>/dev/null || true)
     if [ -z "$merge_base" ]; then
         continue
     fi
@@ -49,9 +55,10 @@ if [ -n "$closest_branch" ]; then
     exit 0
 fi
 
-# 3. フォールバック: 候補ブランチを順に探索
+# 3. フォールバック: 候補ブランチを順に探索 (ローカルまたはリモート)
 for branch in $CANDIDATES; do
-    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+    if git rev-parse --verify "$branch" >/dev/null 2>&1 || \
+       git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
         echo "$branch"
         exit 0
     fi
