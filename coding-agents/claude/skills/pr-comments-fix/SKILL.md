@@ -55,40 +55,69 @@ Exclude the following comments:
 - **Own comments**: Matching username from `gh api user`
 - **No Action Required category**: LGTM, +1, approval comments, etc.
 
-### 5. Display Summary
+### 5. Triage: Auto vs Manual
 
-Show categorized results:
+Separate comments into two groups:
+
+**Auto-addressable** (Claude handles automatically):
+- Clear, specific code changes (add null check, fix typo, rename variable)
+- Single-file changes with explicit instructions
+- Style/formatting fixes
+- Simple refactoring within a function
+
+**Requires human decision** (report only, do not auto-fix):
+- Specification decisions (e.g., "should this return error or null?")
+- Large-scale refactoring across multiple files
+- Architecture changes (e.g., "consider using a different pattern")
+- Ambiguous or conflicting comments
+- Security decisions requiring business context
+- Performance trade-offs needing product input
+- Changes that might affect external APIs or contracts
+
+### 6. Display Summary
+
+Show categorized results with triage status:
 
 ```
 ## PR #<number> Review Comments
 
-### Priority 1: Security (X items)
+### Auto-addressable (X items)
+
+#### Priority 1: Security
 - [ ] auth.ts:42 - "Input sanitization needed" (@reviewer)
 
-### Priority 2: Bug / Logic Error (X items)
+#### Priority 2: Bug / Logic Error
 - [ ] handler.ts:78 - "Missing null check" (@reviewer)
 
-### Priority 3: Performance (X items)
+#### Priority 3: Performance
 - [ ] query.ts:100 - "This is an N+1 query" (@reviewer)
 
-### Priority 4: Maintainability / Design (X items)
-- [ ] service.ts:55 - "This should be extracted to a separate class" (@reviewer)
+#### Priority 4: Maintainability / Design
+- [ ] utils.ts:20 - "Rename variable for clarity" (@reviewer)
 
-### Priority 5: Code Style (X items)
-- [ ] utils.ts:20 - "Please clarify variable name" (@reviewer)
+#### Priority 5: Code Style
+- [ ] format.ts:10 - "Fix indentation" (@reviewer)
 
-### Question / Clarification (X items)
+#### Question / Clarification
 - [ ] config.ts:30 - "What's the intent of this setting?" (@reviewer)
 
+### Requires Human Decision (Y items)
+- [ ] service.ts:55 - "Consider splitting this into separate services" (@reviewer)
+  → Reason: Architecture change across multiple files
+- [ ] api.ts:100 - "Should this return 404 or empty array?" (@reviewer)
+  → Reason: Specification decision required
+
 ---
-To address: X items / Total: Y items (Excluded: Z items)
+Auto: X items / Manual: Y items / Excluded: Z items
 ```
 
-### 6. Address Sequentially (Auto-execute)
+### 7. Address Sequentially (Auto-execute)
 
-**Always auto-execute mode**: Start addressing without confirmation
+**Auto-execute for auto-addressable items only**
 
-Address each comment in order: Priority 1 → 2 → 3 → 4 → 5 → Questions
+Address in order: Priority 1 → 2 → 3 → 4 → 5 → Questions
+
+Skip items marked as "Requires Human Decision".
 
 **When code changes are needed** (Priority 1-5):
 1. Read the target file
@@ -103,9 +132,9 @@ Address each comment in order: Priority 1 → 2 → 3 → 4 → 5 → Questions
    gh pr comment <PR> --body "<reply content>"
    ```
 
-### 7. Final Summary
+### 8. Final Summary
 
-After all items are addressed, display summary:
+After all auto-addressable items are addressed, display summary:
 
 ```
 ## Completed
@@ -117,9 +146,15 @@ After all items are addressed, display summary:
 ### Created commits:
 - abc1234: fix: resolve null check issue
 - def5678: perf: optimize database query
+
+### Requires Human Decision (not addressed):
+- service.ts:55 - "Consider splitting this into separate services"
+  → Reason: Architecture change across multiple files
+- api.ts:100 - "Should this return 404 or empty array?"
+  → Reason: Specification decision required
 ```
 
-### 8. Auto Push
+### 9. Auto Push
 
 If there are changes, push to remote:
 
