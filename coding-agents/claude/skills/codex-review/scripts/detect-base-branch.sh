@@ -69,5 +69,5 @@ for branch in $CANDIDATES; do
 done
 
 # 4. Error
-echo "Error: No default base branch found. Please specify: codex-review-fix <base-branch>" >&2
+echo "Error: No default base branch found. Please specify: codex-review <base-branch>" >&2
 exit 1
