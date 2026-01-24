@@ -15,9 +15,13 @@ prompt = """
      - If user declines (n), exit without creating PR
 
 2. **Auto-detect if no branch name is specified**:
-   - Try in order: develop → main → master
+   - First, check upstream tracking branch: `git rev-parse --abbrev-ref @{upstream} 2>/dev/null`
+     - If exists and is a remote tracking branch (e.g., `origin/feature/big-feature`), extract the branch name by removing the remote prefix (`origin/` → `feature/big-feature`)
+     - Verify the extracted branch exists locally: `git rev-parse --verify <branch> 2>/dev/null`
+     - If valid, use it as base branch
+   - Fallback: Try in order: develop → main → master
    - Use first that exists via: `git rev-parse --verify <branch_name> 2>/dev/null`
-   - If none exist, show error: "Error: No default base branch found (tried: develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
+   - If none exist, show error: "Error: No default base branch found (tried: upstream, develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
 
 3. **Result**:
    - Remember the determined base branch name (e.g., `main`, `develop`) for use in subsequent steps.

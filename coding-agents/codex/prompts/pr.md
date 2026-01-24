@@ -17,10 +17,15 @@ Check if $ARGUMENTS contains "--auto" flag.
        - If validation fails, ask user: "Branch '<branch>' not found. Use default branch detection? (y/n)"
        - If user answers "no" (n), exit without creating PR
      - If no branch name is provided, auto-detect base branch:
-       1. Check `git rev-parse --verify develop 2>/dev/null` → use 'develop' if exists
-       2. Check `git rev-parse --verify main 2>/dev/null` → use 'main' if exists
-       3. Check `git rev-parse --verify master 2>/dev/null` → use 'master' if exists
-       4. If none exist, show error: "Error: No default base branch found (tried: develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
+       1. Check upstream tracking branch: `git rev-parse --abbrev-ref @{upstream} 2>/dev/null`
+          - If exists and is a remote tracking branch (e.g., `origin/feature/big-feature`), extract the branch name by removing the remote prefix (`origin/` → `feature/big-feature`)
+          - Verify the extracted branch exists locally: `git rev-parse --verify <branch> 2>/dev/null`
+          - If valid, use it as base branch
+       2. Fallback to default branches:
+          - Check `git rev-parse --verify develop 2>/dev/null` → use 'develop' if exists
+          - Check `git rev-parse --verify main 2>/dev/null` → use 'main' if exists
+          - Check `git rev-parse --verify master 2>/dev/null` → use 'master' if exists
+       3. If none exist, show error: "Error: No default base branch found (tried: upstream, develop, main, master). Please specify a base branch explicitly: pr <base-branch> [--auto]" and exit
    - Store resolved base branch in $BASE_BRANCH variable for use in subsequent steps
 2. **Analyze Changes**:
    - Run `git diff $BASE_BRANCH...HEAD` to understand what was changed
