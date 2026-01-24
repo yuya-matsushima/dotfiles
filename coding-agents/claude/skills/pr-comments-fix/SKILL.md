@@ -144,37 +144,11 @@ Show categorized results with triage status:
 Auto: X items / Manual: Y items / Excluded: Z items
 ```
 
-### 7. Select Items to Address
+### 7. Auto-fix: Address Auto-addressable Items
 
-Display interactive checklist for user to select which items to fix:
+**Automatically fix all auto-addressable items without user confirmation.**
 
-```
-## Select items to address
-
-### Auto-addressable
-- [x] 1. auth.ts:42 - "Input sanitization needed" (Security)
-- [x] 2. handler.ts:78 - "Missing null check" (Bug)
-- [ ] 3. utils.ts:20 - "Rename variable for clarity" (Style)
-
-### Requires Human Decision
-- [ ] 4. service.ts:55 - "Consider splitting into separate services"
-      → Reason: Architecture change across multiple files
-- [ ] 5. api.ts:100 - "Should this return 404 or empty array?"
-      → Reason: Specification decision required
-
-Enter item numbers to address (e.g., "1,2,4" or "all" or "auto"):
-- all: Address all items (including manual)
-- auto: Address only auto-addressable items (default checked)
-- Numbers: Address specific items only
-```
-
-- Default: All auto-addressable items are pre-checked
-- User can uncheck items to skip, or check manual items to include
-- If user enters nothing or "auto": proceed with pre-checked items only
-
-### 8. Address Selected Items
-
-Address only user-selected items in priority order.
+Process in priority order (Priority 1 -> 2 -> 3 -> 4 -> 5):
 
 **When code changes are needed** (Priority 1-5):
 1. Read the target file
@@ -210,31 +184,57 @@ Address only user-selected items in priority order.
    ' -f threadId="<thread_id>"
    ```
 
+### 8. Human Decision: Ask About Manual Items
+
+**Only if there are "Requires human decision" items**, ask the user which ones to address:
+
+```
+## Requires Human Decision (Y items)
+
+The following items need your input:
+
+- [ ] 1. service.ts:55 - "Consider splitting into separate services"
+      → Reason: Architecture change across multiple files
+- [ ] 2. api.ts:100 - "Should this return 404 or empty array?"
+      → Reason: Specification decision required
+
+Enter item numbers to address (e.g., "1,2" or "all" or "skip"):
+- all: Address all items
+- skip: Skip all items (default)
+- Numbers: Address specific items only
+```
+
+- Default: Skip all (user must explicitly opt-in)
+- If user selects items: address them in priority order
+- If user enters "skip" or nothing: proceed to final summary
+
 ### 9. Final Summary
 
-After all auto-addressable items are addressed, display summary:
+After all items are processed, display summary:
 
 ```
 ## Completed
 
-- Code fixes: X items
-- Commits created: Y items
-- Questions replied: Z items
-- Threads resolved: W items
+- Auto-fixed: X items
+- Human decision items addressed: Y items
+- Commits created: Z items
+- Questions replied: W items
+- Threads resolved: V items
 
 ### Created commits:
 - abc1234: fix: resolve null check issue
 - def5678: perf: optimize database query
 
-### Resolved threads:
+### Auto-fixed threads:
 - ✓ auth.ts:42 - "Input sanitization needed"
 - ✓ handler.ts:78 - "Missing null check"
 
-### Requires Human Decision (not addressed):
+### Human decision items addressed:
+- ✓ api.ts:100 - "Should this return 404 or empty array?"
+
+### Skipped (not addressed):
 - service.ts:55 - "Consider splitting this into separate services"
   → Reason: Architecture change across multiple files
-- api.ts:100 - "Should this return 404 or empty array?"
-  → Reason: Specification decision required
 ```
 
 ### 10. Auto Push
@@ -257,7 +257,8 @@ git push origin HEAD
 
 ## Notes
 
-- **Interactive selection**: User selects which items to address via checklist (Step 7), then selected items are executed without further confirmation
+- **Auto-fix by default**: Auto-addressable items are fixed automatically without confirmation
+- **Human decision opt-in**: Items requiring judgment are skipped by default; user must explicitly select
 - **Commit granularity**: Each comment is addressed with an individual commit
 - **Reply format**: Replies to questions should be concise and technically accurate
 - **When unable to address**: Post a comment explaining why technical resolution is difficult
