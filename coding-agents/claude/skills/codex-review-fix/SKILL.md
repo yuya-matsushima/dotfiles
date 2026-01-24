@@ -80,6 +80,7 @@ Separate findings into two groups:
 - Large-scale refactoring across multiple files
 - Architecture changes (e.g., "consider using a different pattern")
 - Ambiguous findings
+- Medium confidence findings (0.5 <= confidence_score < 0.7)
 - Low confidence findings (confidence_score < 0.5)
 - Changes that might affect external APIs or contracts
 
