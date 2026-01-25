@@ -1,0 +1,3 @@
+[submodule "coding-agents"]
+	path = coding-agents
+	url = https://github.com/yuya-matsushima/coding-agents.git
