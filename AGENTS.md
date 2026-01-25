@@ -15,7 +15,6 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 ## プロジェクト構成とモジュール整理
 - ルートの `Makefile` がセットアップ全体を統括します。利用可能なターゲットは `make help` で確認します。
 - `bin/` には POSIX 準拠のシェルスクリプトを配置し, `homebrew.sh` や `link.sh` が初期構築を担当します。言語別の asdf インストーラーは `bin/asdf/` にまとめます。
-- `coding-agents/` は AI コーディングエージェント (Claude, Codex, Gemini) の設定を管理する private submodule です。取得には SSH 認証が必要です。
 - UI 設定は `iterm2/`, `KensingtonWorks/`, キーボードレイアウトは `via/` に置きます。
 - 環境変数テンプレートは `envrc.template` にあり, 機密値は Git 管理外のローカル `.envrc` へ記録します。
 - `tmp/` や `feature/` は作業用ディレクトリです。生成物や個人設定はコミット対象から除外してください。
