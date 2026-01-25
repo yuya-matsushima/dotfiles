@@ -13,6 +13,22 @@ macOS 上での開発環境構築や設定の自動化を目的としていま�
 - よく使うアプリケーションには Hammerspoon でキーボードショートカットを割り当てています。
 - 旧来のコマンドは eza や dexide のような Rust 製アプリへ置き換える方針で、メリットがある場合は新しいツールを積極的に採用します。
 
+## Submodule について
+
+このリポジトリは private submodule を含んでいます。
+
+### 初回クローン時
+
+```sh
+git clone --recursive git@github.com:yuya-matsushima/dotfiles.git
+```
+
+### 既存のクローンに submodule を取得
+
+```sh
+git submodule update --init --recursive
+```
+
 ## セットアップ
 
 ```sh
