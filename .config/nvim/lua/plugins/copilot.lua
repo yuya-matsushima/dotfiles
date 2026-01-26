@@ -12,7 +12,12 @@ return {
       -- Check environment variable
       local enabled = vim.env.DISABLE_COPILOT ~= '1'
 
+      -- asdf のグローバル Node.js (lts) を使用 (ディレクトリ固有の設定を無視)
+      local asdf_node = vim.fn.system('ASDF_NODEJS_VERSION=lts asdf where nodejs 2>/dev/null'):gsub('\n', '')
+      local node_path = asdf_node ~= '' and (asdf_node .. '/bin/node') or 'node'
+
       require('copilot').setup({
+        copilot_node_command = node_path,
         panel = {
           enabled = false,
         },
