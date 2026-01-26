@@ -7,6 +7,17 @@ local opt = vim.opt
 local g = vim.g
 
 -- ============================================================================
+-- PATH SETUP FOR ASDF
+-- ============================================================================
+-- asdf のグローバル Node.js (lts) を PATH の先頭に追加
+-- ディレクトリ固有の .tool-versions で古い Node.js が設定されていても
+-- Neovim のプラグイン (Copilot, Mason, LSP) は常に LTS を使用する
+local asdf_node_path = vim.fn.system('ASDF_NODEJS_VERSION=lts asdf where nodejs 2>/dev/null'):gsub('\n', '')
+if asdf_node_path ~= '' and vim.fn.isdirectory(asdf_node_path .. '/bin') == 1 then
+  vim.env.PATH = asdf_node_path .. '/bin:' .. vim.env.PATH
+end
+
+-- ============================================================================
 -- FILE ENCODING
 -- ============================================================================
 
