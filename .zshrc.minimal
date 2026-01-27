@@ -113,7 +113,8 @@ if (( $+commands[asdf] )); then
 fi
 (( $+commands[awsume] )) && alias awsume="source awsume"
 (( $+commands[direnv] )) && eval "$(direnv hook zsh)"
-(( $+commands[zoxide] )) && eval "$(zoxide init zsh --cmd cd)"
+# zoxide: 非対話シェル (Claude Code 等) での __zoxide_z エラーを回避するため対話シェルでのみ初期化
+[[ $- == *i* ]] && (( $+commands[zoxide] )) && eval "$(zoxide init zsh --cmd cd)"
 # Use GNU grep if available (for personal use only)
 (( $+commands[ggrep] )) && alias ggrep="$HOMEBREW_PREFIX/bin/ggrep"
 if (( $+commands[git] )); then
