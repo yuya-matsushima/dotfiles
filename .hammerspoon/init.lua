@@ -92,3 +92,32 @@ toggleIMESwitcher = hs.eventtap.new(
   toggleIMESwitch
 )
 toggleIMESwitcher:start()
+
+-- Ctrl+J で改行を挿入 (特定アプリ限定)
+local ctrlJTargetApps = {
+  ["Slack"] = true,
+  ["Obsidian"] = true,
+  ["Google Chrome"] = true,
+}
+
+local ctrlJHotkey = hs.hotkey.new({ "ctrl" }, "j", function()
+  hs.eventtap.keyStroke({ "shift" }, "return", 0)
+end)
+
+-- 対象アプリがアクティブな時だけ有効化
+ctrlJAppWatcher = hs.application.watcher.new(function(appName, eventType, app)
+  if eventType == hs.application.watcher.activated then
+    if ctrlJTargetApps[appName] then
+      ctrlJHotkey:enable()
+    else
+      ctrlJHotkey:disable()
+    end
+  end
+end)
+ctrlJAppWatcher:start()
+
+-- 起動時に現在のアプリをチェック
+local frontApp = hs.application.frontmostApplication()
+if frontApp and ctrlJTargetApps[frontApp:name()] then
+  ctrlJHotkey:enable()
+end
