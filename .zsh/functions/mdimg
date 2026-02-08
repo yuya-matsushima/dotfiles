@@ -45,6 +45,15 @@ _ymt_mdimg() {
         dir="$2"
         shift 2
         ;;
+      --)
+        shift
+        [[ $# -gt 0 ]] && filename="$1"
+        break
+        ;;
+      -*)
+        echo "Error: unknown option: $1" >&2
+        return 1
+        ;;
       *)
         filename="$1"
         shift
@@ -71,8 +80,8 @@ _ymt_mdimg() {
     fi
   fi
 
-  # Sanitize filename (replace spaces with hyphens)
-  filename="$(echo "$filename" | sed -e 's/[[:space:]]\+/-/g')"
+  # Sanitize filename (replace spaces and slashes with hyphens)
+  filename="$(echo "$filename" | sed -e 's/[[:space:]/]\+/-/g')"
 
   # Create directory if needed
   if [[ ! -d "$dir" ]]; then
