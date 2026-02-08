@@ -3,4 +3,5 @@ _arguments \
   '-w[convert to WebP format]' \
   '-d[output directory]:directory:_directories' \
   '(-h --help)'{-h,--help}'[print help]' \
+  '--[end of options]' \
   '*:filename:'

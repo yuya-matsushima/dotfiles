@@ -73,15 +73,18 @@ _ymt_mdimg() {
   fi
 
   # Prompt for filename if not provided
+  local alt=""
   if [[ -z "$filename" ]]; then
     read -r filename\?"Enter image name: "
-    if [[ -z "$filename" ]]; then
-      filename="$(date '+%Y%m%d-%H%M%S')"
-    fi
   fi
 
-  # Sanitize filename (replace spaces and slashes with hyphens)
-  filename="$(echo "$filename" | sed -e 's/[[:space:]/]\+/-/g')"
+  if [[ -n "$filename" ]]; then
+    alt="$filename"
+    # Sanitize filename (replace spaces and slashes with hyphens)
+    filename="$(echo "$filename" | sed -e 's/[[:space:]/]\+/-/g')"
+  else
+    filename="$(date '+%Y%m%d-%H%M%S')"
+  fi
 
   # Create directory if needed
   if [[ ! -d "$dir" ]]; then
@@ -110,7 +113,7 @@ _ymt_mdimg() {
   fi
 
   # Generate Markdown reference
-  local md="![${filename}](${final_path})"
+  local md="![${alt}](${final_path})"
   echo "$md"
   echo -n "$md" | pbcopy
   echo "(copied to clipboard)" >&2
