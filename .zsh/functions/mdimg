@@ -1,0 +1,118 @@
+#!/bin/zsh
+
+_ymt_mdimg_usage() {
+  cat <<EOF
+mdimg pastes a clipboard image into a Markdown-friendly path and outputs the Markdown reference.
+
+Usage:
+    mdimg [options] [filename]    save clipboard image and output Markdown
+    mdimg -h                     print help
+
+Options:
+    -w            convert to WebP format (requires imagemagick)
+    -d DIR        output directory (default: images, or \$MDIMG_DIR)
+    -h, --help    print help
+
+If filename is omitted, you will be prompted to enter one.
+The Markdown reference is printed to stdout and copied to the clipboard.
+
+Configurable Environment Variables:
+    MDIMG_DIR=path/to/default/image/dir
+
+Dependencies:
+    pngpaste
+    imagemagick (optional, for -w)
+EOF
+}
+
+_ymt_mdimg() {
+  local webp=0
+  local dir="${MDIMG_DIR:-images}"
+  local filename=""
+
+  # Parse options
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -w)
+        webp=1
+        shift
+        ;;
+      -d)
+        if [[ -z "$2" ]]; then
+          echo "Error: -d requires a directory argument" >&2
+          return 1
+        fi
+        dir="$2"
+        shift 2
+        ;;
+      *)
+        filename="$1"
+        shift
+        ;;
+    esac
+  done
+
+  # Check dependencies
+  if ! command -v pngpaste >/dev/null 2>&1; then
+    echo "Error: pngpaste is not installed. Run: brew install pngpaste" >&2
+    return 1
+  fi
+
+  if [[ "$webp" -eq 1 ]] && ! command -v magick >/dev/null 2>&1; then
+    echo "Error: imagemagick is not installed. Run: brew install imagemagick" >&2
+    return 1
+  fi
+
+  # Prompt for filename if not provided
+  if [[ -z "$filename" ]]; then
+    read -r filename\?"Enter image name: "
+    if [[ -z "$filename" ]]; then
+      filename="$(date '+%Y%m%d-%H%M%S')"
+    fi
+  fi
+
+  # Sanitize filename (replace spaces with hyphens)
+  filename="$(echo "$filename" | sed -e 's/[[:space:]]\+/-/g')"
+
+  # Create directory if needed
+  if [[ ! -d "$dir" ]]; then
+    mkdir -p "$dir"
+    echo "Created directory: $dir"
+  fi
+
+  # Save clipboard image as PNG
+  local png_path="${dir}/${filename}.png"
+  if ! pngpaste "$png_path" 2>/dev/null; then
+    echo "Error: No image found in clipboard" >&2
+    return 1
+  fi
+
+  local final_path="$png_path"
+
+  # WebP conversion
+  if [[ "$webp" -eq 1 ]]; then
+    local webp_path="${dir}/${filename}.webp"
+    if magick "$png_path" -quality 85 "$webp_path"; then
+      rm "$png_path"
+      final_path="$webp_path"
+    else
+      echo "Warning: WebP conversion failed, keeping PNG" >&2
+    fi
+  fi
+
+  # Generate Markdown reference
+  local md="![${filename}](${final_path})"
+  echo "$md"
+  echo -n "$md" | pbcopy
+  echo "(copied to clipboard)" >&2
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_mdimg_usage
+  ;;
+
+  *)
+    _ymt_mdimg "$@"
+  ;;
+esac

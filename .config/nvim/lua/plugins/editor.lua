@@ -86,6 +86,23 @@ return {
     end,
   },
 
+  -- Clipboard image paste for Markdown
+  {
+    'HakonHarnes/img-clip.nvim',
+    ft = 'markdown',
+    opts = {
+      default = {
+        dir_path = 'images',
+        prompt_for_file_name = true,
+        file_name = '%Y%m%d-%H%M%S',
+        use_absolute_path = false,
+        relative_to_current_file = true,
+        template = '![$CURSOR]($FILE_PATH)',
+        url_encode_path = true,
+      },
+    },
+  },
+
   -- Markdown preview in browser
   {
     'iamcco/markdown-preview.nvim',
