@@ -189,12 +189,6 @@ if (( $+commands[yazi] )); then
 fi
 (( $+commands[lazygit] )) && alias lg='lazygit'
 
-## named directories
-OBSIDIAN_VAULT_DIR="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
-if [ -d "$OBSIDIAN_VAULT_DIR" ]; then
-  hash -d obsidian_vault="$OBSIDIAN_VAULT_DIR"
-fi
-
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
