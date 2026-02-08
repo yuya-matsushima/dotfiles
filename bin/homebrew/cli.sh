@@ -27,6 +27,7 @@ brew install \
           fzf \
           htop \
           imagemagick \
+          pngpaste \
           jq \
           jnv \
           lazygit \
