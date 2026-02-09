@@ -30,8 +30,10 @@ hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
 hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
 hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
 
--- IME の英字/ひらがなを cmd 単体押しで切り替え
+-- 修飾キー単体押しの処理 (Cmd: IME 切り替え, Ctrl: Spotlight トグル)
 local simpleCmd = false
+local simpleCtrl = false
+local spotlightToggling = false
 local map = hs.keycodes.map
 
 -- 利用可能なIMEメソッドから動的に判定
@@ -59,39 +61,61 @@ end
 
 local hiraganaMode, romajiMode = detectIMEMethods()
 
-local function toggleIMESwitch(event)
+local function handleSingleModifierTap(event)
   local t = event:getType()
   local f = event:getFlags()
   local c = event:getKeyCode()
 
   if t == hs.eventtap.event.types.flagsChanged then
-    -- cmdが押された瞬間、他の修飾キーがなければsimpleCmdをtrue
+    -- Cmd 単体押し: IME 切り替え
     if f['cmd'] and not f['shift'] and not f['alt'] and not f['ctrl'] then
       simpleCmd = true
-    -- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
     elseif not f['cmd'] and simpleCmd then
-      if hs.keycodes.currentMethod() == romajiMode then
-        hs.keycodes.setMethod(hiraganaMode)
-      else
-        hs.keycodes.setMethod(romajiMode)
+      if not spotlightToggling then
+        if hs.keycodes.currentMethod() == romajiMode then
+          hs.keycodes.setMethod(hiraganaMode)
+        else
+          hs.keycodes.setMethod(romajiMode)
+        end
       end
       simpleCmd = false
     else
       simpleCmd = false
     end
+
+    -- Ctrl 単体押し: Spotlight トグル
+    if f['ctrl'] and not f['shift'] and not f['alt'] and not f['cmd'] then
+      simpleCtrl = true
+    elseif not f['ctrl'] and simpleCtrl then
+      simpleCmd = false
+      spotlightToggling = true
+      hs.timer.doAfter(0, function()
+        hs.osascript.applescript([[
+          tell application "System Events"
+            key code 49 using {command down}
+          end tell
+        ]])
+        hs.timer.doAfter(0.5, function() spotlightToggling = false end)
+      end)
+      simpleCtrl = false
+    else
+      simpleCtrl = false
+    end
   elseif t == hs.eventtap.event.types.keyDown then
-    -- cmd以外のキーが押されたらsimpleCmdをfalse
     if simpleCmd and not (c == map['cmd'] or c == map['rightcmd']) then
       simpleCmd = false
+    end
+    if simpleCtrl and not (c == map['ctrl'] or c == map['rightctrl']) then
+      simpleCtrl = false
     end
   end
 end
 
-toggleIMESwitcher = hs.eventtap.new(
+singleModifierTapWatcher = hs.eventtap.new(
   {hs.eventtap.event.types.keyDown, hs.eventtap.event.types.flagsChanged},
-  toggleIMESwitch
+  handleSingleModifierTap
 )
-toggleIMESwitcher:start()
+singleModifierTapWatcher:start()
 
 -- Ctrl+J で改行を挿入 (特定アプリ限定)
 local ctrlJTargetApps = {
