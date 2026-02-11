@@ -27,8 +27,6 @@ end
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp(terminalApp) end)
 hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
-hs.hotkey.bind({ "ctrl" }, "-", function() toggleApp("ChatGPT") end)
-hs.hotkey.bind({ "ctrl" }, "0", function() toggleApp("Claude") end)
 
 -- IME の英字/ひらがなを cmd 単体押しで切り替え
 local simpleCmd = false
