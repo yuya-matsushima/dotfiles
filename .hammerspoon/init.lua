@@ -98,6 +98,8 @@ local ctrlJTargetApps = {
   ["Slack"] = true,
   ["Obsidian"] = true,
   ["Google Chrome"] = true,
+  ["Claude"] = true,
+  ["ChatGPT"] = true,
 }
 
 local ctrlJHotkey = hs.hotkey.new({ "ctrl" }, "j", function()
