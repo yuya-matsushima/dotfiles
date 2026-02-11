@@ -9,7 +9,7 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 
 ## プロジェクト構成
 
-- `bin/` — POSIX 準拠シェルスクリプト。`homebrew.sh`, `link.sh` 等が初期構築を担当。言語別 asdf インストーラーは `bin/asdf/` に配置。
+- `bin/` — 基本は POSIX sh だが、一部 (`link.sh` 等) は `#!/bin/bash` を使用。`homebrew.sh`, `link.sh` 等が初期構築を担当。言語別 asdf インストーラーは `bin/asdf/` に配置。
 - `.config/nvim/` — Neovim 設定 (Lua)。プラグイン管理は lazy.nvim、プラグイン定義は `lua/plugins/` に 1 プラグイン 1 ファイルで配置。
 - `.config/ghostty/` — Ghostty ターミナル設定。
 - `.config/yazi/` — Yazi ファイルマネージャ設定。
