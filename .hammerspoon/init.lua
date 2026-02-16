@@ -30,6 +30,10 @@ hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
 
 -- IME の英字/ひらがなを cmd 単体押しで切り替え
 local simpleCmd = false
+local cmdPressTime = 0
+local lastToggleTime = 0
+local COOLDOWN_MS = 200  -- 連続トグル防止の冷却期間 (ms)
+local MIN_HOLD_MS = 50   -- バウンス除外の最小保持時間 (ms)
 local map = hs.keycodes.map
 
 -- 利用可能なIMEメソッドから動的に判定
@@ -66,12 +70,18 @@ local function toggleIMESwitch(event)
     -- cmdが押された瞬間、他の修飾キーがなければsimpleCmdをtrue
     if f['cmd'] and not f['shift'] and not f['alt'] and not f['ctrl'] then
       simpleCmd = true
+      cmdPressTime = hs.timer.absoluteTime() / 1000000
     -- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
     elseif not f['cmd'] and simpleCmd then
-      if hs.keycodes.currentMethod() == romajiMode then
-        hs.keycodes.setMethod(hiraganaMode)
-      else
-        hs.keycodes.setMethod(romajiMode)
+      local now = hs.timer.absoluteTime() / 1000000
+      local holdDuration = now - cmdPressTime
+      if holdDuration >= MIN_HOLD_MS and (now - lastToggleTime) > COOLDOWN_MS then
+        if hs.keycodes.currentMethod() == romajiMode then
+          hs.keycodes.setMethod(hiraganaMode)
+        else
+          hs.keycodes.setMethod(romajiMode)
+        end
+        lastToggleTime = now
       end
       simpleCmd = false
     else
