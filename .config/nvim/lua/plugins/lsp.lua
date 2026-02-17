@@ -55,7 +55,15 @@ local servers = {
   lua_ls = {},
   ts_ls = {},
   eslint = {},
-  pyright = {},
+  pyright = {
+    settings = {
+      pyright = {
+        -- ruff に任せるため pyright の import 整理を無効化
+        disableOrganizeImports = true,
+      },
+    },
+  },
+  ruff = {},
   solargraph = {},
   gopls = {},
   rust_analyzer = {
@@ -93,7 +101,21 @@ return {
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('LspKeymaps', { clear = true }),
         callback = function(args)
+          local client = vim.lsp.get_client_by_id(args.data.client_id)
+          -- ruff の hover を無効化（pyright に任せる）
+          if client and client.name == 'ruff' then
+            client.server_capabilities.hoverProvider = false
+          end
           setup_lsp_keymaps(args.buf)
+        end,
+      })
+
+      -- Python: 保存時に自動フォーマット（ruff 経由）
+      vim.api.nvim_create_autocmd('BufWritePre', {
+        group = vim.api.nvim_create_augroup('LspFormat', { clear = true }),
+        pattern = '*.py',
+        callback = function()
+          vim.lsp.buf.format({ async = false })
         end,
       })
     end,
