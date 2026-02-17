@@ -115,6 +115,7 @@ return {
           outputter = 'buffer',
           ['outputter/buffer/split'] = ':botright 8sp',
           ['outputter/buffer/close_on_empty'] = 1,
+          ['outputter/buffer/into'] = 0,
         },
       }
     end,
