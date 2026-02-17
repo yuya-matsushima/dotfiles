@@ -103,6 +103,23 @@ return {
     },
   },
 
+  -- Quick code execution
+  {
+    'thinca/vim-quickrun',
+    keys = {
+      { 'qq', '<Plug>(quickrun)', desc = 'QuickRun' },
+    },
+    config = function()
+      vim.g.quickrun_config = {
+        ['_'] = {
+          outputter = 'buffer',
+          ['outputter/buffer/split'] = ':botright 8sp',
+          ['outputter/buffer/close_on_empty'] = 1,
+        },
+      }
+    end,
+  },
+
   -- Markdown preview in browser
   {
     'iamcco/markdown-preview.nvim',

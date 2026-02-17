@@ -370,6 +370,13 @@ if !empty(globpath(&rtp, 'autoload/lsp.vim'))
   " lsp-settings
   let g:lsp_settings_filetype_typescript = ['typescript-language-server', 'eslint-language-server']
   let g:lsp_settings_filetype_javascript = ['typescript-language-server', 'eslint-language-server']
+  let g:lsp_settings_filetype_python = ['pyright-langserver', 'ruff-lsp']
+
+  " Python: 保存時に自動フォーマット（ruff-lsp 経由）
+  augroup python_format
+    autocmd!
+    autocmd BufWritePre *.py call execute('LspDocumentFormatSync')
+  augroup END
 endif
 
 " ============================================================================
