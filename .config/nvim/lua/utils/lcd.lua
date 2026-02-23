@@ -14,13 +14,13 @@ function M.changeDir()
 
   local bufname = vim.fn.expand('%:p:h')
 
-  -- Skip for oil.nvim paths
-  if string.match(bufname, "^oil://") then
+  -- Skip for special scheme paths (oil://, diffview://)
+  if string.match(bufname, "://") then
     return
   end
 
-  -- Skip for special buffers
-  if bufname ~= 'quickrun:' and bufname ~= '' then
+  -- Skip for special buffers (e.g. quickrun:, diffview:)
+  if bufname ~= '' and not string.match(bufname, ":$") then
     vim.cmd('lcd ' .. vim.fn.fnameescape(bufname))
   end
 end

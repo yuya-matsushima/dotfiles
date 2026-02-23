@@ -2,9 +2,9 @@
 	name = Yuya Matsushima
 	email = yuyam@fillin-inc.com
 [core]
-  editor = vim
+  editor = nvim
   excludesfile = ~/.gitignore
-  pager = less -x2 -R
+  pager = delta
   quotepath = false
   precomposeunicode = true
   whitespace = cr-at-eol
@@ -13,10 +13,20 @@
   status = auto
   branch = auto
   interactive = auto
+[interactive]
+  diffFilter = delta --color-only
+[delta]
+  navigate = true
+  dark = true
+  line-numbers = true
+[diff]
+  algorithm = histogram
+  colorMoved = default
+  colorMovedWS = allow-indentation-change
 [merge]
   ff = false
   tool = vimdiff
-  conflictstyle = diff3
+  conflictstyle = zdiff3
 [pull]
   rebase = true
 [fetch]

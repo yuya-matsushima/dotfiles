@@ -12,6 +12,7 @@ brew install \
           ctags \
           curl \
           diff-pdf \
+          git-delta \
           direnv \
           fd \
           eza \
