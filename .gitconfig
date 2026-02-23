@@ -13,10 +13,14 @@
   status = auto
   branch = auto
   interactive = auto
+[diff]
+  algorithm = histogram
+  colorMoved = default
+  colorMovedWS = allow-indentation-change
 [merge]
   ff = false
   tool = vimdiff
-  conflictstyle = diff3
+  conflictstyle = zdiff3
 [pull]
   rebase = true
 [fetch]
