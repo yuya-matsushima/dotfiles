@@ -111,7 +111,7 @@ opt.splitright = true
 -- ============================================================================
 
 opt.diffopt:remove('filler')
-opt.diffopt:append({ 'iwhite', 'horizontal' })
+opt.diffopt:append({ 'iwhite', 'horizontal', 'algorithm:histogram', 'linematch:60' })
 
 -- ============================================================================
 -- FOLDING
