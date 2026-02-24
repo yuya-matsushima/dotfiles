@@ -1,0 +1,4 @@
+#compdef aws-otp
+
+_arguments \
+  '(-h --help)'{-h,--help}'[print help]'

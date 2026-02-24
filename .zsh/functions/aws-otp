@@ -1,0 +1,39 @@
+#!/bin/zsh
+
+_ymt_aws_otp_usage() {
+  cat <<EOF
+aws-otp retrieves the OTP value for an AWS account from 1Password.
+
+Usage:
+    aws-otp            show OTP value
+
+Options:
+    --help, -h         print help
+
+Configurable Environment Variables:
+    OP_AWS_ITEM_ID     1Password item ID for AWS account (required)
+
+Dependencies:
+    op (1Password CLI)
+    jq
+EOF
+}
+
+_ymt_aws_otp_get() {
+  if [ -z "$OP_AWS_ITEM_ID" ]; then
+    echo "Error: OP_AWS_ITEM_ID is not set" >&2
+    return 1
+  fi
+
+  op item get "$OP_AWS_ITEM_ID" --format json | jq -r '.fields[] | select(.type == "OTP").totp'
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_aws_otp_usage
+  ;;
+
+  *)
+    _ymt_aws_otp_get
+  ;;
+esac
