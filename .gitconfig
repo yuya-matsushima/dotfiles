@@ -19,6 +19,11 @@
   navigate = true
   dark = true
   line-numbers = true
+  plus-style = "syntax #003800"
+  minus-style = "syntax #3f0001"
+  plus-emph-style = "syntax #006000"
+  minus-emph-style = "syntax #600000"
+  hunk-header-decoration-style = "blue box"
 [diff]
   algorithm = histogram
 [merge]
