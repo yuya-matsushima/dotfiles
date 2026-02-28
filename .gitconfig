@@ -21,8 +21,6 @@
   line-numbers = true
 [diff]
   algorithm = histogram
-  colorMoved = default
-  colorMovedWS = allow-indentation-change
 [merge]
   ff = false
   tool = vimdiff
