@@ -146,7 +146,7 @@ Subcommands:
   issue     GitHub Issue一覧
   lazygit   Git リポジトリを検索して lazygit で開く
   find      ファイル検索（fdを使用）
-  vi/vim    ファイルをvimで開く（fdを使用）
+  vi/vim    ファイルをnvimで開く（fdを使用）
 
 Examples:
   fz branch     # Git branchを選択して切り替え
@@ -160,8 +160,8 @@ Examples:
   fz issue      # Issueを選択して詳細表示
   fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz find       # ファイルを検索して選択
-  fz vi         # ファイルを検索してvimで開く
-  fz vim        # ファイルを検索してvimで開く
+  fz vi         # ファイルを検索してnvimで開く
+  fz vim        # ファイルを検索してnvimで開く
 EOF
 }
 
@@ -538,8 +538,8 @@ _ymt_fz_view() {
     fi
     
     # コマンドを履歴に追加してから実行
-    print -s "$(_ymt_fz_quote_for_history "vim" "$selected_file")"
-    vim "$selected_file"
+    print -s "$(_ymt_fz_quote_for_history "nvim" "$selected_file")"
+    nvim "$selected_file"
   fi
 }
 
