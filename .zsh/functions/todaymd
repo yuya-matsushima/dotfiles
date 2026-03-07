@@ -19,7 +19,7 @@ Configurable Environment Variables:
 Dependencies:
     fzf
     tmux
-    vim
+    nvim
 EOF
 }
 
@@ -55,11 +55,11 @@ _ymt_todaymd() {
     echo "# $filename" > $file_path
   fi
 
-  if ! command -v vim >/dev/null 2>&1; then
-    echo "Error: vim is not installed" >&2
+  if ! command -v nvim >/dev/null 2>&1; then
+    echo "Error: nvim is not installed" >&2
     return 1
   fi
-  vim "$file_path"
+  nvim "$file_path"
 }
 
 _ymt_todaymd_list() {
@@ -81,11 +81,11 @@ _ymt_todaymd_edit() {
 
   file=$(find "${TODAYMD_DIR}" -name \*.md -type f -exec basename {} \; | sort -r | fzf --prompt='file >')
   if [[ -n "$file" ]]; then
-    if ! command -v vim >/dev/null 2>&1; then
-      echo "Error: vim is not installed" >&2
+    if ! command -v nvim >/dev/null 2>&1; then
+      echo "Error: nvim is not installed" >&2
       return 1
     fi
-    vim "${TODAYMD_DIR}/${file}"
+    nvim "${TODAYMD_DIR}/${file}"
   fi
 }
 
