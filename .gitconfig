@@ -4,7 +4,7 @@
 [core]
   editor = nvim
   excludesfile = ~/.gitignore
-  pager = less -x2 -R
+  pager = less -x2 -RFX
   quotepath = false
   precomposeunicode = true
   whitespace = cr-at-eol
