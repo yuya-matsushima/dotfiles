@@ -4,7 +4,7 @@
 [core]
   editor = nvim
   excludesfile = ~/.gitignore
-  pager = delta
+  pager = less -x2 -RFX
   quotepath = false
   precomposeunicode = true
   whitespace = cr-at-eol
@@ -13,12 +13,6 @@
   status = auto
   branch = auto
   interactive = auto
-[interactive]
-  diffFilter = delta --color-only
-[delta]
-  navigate = true
-  dark = true
-  line-numbers = true
 [diff]
   algorithm = histogram
 [merge]
