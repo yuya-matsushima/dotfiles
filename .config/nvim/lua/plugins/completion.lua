@@ -94,9 +94,10 @@ return {
 
           -- Enter: Accept completion
           ['<CR>'] = cmp.mapping(function(fallback)
-            if cmp.visible() then
+            if cmp.visible() and cmp.get_active_entry() then
               cmp.confirm({ select = false })
             else
+              cmp.abort()
               fallback()
             end
           end),
