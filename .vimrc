@@ -119,6 +119,8 @@ if has('win32') || has('win64') || has('mac')
   set clipboard+=unnamed
 endif
 
+set mouse=a
+
 " file
 set hidden
 set autoread
