@@ -111,6 +111,7 @@ gh pr create --title "タイトル" --body "本文" --assignee @me
 
 ## Git 運用ルール
 - main ブランチへの直接 push は禁止
+- **コードや設定ファイルに変更を加える前に, 必ず適切なブランチを作成すること** (main 上での変更開始は禁止)
 - 機能追加の場合には `feature/${branch_name}` ブランチを作成
 - バグ修正の場合には `fix/${branch_name}` ブランチを作成
 - ドキュメント更新の場合には `docs/${branch_name}` ブランチを作成
