@@ -28,6 +28,7 @@ set browsedir=buffer
 if has('win32') || has('win64') || has('mac')
   set clipboard+=unnamed
 endif
+set mouse=a
 set hidden
 set autoread
 set incsearch
