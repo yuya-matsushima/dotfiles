@@ -12,6 +12,7 @@ brew install \
           ctags \
           curl \
           diff-pdf \
+          copilot-cli \
           git-delta \
           direnv \
           fd \
