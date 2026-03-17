@@ -2,6 +2,8 @@
 
 set -e
 
+brew install k1LoW/tap/mo
+
 brew install --cask \
           docker \
           displayplacer \
