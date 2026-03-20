@@ -61,9 +61,24 @@ local servers = {
         -- ruff に任せるため pyright の import 整理を無効化
         disableOrganizeImports = true,
       },
+      python = {
+        analysis = {
+          autoSearchPaths = true,
+          useLibraryCodeForTypes = true,
+          diagnosticMode = 'openFilesOnly',
+        },
+        venvPath = '.',
+        venv = '.venv',
+      },
     },
   },
-  ruff = {},
+  ruff = {
+    init_options = {
+      settings = {
+        interpreter = { '.venv/bin/python' },
+      },
+    },
+  },
   solargraph = {},
   gopls = {},
   rust_analyzer = {
