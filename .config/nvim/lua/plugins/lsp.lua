@@ -61,6 +61,13 @@ local servers = {
         -- ruff に任せるため pyright の import 整理を無効化
         disableOrganizeImports = true,
       },
+      python = {
+        analysis = {
+          autoSearchPaths = true,
+          useLibraryCodeForTypes = true,
+          diagnosticMode = 'openFilesOnly',
+        },
+      },
     },
   },
   ruff = {},
@@ -96,6 +103,31 @@ return {
     },
     config = function()
       setup_diagnostics()
+
+      -- Python: LSP 起動前に .venv を検出して設定をマージ
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('PythonVenvDetect', { clear = true }),
+        pattern = 'python',
+        callback = function(args)
+          local root = vim.fs.root(args.buf, { 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', '.git' })
+          if not root then
+            return
+          end
+          local venv_python = root .. '/.venv/bin/python'
+          if vim.uv.fs_stat(venv_python) then
+            vim.lsp.config('pyright', {
+              settings = {
+                python = { pythonPath = venv_python },
+              },
+            })
+            vim.lsp.config('ruff', {
+              init_options = {
+                settings = { interpreter = { venv_python } },
+              },
+            })
+          end
+        end,
+      })
 
       -- Setup keybindings on LSP attach
       vim.api.nvim_create_autocmd('LspAttach', {
