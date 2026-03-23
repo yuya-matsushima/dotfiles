@@ -31,3 +31,16 @@ end
 
 -- Save as sudo
 vim.api.nvim_create_user_command('Sudow', 'w !sudo tee > /dev/null %', {})
+
+-- ============================================================================
+-- MARKDOWN LINK PASTE
+-- ============================================================================
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'markdown',
+  callback = function()
+    map('n', '<leader>ml', function()
+      require('utils.markdown_link').paste_as_link()
+    end, { buffer = true, noremap = true, desc = 'Paste/convert URL as Markdown link' })
+  end,
+})
