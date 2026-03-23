@@ -1,25 +1,36 @@
 local M = {}
 
---- URL を解析し、マッチすれば {label, url} を返す。マッチしなければ nil。
+--- URL またはパスの末尾セグメントを取得する。
+---@param str string
+---@return string|nil
+local function last_segment(str)
+  -- クエリパラメータやフラグメントを除去してからパス末尾を取得
+  local path = str:match('^([^?#]*)') or str
+  -- 末尾のスラッシュを除去してから最後のセグメントを取得
+  path = path:gsub('/+$', '')
+  return path:match('([^/]+)$')
+end
+
+--- URL またはパスを解析し、{label, url} を返す。変換不可なら nil。
+--- 末尾パスセグメントが数字のみの場合は #number 形式にする。
 ---@param url string
 ---@return {label: string, url: string}|nil
 function M.format_url(url)
   url = vim.trim(url)
 
-  -- GitHub Issue / Pull Request
-  local num = url:match('https://github%.com/.+/issues/(%d+)')
-    or url:match('https://github%.com/.+/pull/(%d+)')
-  if num then
-    return { label = '#' .. num, url = url }
+  -- URL または相対パス（スラッシュを含む）が対象
+  if not (url:match('^https?://') or url:match('/')) then
+    return nil
   end
 
-  -- Backlog
-  local ticket = url:match('https://.+%.backlog%.com/view/([%w_]+-[%w_]+)')
-  if ticket then
-    return { label = ticket, url = url }
+  local seg = last_segment(url)
+  if not seg then
+    return nil
   end
 
-  return nil
+  -- 末尾が数字のみ → #number (GitHub, GitLab, Redmine 等)
+  local label = seg:match('^%d+$') and '#' .. seg or seg
+  return { label = label, url = url }
 end
 
 --- クリップボードの URL を Markdown リンク形式でペーストする。
