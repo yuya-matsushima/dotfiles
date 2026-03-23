@@ -80,13 +80,13 @@ return {
       'L3MON4D3/LuaSnip',
     },
     keys = {
-      { '<leader>fs', function() require('plugins.snippets_picker')() end, desc = 'Find snippets' },
+      { '<leader>fs', function() require('utils.snippets_picker')() end, desc = 'Find snippets' },
     },
     cmd = { 'Snippets' },
     config = function()
       require('telescope').load_extension('luasnip')
       vim.api.nvim_create_user_command('Snippets', function()
-        require('plugins.snippets_picker')()
+        require('utils.snippets_picker')()
       end, { desc = 'Browse and apply snippets' })
     end,
   },
