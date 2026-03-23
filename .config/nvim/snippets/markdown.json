@@ -12,7 +12,7 @@
     "description": "HTML 折りたたみセクション"
   },
   "Note callout": {
-    "prefix": ["callout-note", "alert-note", "note"],
+    "prefix": ["callout-note", "note"],
     "body": [
       "> [!NOTE]",
       "> $0"
@@ -20,7 +20,7 @@
     "description": "GitHub/Obsidian: 補足情報"
   },
   "Tip callout": {
-    "prefix": ["callout-tip", "alert-tip", "tip"],
+    "prefix": ["callout-tip", "tip"],
     "body": [
       "> [!TIP]",
       "> $0"
@@ -28,7 +28,7 @@
     "description": "GitHub/Obsidian: ヒント・コツ"
   },
   "Important callout": {
-    "prefix": ["callout-important", "alert-important", "important"],
+    "prefix": ["callout-important", "important"],
     "body": [
       "> [!IMPORTANT]",
       "> $0"
@@ -36,7 +36,7 @@
     "description": "GitHub/Obsidian: 重要な情報"
   },
   "Warning callout": {
-    "prefix": ["callout-warning", "alert-warning", "warning"],
+    "prefix": ["callout-warning", "warning"],
     "body": [
       "> [!WARNING]",
       "> $0"
@@ -44,7 +44,7 @@
     "description": "GitHub/Obsidian: 注意喚起"
   },
   "Caution callout": {
-    "prefix": ["callout-caution", "alert-caution", "caution"],
+    "prefix": ["callout-caution", "caution"],
     "body": [
       "> [!CAUTION]",
       "> $0"
