@@ -1,6 +1,6 @@
 {
   "Collapsible section": {
-    "prefix": "details",
+    "prefix": ["details", "fold"],
     "body": [
       "<details>",
       "<summary>${1:summary}</summary>",
