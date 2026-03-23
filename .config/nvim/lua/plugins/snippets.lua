@@ -70,4 +70,24 @@ return {
     'rafamadriz/friendly-snippets',
     lazy = true,
   },
+
+  -- telescope-luasnip: Browse and apply snippets via Telescope
+  -- Custom picker deduplicates snippets with multiple prefixes by name
+  {
+    'benfowler/telescope-luasnip.nvim',
+    dependencies = {
+      'nvim-telescope/telescope.nvim',
+      'L3MON4D3/LuaSnip',
+    },
+    keys = {
+      { '<leader>fs', function() require('plugins.snippets_picker')() end, desc = 'Find snippets' },
+    },
+    cmd = { 'Snippets' },
+    config = function()
+      require('telescope').load_extension('luasnip')
+      vim.api.nvim_create_user_command('Snippets', function()
+        require('plugins.snippets_picker')()
+      end, { desc = 'Browse and apply snippets' })
+    end,
+  },
 }
