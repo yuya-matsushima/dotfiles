@@ -70,4 +70,23 @@ return {
     'rafamadriz/friendly-snippets',
     lazy = true,
   },
+
+  -- telescope-luasnip: Browse and apply snippets via Telescope
+  {
+    'benfowler/telescope-luasnip.nvim',
+    dependencies = {
+      'nvim-telescope/telescope.nvim',
+      'L3MON4D3/LuaSnip',
+    },
+    keys = {
+      { '<leader>fs', '<cmd>Telescope luasnip<cr>', desc = 'Find snippets' },
+    },
+    cmd = { 'Snippets' },
+    config = function()
+      require('telescope').load_extension('luasnip')
+      vim.api.nvim_create_user_command('Snippets', function()
+        require('telescope').extensions.luasnip.luasnip()
+      end, { desc = 'Browse and apply snippets' })
+    end,
+  },
 }
