@@ -1,0 +1,134 @@
+{
+  "Collapsible section": {
+    "prefix": "details",
+    "body": [
+      "<details>",
+      "<summary>${1:summary}</summary>",
+      "",
+      "$0",
+      "",
+      "</details>"
+    ],
+    "description": "HTML 折りたたみセクション"
+  },
+  "Note callout": {
+    "prefix": ["callout-note", "alert-note", "note"],
+    "body": [
+      "> [!NOTE]",
+      "> $0"
+    ],
+    "description": "GitHub/Obsidian: 補足情報"
+  },
+  "Tip callout": {
+    "prefix": ["callout-tip", "alert-tip", "tip"],
+    "body": [
+      "> [!TIP]",
+      "> $0"
+    ],
+    "description": "GitHub/Obsidian: ヒント・コツ"
+  },
+  "Important callout": {
+    "prefix": ["callout-important", "alert-important", "important"],
+    "body": [
+      "> [!IMPORTANT]",
+      "> $0"
+    ],
+    "description": "GitHub/Obsidian: 重要な情報"
+  },
+  "Warning callout": {
+    "prefix": ["callout-warning", "alert-warning", "warning"],
+    "body": [
+      "> [!WARNING]",
+      "> $0"
+    ],
+    "description": "GitHub/Obsidian: 注意喚起"
+  },
+  "Caution callout": {
+    "prefix": ["callout-caution", "alert-caution", "caution"],
+    "body": [
+      "> [!CAUTION]",
+      "> $0"
+    ],
+    "description": "GitHub/Obsidian: 危険・取り返しのつかない操作"
+  },
+  "Abstract callout": {
+    "prefix": ["callout-abstract", "abstract"],
+    "body": [
+      "> [!ABSTRACT]",
+      "> $0"
+    ],
+    "description": "Obsidian: 要約・概要"
+  },
+  "Info callout": {
+    "prefix": ["callout-info", "info"],
+    "body": [
+      "> [!INFO]",
+      "> $0"
+    ],
+    "description": "Obsidian: 一般的な情報"
+  },
+  "Todo callout": {
+    "prefix": ["callout-todo", "todo"],
+    "body": [
+      "> [!TODO]",
+      "> $0"
+    ],
+    "description": "Obsidian: やるべきこと"
+  },
+  "Success callout": {
+    "prefix": ["callout-success", "success"],
+    "body": [
+      "> [!SUCCESS]",
+      "> $0"
+    ],
+    "description": "Obsidian: 成功・完了"
+  },
+  "Question callout": {
+    "prefix": ["callout-question", "question"],
+    "body": [
+      "> [!QUESTION]",
+      "> $0"
+    ],
+    "description": "Obsidian: 質問・FAQ"
+  },
+  "Failure callout": {
+    "prefix": ["callout-failure", "failure"],
+    "body": [
+      "> [!FAILURE]",
+      "> $0"
+    ],
+    "description": "Obsidian: 失敗・不合格"
+  },
+  "Danger callout": {
+    "prefix": ["callout-danger", "danger"],
+    "body": [
+      "> [!DANGER]",
+      "> $0"
+    ],
+    "description": "Obsidian: 危険・致命的エラー"
+  },
+  "Bug callout": {
+    "prefix": ["callout-bug", "bug"],
+    "body": [
+      "> [!BUG]",
+      "> $0"
+    ],
+    "description": "Obsidian: バグ・不具合"
+  },
+  "Example callout": {
+    "prefix": ["callout-example", "example"],
+    "body": [
+      "> [!EXAMPLE]",
+      "> $0"
+    ],
+    "description": "Obsidian: 具体例"
+  },
+  "Quote callout": {
+    "prefix": ["callout-quote", "cite"],
+    "body": [
+      "> [!QUOTE]",
+      "> $0"
+    ],
+    "description": "Obsidian: 引用"
+  }
+}
