@@ -50,6 +50,7 @@ brew install \
           tig \
           tldr \
           tmux \
+          tree-sitter-cli \
           uv \
           yazi \
           wget \
