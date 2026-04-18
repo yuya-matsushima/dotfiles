@@ -98,7 +98,7 @@ _ymt_aws_sso_login() {
   fi
 
   export AWS_PROFILE="$profile"
-  print -s "export AWS_PROFILE=$profile"
+  print -s "export AWS_PROFILE=${(q)profile}"
   echo "AWS_PROFILE=$profile"
 }
 
