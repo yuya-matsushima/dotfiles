@@ -710,7 +710,7 @@ _ymt_fz_aws_sso() {
   # タブ区切りで保持する. fzf は --with-nth 1 で整形列のみを表示するが, 選択後の profile 取得は
   # TSV フィールドから行うため空白を含む profile 名でも壊れない.
   local joined
-  joined=$(echo "$profiles" | awk -F'\t' '{
+  joined=$(printf '%s\n' "$profiles" | awk -F'\t' '{
     formatted = sprintf("%-28s %-14s %-30s %s", $1, $2, $3, $4)
     printf "%s\t%s\t%s\t%s\t%s\n", formatted, $1, $2, $3, $4
   }')
