@@ -1,0 +1,44 @@
+#compdef aws-sso
+
+_aws_sso() {
+  local context state line
+  typeset -A opt_args
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :_aws_sso_subcommands' \
+    '*::arg:->args'
+
+  case $state in
+    args)
+      case $line[1] in
+        login)
+          _arguments '1: :_aws_sso_profiles'
+          ;;
+        unset)
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_aws_sso_subcommands() {
+  local -a subcommands
+  subcommands=(
+    'login:SSO ログイン + AWS_PROFILE を export'
+    'unset:AWS_PROFILE を unset'
+    'list:SSO profile を TSV で出力'
+  )
+  _describe -t subcommands 'aws-sso subcommand' subcommands
+}
+
+_aws_sso_profiles() {
+  local -a profiles
+  local name
+  while IFS=$'\t' read -r name _ _ _; do
+    [[ -n "$name" ]] && profiles+=("$name")
+  done < <(aws-sso list 2>/dev/null)
+  _describe -t profiles 'SSO profile' profiles
+}
+
+_aws_sso "$@"

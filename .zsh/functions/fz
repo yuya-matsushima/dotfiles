@@ -65,7 +65,9 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("fzf")
   fi
 
-  if ! (( $+commands[git] )); then
+  # git は git を直接使うサブコマンドのみ必須. aws-sso など git と無関係の
+  # サブコマンドまで git 未導入で弾かないようにする.
+  if [[ "$subcommand" != "aws-sso" ]] && ! (( $+commands[git] )); then
     missing_deps+=("git")
   fi
 
@@ -89,6 +91,10 @@ _ymt_fz_check_dependencies() {
 
   if [[ "$subcommand" == "devkill" ]] && ! (( $+commands[pgrep] )); then
     missing_deps+=("pgrep")
+  fi
+
+  if [[ "$subcommand" == "aws-sso" ]] && ! (( $+commands[aws] )); then
+    missing_deps+=("aws")
   fi
 
   if [[ "$subcommand" == "lazygit" ]]; then
@@ -139,33 +145,35 @@ fz - fzf wrapper command
 Usage: fz <subcommand> [options]
 
 Subcommands:
+  aws-sso   AWS SSO profile を選択してログイン
   branch    Git branch切り替え
-  log       Git commit履歴検索（batでシンタックスハイライト）
-  kill      プロセス検索・kill
+  cd        ディレクトリ履歴から移動（fdで拡張検索）
   devkill   dev サーバプロセス (pnpm/npm/vite/next 等) を検索して子孫ごと kill
   docker    Docker container接続
-  history   コマンド履歴検索・実行
   env       環境変数検索・表示
-  cd        ディレクトリ履歴から移動（fdで拡張検索）
-  pr        GitHub Pull Request一覧
-  issue     GitHub Issue一覧
-  lazygit   Git リポジトリを検索して lazygit で開く
   find      ファイル検索（fdを使用）
+  history   コマンド履歴検索・実行
+  issue     GitHub Issue一覧
+  kill      プロセス検索・kill
+  lazygit   Git リポジトリを検索して lazygit で開く
+  log       Git commit履歴検索（batでシンタックスハイライト）
+  pr        GitHub Pull Request一覧
   vi/vim    ファイルをnvimで開く（fdを使用）
 
 Examples:
+  fz aws-sso    # AWS SSO profile を選択してログイン
   fz branch     # Git branchを選択して切り替え
-  fz log        # Git logを検索（Ctrl+Yでhash copy）
-  fz kill       # プロセスを選択してkill
+  fz cd         # ディレクトリ履歴から選択して移動
   fz devkill    # 開発サーバを選択して子孫プロセスごとkill
   fz docker     # Docker containerを選択して接続
-  fz history    # コマンド履歴を検索して実行
   fz env        # 環境変数を検索・表示
-  fz cd         # ディレクトリ履歴から選択して移動
-  fz pr         # Pull Requestを選択して詳細表示
-  fz issue      # Issueを選択して詳細表示
-  fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz find       # ファイルを検索して選択
+  fz history    # コマンド履歴を検索して実行
+  fz issue      # Issueを選択して詳細表示
+  fz kill       # プロセスを選択してkill
+  fz lazygit    # Git リポジトリを検索して lazygit で開く
+  fz log        # Git logを検索（Ctrl+Yでhash copy）
+  fz pr         # Pull Requestを選択して詳細表示
   fz vi         # ファイルを検索してnvimで開く
   fz vim        # ファイルを検索してnvimで開く
 EOF
@@ -687,6 +695,62 @@ _ymt_fz_view() {
   fi
 }
 
+# AWS SSO profile 選択ログイン
+_ymt_fz_aws_sso() {
+  local profiles
+  profiles=$(aws-sso list) || return 1
+
+  if [ -z "$profiles" ]; then
+    echo "No SSO profiles found in ~/.aws/config" >&2
+    return 1
+  fi
+
+  local header
+  header=$(printf "%-28s %-14s %-30s %s" "PROFILE" "ACCOUNT_ID" "ROLE" "REGION")
+
+  # 先頭フィールドに整形済み表示列, 続いて TSV の元フィールド (profile/account/role/region) を
+  # タブ区切りで保持する. fzf は --with-nth 1 で整形列のみを表示するが, 選択後の profile 取得は
+  # TSV フィールドから行うため空白を含む profile 名でも壊れない.
+  local joined
+  joined=$(printf '%s\n' "$profiles" | awk -F'\t' '{
+    formatted = sprintf("%-28s %-14s %-30s %s", $1, $2, $3, $4)
+    printf "%s\t%s\t%s\t%s\t%s\n", formatted, $1, $2, $3, $4
+  }')
+
+  # preview は aws-sso list が返した whitelist 済み TSV 行のみを参照する.
+  # credentials (access_key/secret_key) は読み取らない.
+  local preview_cmd
+  preview_cmd='printf "%s\n" {} | awk -F"\t" "{
+    printf \"Profile:    %s\n\", \$2
+    printf \"Account ID: %s\n\", \$3
+    printf \"Role:       %s\n\", \$4
+    printf \"Region:     %s\n\", \$5
+    printf \"Command:    aws sso login --profile %s\n\", \$2
+  }"'
+
+  local selected
+  selected=$(echo "$joined" | fzf \
+    --delimiter $'\t' \
+    --with-nth 1 \
+    --header "$header" \
+    --header-lines=0 \
+    --preview "$preview_cmd" \
+    --preview-window=down:7:wrap \
+    --reverse)
+
+  if [ -z "$selected" ]; then
+    return 0
+  fi
+
+  local profile
+  profile=$(echo "$selected" | awk -F'\t' '{print $2}')
+  if [ -z "$profile" ]; then
+    return 1
+  fi
+
+  aws-sso login "$profile"
+}
+
 # 依存関係をチェック
 if ! _ymt_fz_check_dependencies "$1" 2>/dev/null; then
   _ymt_fz_check_dependencies "$1"
@@ -746,6 +810,10 @@ case "${1:-help}" in
   vi|vim)
     shift
     _ymt_fz_view "$@"
+    ;;
+  aws-sso)
+    shift
+    _ymt_fz_aws_sso "$@"
     ;;
   --help|-h)
     _ymt_fz_usage
