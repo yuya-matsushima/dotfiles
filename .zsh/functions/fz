@@ -706,22 +706,30 @@ _ymt_fz_aws_sso() {
   local header
   header=$(printf "%-28s %-14s %-30s %s" "PROFILE" "ACCOUNT_ID" "ROLE" "REGION")
 
-  local formatted
-  formatted=$(echo "$profiles" | awk -F'\t' '{ printf "%-28s %-14s %-30s %s\n", $1, $2, $3, $4 }')
+  # 先頭フィールドに整形済み表示列, 続いて TSV の元フィールド (profile/account/role/region) を
+  # タブ区切りで保持する. fzf は --with-nth 1 で整形列のみを表示するが, 選択後の profile 取得は
+  # TSV フィールドから行うため空白を含む profile 名でも壊れない.
+  local joined
+  joined=$(echo "$profiles" | awk -F'\t' '{
+    formatted = sprintf("%-28s %-14s %-30s %s", $1, $2, $3, $4)
+    printf "%s\t%s\t%s\t%s\t%s\n", formatted, $1, $2, $3, $4
+  }')
 
   # preview は aws-sso list が返した whitelist 済み TSV 行のみを参照する.
   # credentials (access_key/secret_key) は読み取らない.
   local preview_cmd
-  preview_cmd='echo {} | awk "{
-    printf \"Profile:    %s\n\", \$1
-    printf \"Account ID: %s\n\", \$2
-    printf \"Role:       %s\n\", \$3
-    printf \"Region:     %s\n\", \$4
-    printf \"Command:    aws sso login --profile %s\n\", \$1
+  preview_cmd='echo {} | awk -F"\t" "{
+    printf \"Profile:    %s\n\", \$2
+    printf \"Account ID: %s\n\", \$3
+    printf \"Role:       %s\n\", \$4
+    printf \"Region:     %s\n\", \$5
+    printf \"Command:    aws sso login --profile %s\n\", \$2
   }"'
 
   local selected
-  selected=$(echo "$formatted" | fzf \
+  selected=$(echo "$joined" | fzf \
+    --delimiter $'\t' \
+    --with-nth 1 \
     --header "$header" \
     --header-lines=0 \
     --preview "$preview_cmd" \
@@ -733,7 +741,7 @@ _ymt_fz_aws_sso() {
   fi
 
   local profile
-  profile=$(echo "$selected" | awk '{print $1}')
+  profile=$(echo "$selected" | awk -F'\t' '{print $2}')
   if [ -z "$profile" ]; then
     return 1
   fi
