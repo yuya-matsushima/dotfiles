@@ -65,7 +65,9 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("fzf")
   fi
 
-  if ! (( $+commands[git] )); then
+  # git は git を直接使うサブコマンドのみ必須. aws-sso など git と無関係の
+  # サブコマンドまで git 未導入で弾かないようにする.
+  if [[ "$subcommand" != "aws-sso" ]] && ! (( $+commands[git] )); then
     missing_deps+=("git")
   fi
 
