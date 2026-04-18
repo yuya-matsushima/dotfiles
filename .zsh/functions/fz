@@ -143,37 +143,37 @@ fz - fzf wrapper command
 Usage: fz <subcommand> [options]
 
 Subcommands:
+  aws-sso   AWS SSO profile を選択してログイン
   branch    Git branch切り替え
-  log       Git commit履歴検索（batでシンタックスハイライト）
-  kill      プロセス検索・kill
+  cd        ディレクトリ履歴から移動（fdで拡張検索）
   devkill   dev サーバプロセス (pnpm/npm/vite/next 等) を検索して子孫ごと kill
   docker    Docker container接続
-  history   コマンド履歴検索・実行
   env       環境変数検索・表示
-  cd        ディレクトリ履歴から移動（fdで拡張検索）
-  pr        GitHub Pull Request一覧
-  issue     GitHub Issue一覧
-  lazygit   Git リポジトリを検索して lazygit で開く
   find      ファイル検索（fdを使用）
+  history   コマンド履歴検索・実行
+  issue     GitHub Issue一覧
+  kill      プロセス検索・kill
+  lazygit   Git リポジトリを検索して lazygit で開く
+  log       Git commit履歴検索（batでシンタックスハイライト）
+  pr        GitHub Pull Request一覧
   vi/vim    ファイルをnvimで開く（fdを使用）
-  aws-sso   AWS SSO profile を選択してログイン
 
 Examples:
+  fz aws-sso    # AWS SSO profile を選択してログイン
   fz branch     # Git branchを選択して切り替え
-  fz log        # Git logを検索（Ctrl+Yでhash copy）
-  fz kill       # プロセスを選択してkill
+  fz cd         # ディレクトリ履歴から選択して移動
   fz devkill    # 開発サーバを選択して子孫プロセスごとkill
   fz docker     # Docker containerを選択して接続
-  fz history    # コマンド履歴を検索して実行
   fz env        # 環境変数を検索・表示
-  fz cd         # ディレクトリ履歴から選択して移動
-  fz pr         # Pull Requestを選択して詳細表示
-  fz issue      # Issueを選択して詳細表示
-  fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz find       # ファイルを検索して選択
+  fz history    # コマンド履歴を検索して実行
+  fz issue      # Issueを選択して詳細表示
+  fz kill       # プロセスを選択してkill
+  fz lazygit    # Git リポジトリを検索して lazygit で開く
+  fz log        # Git logを検索（Ctrl+Yでhash copy）
+  fz pr         # Pull Requestを選択して詳細表示
   fz vi         # ファイルを検索してnvimで開く
   fz vim        # ファイルを検索してnvimで開く
-  fz aws-sso    # AWS SSO profile を選択してログイン
 EOF
 }
 
