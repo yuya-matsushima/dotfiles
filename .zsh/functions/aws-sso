@@ -83,6 +83,13 @@ _ymt_aws_sso_login() {
     return 1
   fi
 
+  # aws CLI 必須チェックは login のみ. list/unset は config 読み取りと
+  # 環境変数操作しかしないため CLI 未導入でも動かしたい.
+  if ! (( $+commands[aws] )); then
+    echo "Error: aws CLI not found. Please install awscli." >&2
+    return 1
+  fi
+
   # ~/.aws/config にある SSO profile のみ許可する.
   # aws-sso list の結果 (TSV) の先頭フィールドと照合し, 未登録 profile は拒否.
   if ! _ymt_aws_sso_list_profiles | awk -F'\t' -v p="$profile" '$1 == p { found = 1 } END { exit !found }'; then
@@ -107,11 +114,6 @@ _ymt_aws_sso_unset() {
   print -s "unset AWS_PROFILE"
   echo "AWS_PROFILE unset"
 }
-
-if ! (( $+commands[aws] )); then
-  echo "Error: aws CLI not found. Please install awscli." >&2
-  return 1
-fi
 
 case ${1} in
   -h|--help)
