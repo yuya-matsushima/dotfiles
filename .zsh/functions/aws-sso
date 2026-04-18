@@ -2,20 +2,20 @@
 
 _ymt_aws_sso_usage() {
   cat <<EOF
-aws-sso helps login to AWS via IAM Identity Center (SSO) and manage AWS_PROFILE.
+aws-sso は IAM Identity Center (SSO) 経由の AWS ログインと AWS_PROFILE の管理を行います.
 
-Usage:
+使い方:
     aws-sso login <profile>   SSO ログインを実行し AWS_PROFILE を export
     aws-sso unset             AWS_PROFILE を unset
     aws-sso list              ~/.aws/config の SSO profile を TSV で出力
     aws-sso -h, --help        ヘルプを表示
 
-Description:
+説明:
     login は aws sso login --profile <profile> を実行し,
     成功した場合のみ AWS_PROFILE=<profile> を export します.
     <profile> は ~/.aws/config の SSO profile のみ指定可能です.
 
-Dependencies:
+依存関係:
     aws CLI
 EOF
 }
