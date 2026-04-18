@@ -59,6 +59,10 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
+        aws-sso)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
       esac
       ;;
   esac
@@ -79,6 +83,7 @@ _fz_subcommands() {
     'find:ファイル検索（fdを使用）'
     'vi:ファイルをnvimで開く（fdを使用）'
     'vim:ファイルをnvimで開く（fdを使用）'
+    'aws-sso:AWS SSO profile を選択してログイン'
   )
   _describe -t subcommands 'fz subcommand' subcommands
 }

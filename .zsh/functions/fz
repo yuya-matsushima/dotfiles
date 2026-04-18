@@ -91,6 +91,10 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("pgrep")
   fi
 
+  if [[ "$subcommand" == "aws-sso" ]] && ! (( $+commands[aws] )); then
+    missing_deps+=("aws")
+  fi
+
   if [[ "$subcommand" == "lazygit" ]]; then
     if ! (( $+commands[lazygit] )); then
       missing_deps+=("lazygit")
@@ -152,6 +156,7 @@ Subcommands:
   lazygit   Git リポジトリを検索して lazygit で開く
   find      ファイル検索（fdを使用）
   vi/vim    ファイルをnvimで開く（fdを使用）
+  aws-sso   AWS SSO profile を選択してログイン
 
 Examples:
   fz branch     # Git branchを選択して切り替え
@@ -168,6 +173,7 @@ Examples:
   fz find       # ファイルを検索して選択
   fz vi         # ファイルを検索してnvimで開く
   fz vim        # ファイルを検索してnvimで開く
+  fz aws-sso    # AWS SSO profile を選択してログイン
 EOF
 }
 
@@ -687,6 +693,54 @@ _ymt_fz_view() {
   fi
 }
 
+# AWS SSO profile 選択ログイン
+_ymt_fz_aws_sso() {
+  local profiles
+  profiles=$(aws-sso list) || return 1
+
+  if [ -z "$profiles" ]; then
+    echo "No SSO profiles found in ~/.aws/config" >&2
+    return 1
+  fi
+
+  local header
+  header=$(printf "%-28s %-14s %-30s %s" "PROFILE" "ACCOUNT_ID" "ROLE" "REGION")
+
+  local formatted
+  formatted=$(echo "$profiles" | awk -F'\t' '{ printf "%-28s %-14s %-30s %s\n", $1, $2, $3, $4 }')
+
+  # preview は aws-sso list が返した whitelist 済み TSV 行のみを参照する.
+  # credentials (access_key/secret_key) は読み取らない.
+  local preview_cmd
+  preview_cmd='echo {} | awk "{
+    printf \"Profile:    %s\n\", \$1
+    printf \"Account ID: %s\n\", \$2
+    printf \"Role:       %s\n\", \$3
+    printf \"Region:     %s\n\", \$4
+    printf \"Command:    aws sso login --profile %s\n\", \$1
+  }"'
+
+  local selected
+  selected=$(echo "$formatted" | fzf \
+    --header "$header" \
+    --header-lines=0 \
+    --preview "$preview_cmd" \
+    --preview-window=down:7:wrap \
+    --reverse)
+
+  if [ -z "$selected" ]; then
+    return 0
+  fi
+
+  local profile
+  profile=$(echo "$selected" | awk '{print $1}')
+  if [ -z "$profile" ]; then
+    return 1
+  fi
+
+  aws-sso login "$profile"
+}
+
 # 依存関係をチェック
 if ! _ymt_fz_check_dependencies "$1" 2>/dev/null; then
   _ymt_fz_check_dependencies "$1"
@@ -746,6 +800,10 @@ case "${1:-help}" in
   vi|vim)
     shift
     _ymt_fz_view "$@"
+    ;;
+  aws-sso)
+    shift
+    _ymt_fz_aws_sso "$@"
     ;;
   --help|-h)
     _ymt_fz_usage

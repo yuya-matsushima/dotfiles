@@ -1,0 +1,135 @@
+#!/bin/zsh
+
+_ymt_aws_sso_usage() {
+  cat <<EOF
+aws-sso helps login to AWS via IAM Identity Center (SSO) and manage AWS_PROFILE.
+
+Usage:
+    aws-sso login <profile>   SSO ログインを実行し AWS_PROFILE を export
+    aws-sso unset             AWS_PROFILE を unset
+    aws-sso list              ~/.aws/config の SSO profile を TSV で出力
+    aws-sso -h, --help        ヘルプを表示
+
+Description:
+    login は aws sso login --profile <profile> を実行し,
+    成功した場合のみ AWS_PROFILE=<profile> を export します.
+    <profile> は ~/.aws/config の SSO profile のみ指定可能です.
+
+Dependencies:
+    aws CLI
+EOF
+}
+
+# ~/.aws/config から SSO profile のみを抽出する.
+# 出力形式: "<profile>\t<sso_account_id>\t<sso_role_name>\t<region>"
+# 値が無い項目は "-" を出力する.
+#
+# Security: ~/.aws/credentials は意図的に参照しない. config の読み取りキーも
+# sso_session / sso_start_url / sso_account_id / sso_role_name / region に限定し,
+# aws_access_key_id などの機密情報は一切拾わない.
+_ymt_aws_sso_list_profiles() {
+  local config="${AWS_CONFIG_FILE:-$HOME/.aws/config}"
+  if [ ! -r "$config" ]; then
+    echo "Error: AWS config file not found: $config" >&2
+    return 1
+  fi
+
+  awk '
+    function flush() {
+      if (in_profile && is_sso) {
+        printf "%s\t%s\t%s\t%s\n",
+          name,
+          (account == "" ? "-" : account),
+          (role == "" ? "-" : role),
+          (region == "" ? "-" : region)
+      }
+      in_profile = 0
+      is_sso = 0
+      name = ""; account = ""; role = ""; region = ""
+    }
+    /^[[:space:]]*\[/ {
+      flush()
+      line = $0
+      sub(/^[[:space:]]*\[/, "", line)
+      sub(/\][[:space:]]*$/, "", line)
+      if (line ~ /^profile[[:space:]]+/) {
+        sub(/^profile[[:space:]]+/, "", line)
+        name = line
+        in_profile = 1
+      }
+      next
+    }
+    in_profile {
+      if ($0 ~ /^[[:space:]]*#/) next
+      eq = index($0, "=")
+      if (eq == 0) next
+      key = substr($0, 1, eq - 1)
+      val = substr($0, eq + 1)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
+      if (key == "sso_session" || key == "sso_start_url") is_sso = 1
+      else if (key == "sso_account_id") account = val
+      else if (key == "sso_role_name") role = val
+      else if (key == "region") region = val
+    }
+    END { flush() }
+  ' "$config"
+}
+
+_ymt_aws_sso_login() {
+  local profile="$1"
+  if [ -z "$profile" ]; then
+    _ymt_aws_sso_usage >&2
+    return 1
+  fi
+
+  if ! aws sso login --profile "$profile"; then
+    echo "Error: aws sso login failed for profile '$profile'" >&2
+    return 1
+  fi
+
+  export AWS_PROFILE="$profile"
+  print -s "export AWS_PROFILE=$profile"
+  echo "AWS_PROFILE=$profile"
+}
+
+_ymt_aws_sso_unset() {
+  unset AWS_PROFILE
+  print -s "unset AWS_PROFILE"
+  echo "AWS_PROFILE unset"
+}
+
+if ! (( $+commands[aws] )); then
+  echo "Error: aws CLI not found. Please install awscli." >&2
+  return 1
+fi
+
+case ${1} in
+  -h|--help)
+    _ymt_aws_sso_usage
+  ;;
+
+  login)
+    shift
+    _ymt_aws_sso_login "$@"
+  ;;
+
+  unset)
+    _ymt_aws_sso_unset
+  ;;
+
+  list)
+    _ymt_aws_sso_list_profiles
+  ;;
+
+  "")
+    _ymt_aws_sso_usage >&2
+    return 1
+  ;;
+
+  *)
+    echo "Error: Unknown subcommand '$1'" >&2
+    echo "Run 'aws-sso --help' for usage." >&2
+    return 1
+  ;;
+esac
