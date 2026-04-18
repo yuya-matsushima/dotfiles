@@ -104,7 +104,7 @@ _ymt_prompt_right_status() {
 }
 
 _ymt_prompt_right_on() {
-  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[awss:$AWSUME_PROFILE]}${AWS_PROFILE:+[awsp:$AWS_PROFILE]}'
   echo "Right prompt enabled"
 }
 

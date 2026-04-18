@@ -13,5 +13,5 @@ ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[green]%}%{✔%G%}"
 # Set initial RPROMPT only if not already set
 # This allows prompt command settings to persist across sourcing
 if [[ -z "$RPROMPT" ]]; then
-  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[aws:$AWSUME_PROFILE]}'
+  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[awss:$AWSUME_PROFILE]}${AWS_PROFILE:+[awsp:$AWS_PROFILE]}'
 fi
