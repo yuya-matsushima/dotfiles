@@ -718,7 +718,7 @@ _ymt_fz_aws_sso() {
   # preview は aws-sso list が返した whitelist 済み TSV 行のみを参照する.
   # credentials (access_key/secret_key) は読み取らない.
   local preview_cmd
-  preview_cmd='echo {} | awk -F"\t" "{
+  preview_cmd='printf "%s\n" {} | awk -F"\t" "{
     printf \"Profile:    %s\n\", \$2
     printf \"Account ID: %s\n\", \$3
     printf \"Role:       %s\n\", \$4
