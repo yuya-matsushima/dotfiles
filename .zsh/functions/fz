@@ -87,6 +87,10 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("fd")
   fi
 
+  if [[ "$subcommand" == "devkill" ]] && ! (( $+commands[pgrep] )); then
+    missing_deps+=("pgrep")
+  fi
+
   if [[ "$subcommand" == "lazygit" ]]; then
     if ! (( $+commands[lazygit] )); then
       missing_deps+=("lazygit")
@@ -138,6 +142,7 @@ Subcommands:
   branch    Git branch切り替え
   log       Git commit履歴検索（batでシンタックスハイライト）
   kill      プロセス検索・kill
+  devkill   dev サーバプロセス (pnpm/npm/vite/next 等) を検索して子孫ごと kill
   docker    Docker container接続
   history   コマンド履歴検索・実行
   env       環境変数検索・表示
@@ -152,6 +157,7 @@ Examples:
   fz branch     # Git branchを選択して切り替え
   fz log        # Git logを検索（Ctrl+Yでhash copy）
   fz kill       # プロセスを選択してkill
+  fz devkill    # 開発サーバを選択して子孫プロセスごとkill
   fz docker     # Docker containerを選択して接続
   fz history    # コマンド履歴を検索して実行
   fz env        # 環境変数を検索・表示
@@ -234,6 +240,107 @@ _ymt_fz_kill() {
     local signal=${1:-9}
     print -s "kill -$signal $pid"
     echo $pid | xargs kill -$signal
+  fi
+}
+
+readonly FZ_DEVKILL_PATTERN='(^|[^A-Za-z0-9_-])(pnpm( run)? dev|npm run dev|yarn( run)? dev|bun( run)? dev|vite|webpack-dev-server|next-server|next dev|nuxt dev|astro dev|remix dev|turbo run dev|svelte-kit dev)([^A-Za-z0-9_-]|$)'
+
+# 指定 PID の子孫 PID を BFS で収集し改行区切りで出力
+_ymt_fz_collect_descendants() {
+  local root_pid="$1"
+  local queue=("$root_pid")
+  local all=()
+  local current=""
+  local children=""
+  local c=""
+  while (( ${#queue[@]} > 0 )); do
+    current="${queue[1]}"
+    queue=("${queue[@]:1}")
+    all+=("$current")
+    children=$(pgrep -P "$current" 2>/dev/null)
+    if [ -n "$children" ]; then
+      for c in ${(f)children}; do
+        queue+=("$c")
+      done
+    fi
+  done
+  printf '%s\n' "${all[@]}"
+}
+
+# dev サーバ kill
+_ymt_fz_devkill() {
+  local self_pid=$$
+  local list
+  list=$(LC_ALL=C ps -eo pid,ppid,user,etime,pcpu,pmem,command \
+    | sed 1d \
+    | awk -v self="$self_pid" -v pat="$FZ_DEVKILL_PATTERN" '
+        $1 == self { next }
+        $0 ~ "fzf" || $0 ~ "awk " || $0 ~ "ps -eo" { next }
+        $0 ~ pat')
+
+  if [ -z "$list" ]; then
+    echo "No dev-server processes found." >&2
+    return 0
+  fi
+
+  local preview_cmd
+  preview_cmd='pid=$(echo {} | awk "{print \$1}"); echo "=== Process tree (root: $pid) ==="; descendants=$(pgrep -P "$pid" 2>/dev/null); ps -o pid,ppid,etime,command -p "$pid" $(pgrep -g $(ps -o pgid= -p "$pid" 2>/dev/null | tr -d " ") 2>/dev/null | tr "\n" " ") 2>/dev/null || ps -o pid,ppid,etime,command -p "$pid"'
+
+  local selected
+  selected=$(echo "$list" | fzf --multi --reverse --height=80% \
+    --header "Select dev-server processes to kill (TAB: multi, Enter: kill tree)" \
+    --preview "$preview_cmd" \
+    --preview-window=down:40%:wrap \
+    | awk '{print $1}')
+
+  if [ -z "$selected" ]; then
+    return 0
+  fi
+
+  local all_targets=()
+  local pid=""
+  local desc=""
+  local d=""
+  for pid in ${(f)selected}; do
+    desc=$(_ymt_fz_collect_descendants "$pid")
+    for d in ${(f)desc}; do
+      all_targets+=("$d")
+    done
+  done
+
+  # 重複除去 (順序保持: 子が先に来るよう reverse)
+  local -A seen
+  local -a unique_reversed
+  local i=0
+  local t=""
+  for (( i = ${#all_targets[@]}; i > 0; i-- )); do
+    t="${all_targets[$i]}"
+    if [[ -z "${seen[$t]}" ]]; then
+      seen[$t]=1
+      unique_reversed+=("$t")
+    fi
+  done
+
+  if (( ${#unique_reversed[@]} == 0 )); then
+    return 0
+  fi
+
+  print -s "kill -TERM ${unique_reversed[*]}"
+  echo "Sending SIGTERM to: ${unique_reversed[*]}" >&2
+  kill -TERM "${unique_reversed[@]}" 2>/dev/null
+
+  sleep 0.5
+
+  local -a still_alive
+  for pid in "${unique_reversed[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      still_alive+=("$pid")
+    fi
+  done
+
+  if (( ${#still_alive[@]} > 0 )); then
+    echo "SIGTERM に応答しないプロセスに SIGKILL: ${still_alive[*]}" >&2
+    kill -KILL "${still_alive[@]}" 2>/dev/null
   fi
 }
 
@@ -562,6 +669,10 @@ case "${1:-help}" in
   kill)
     shift
     _ymt_fz_kill "$@"
+    ;;
+  devkill)
+    shift
+    _ymt_fz_devkill "$@"
     ;;
   docker)
     shift
