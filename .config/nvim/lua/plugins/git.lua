@@ -36,4 +36,17 @@ return {
     },
     opts = {},
   },
+  {
+    'pwntester/octo.nvim',
+    cmd = 'Octo',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-telescope/telescope.nvim',
+    },
+    opts = {
+      picker = 'telescope',
+      enable_builtin = true,
+      default_merge_method = 'squash',
+    },
+  },
 }
