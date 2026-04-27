@@ -791,8 +791,20 @@ _ymt_fz_skills() {
     name=$(printf '%s' "$match" | cut -f2)
     target=$(printf '%s' "$match" | cut -f3)
   else
+    # fzf preview は non-interactive subshell で実行され $PATH が
+    # 引き継がれないことがある (Homebrew /opt/homebrew/bin など). ここで
+    # 絶対パスを解決して preview コマンドに埋め込む.
+    local cut_bin="${commands[cut]:-/usr/bin/cut}"
+    local cat_bin="${commands[cat]:-/bin/cat}"
+    local viewer
+    if [[ -n ${commands[bat]} ]]; then
+      viewer="${commands[bat]} --style=plain --color=always --line-range=:80 --"
+    else
+      viewer="$cat_bin --"
+    fi
+
     local selected preview_cmd
-    preview_cmd='path=$(printf "%s" {} | cut -f3); if command -v bat >/dev/null 2>&1; then bat --style=plain --color=always --line-range=:80 -- "$path/SKILL.md"; else head -80 -- "$path/SKILL.md"; fi'
+    preview_cmd="path=\$(printf '%s' {} | $cut_bin -f3); $viewer \"\$path/SKILL.md\""
 
     selected=$(printf '%s\n' "$list" | fzf \
       --delimiter $'\t' \
