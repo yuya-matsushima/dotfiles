@@ -791,11 +791,20 @@ _ymt_fz_skills() {
     name=$(printf '%s' "$match" | cut -f2)
     target=$(printf '%s' "$match" | cut -f3)
   else
-    # fzf preview は zsh -c で実行され, .zshrc を読まないため PATH が
-    # /usr/bin だけ等の貧弱な状態になることがある (bat も /bin/cat も
-    # 見つからないケースがある). main shell の PATH を引き継いで実行する.
+    # fzf preview は zsh -c (subshell) で実行されるため .zshrc を読まず,
+    # PATH が貧弱な状態になり bat / cat / cut が見つからないケースがある.
+    # main shell 側で各コマンドを絶対パスに解決して preview に埋め込む.
+    local cut_bin="${commands[cut]:-/usr/bin/cut}"
+    local cat_bin="${commands[cat]:-/bin/cat}"
+    local viewer
+    if [[ -n ${commands[bat]} ]]; then
+      viewer="${commands[bat]} --style=full --color=always --"
+    else
+      viewer="$cat_bin --"
+    fi
+
     local selected preview_cmd
-    preview_cmd="export PATH=${(q)PATH}; "'path=$(printf "%s" {} | cut -f3); if (( $+commands[bat] )); then bat --style=full --color=always -- "$path/SKILL.md"; else cat -- "$path/SKILL.md"; fi'
+    preview_cmd="path=\$(printf '%s' {} | $cut_bin -f3); $viewer \"\$path/SKILL.md\""
 
     selected=$(printf '%s\n' "$list" | fzf \
       --delimiter $'\t' \
