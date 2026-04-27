@@ -792,11 +792,7 @@ _ymt_fz_skills() {
     target=$(printf '%s' "$match" | cut -f3)
   else
     local selected preview_cmd
-    if (( $+commands[bat] )); then
-      preview_cmd='path=$(printf "%s" {} | cut -f3); bat --style=plain --color=always --line-range=:80 -- "$path/SKILL.md"'
-    else
-      preview_cmd='path=$(printf "%s" {} | cut -f3); head -80 -- "$path/SKILL.md"'
-    fi
+    preview_cmd='path=$(printf "%s" {} | cut -f3); if command -v bat >/dev/null 2>&1; then bat --style=plain --color=always --line-range=:80 -- "$path/SKILL.md"; else head -80 -- "$path/SKILL.md"; fi'
 
     selected=$(printf '%s\n' "$list" | fzf \
       --delimiter $'\t' \
