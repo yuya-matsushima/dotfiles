@@ -95,20 +95,38 @@ _fz_subcommands() {
 }
 
 # fz skills 用の skill 名補完
+# 本体 (_ymt_fz_skills_list) と同じく、basename が複数 host にまたがる場合のみ
+# 候補を <host>/<basename> 表記に変える
 _fz_skill_names() {
-  local -a names
-  local r d
+  local r d host name
+  local -A counts
+  local -a entries
   for r in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.copilot/skills" "$HOME/.gemini/skills" "$HOME/.agents/skills"; do
     [[ -d $r ]] || continue
+    host="${${r:h}:t}"
+    host="${host#.}"
     for d in $r/*(/N); do
       [[ -L $d ]] && continue
       [[ -f $d/SKILL.md ]] || continue
-      names+=("${d:t}")
+      name="${d:t}"
+      entries+=("$host"$'\t'"$name")
+      (( counts[$name]++ ))
     done
   done
-  # 重複除去
-  names=(${(u)names})
-  _describe -t skills 'skill name' names
+
+  local -a candidates
+  local entry
+  local -a parts
+  for entry in "${entries[@]}"; do
+    parts=("${(@s:	:)entry}")
+    if (( counts[${parts[2]}] > 1 )); then
+      candidates+=("${parts[1]}/${parts[2]}")
+    else
+      candidates+=("${parts[2]}")
+    fi
+  done
+  candidates=(${(u)candidates})
+  _describe -t skills 'skill name' candidates
 }
 
 # git log のオプション補完（簡易版）
