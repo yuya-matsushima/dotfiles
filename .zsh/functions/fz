@@ -777,9 +777,27 @@ _ymt_fz_skills() {
       echo "Error: skill 名が空です" >&2
       return 1
     fi
-    # list の display ($1) または basename ($2) と完全一致する行を探す
+    # 1) display ($1) との完全一致を優先 (host/name 指定もここで解決)
     local match
-    match=$(printf '%s\n' "$list" | awk -F'\t' -v q="$input" '$1 == q || $2 == q {print; exit}')
+    match=$(printf '%s\n' "$list" | awk -F'\t' -v q="$input" '$1 == q {print; exit}')
+    if [[ -z $match ]]; then
+      # 2) basename ($2) との一致にフォールバック. 複数 host に同名がある場合は
+      #    曖昧なので拒否し host 指定を要求する.
+      local basename_rows
+      basename_rows=$(printf '%s\n' "$list" | awk -F'\t' -v q="$input" '$2 == q')
+      if [[ -n $basename_rows ]]; then
+        local row_count
+        row_count=$(printf '%s\n' "$basename_rows" | wc -l | tr -d ' ')
+        if (( row_count > 1 )); then
+          {
+            echo "Error: skill '$input' は複数の host に存在し曖昧です。host を含めて指定してください:"
+            printf '%s\n' "$basename_rows" | cut -f1 | sed 's/^/  - /'
+          } >&2
+          return 1
+        fi
+        match="$basename_rows"
+      fi
+    fi
     if [[ -z $match ]]; then
       {
         echo "Error: skill '$input' が見つかりません"
