@@ -97,6 +97,10 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("aws")
   fi
 
+  if [[ "$subcommand" == "skills" ]] && ! (( $+commands[mo] )); then
+    missing_deps+=("mo (brew install k1LoW/tap/mo)")
+  fi
+
   if [[ "$subcommand" == "lazygit" ]]; then
     if ! (( $+commands[lazygit] )); then
       missing_deps+=("lazygit")
@@ -158,6 +162,7 @@ Subcommands:
   lazygit   Git リポジトリを検索して lazygit で開く
   log       Git commit履歴検索（batでシンタックスハイライト）
   pr        GitHub Pull Request一覧
+  skills    Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
   vi/vim    ファイルをnvimで開く（fdを使用）
 
 Examples:
@@ -174,6 +179,7 @@ Examples:
   fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz log        # Git logを検索（Ctrl+Yでhash copy）
   fz pr         # Pull Requestを選択して詳細表示
+  fz skills     # Skill 一覧から選んで mo でブラウザプレビュー
   fz vi         # ファイルを検索してnvimで開く
   fz vim        # ファイルを検索してnvimで開く
 EOF
@@ -695,6 +701,168 @@ _ymt_fz_view() {
   fi
 }
 
+# Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
+# 5 root を共通配列で公開する関数 (autoload 関数内で typeset -g 経由でグローバル化)
+_ymt_fz_skill_roots() {
+  print -l \
+    "$HOME/.claude/skills" \
+    "$HOME/.codex/skills" \
+    "$HOME/.copilot/skills" \
+    "$HOME/.gemini/skills" \
+    "$HOME/.agents/skills"
+}
+
+# root path から host 名 (claude / codex / copilot / gemini / agents) を取り出す
+_ymt_fz_skills_host_of_root() {
+  local host="${${1:h}:t}"
+  echo "${host#.}"
+}
+
+# 5 root から symlink でなく SKILL.md を持つ skill ディレクトリを列挙
+# 出力は "<display>\t<basename>\t<full path>"
+# basename が複数 host にまたがる場合のみ display を "<host>/<basename>" に変える
+_ymt_fz_skills_list() {
+  local r d host name
+  local -A counts
+  local -a entries
+  for r in $(_ymt_fz_skill_roots); do
+    [[ -d $r ]] || continue
+    host=$(_ymt_fz_skills_host_of_root "$r")
+    for d in $r/*(/N); do
+      [[ -L $d ]] && continue
+      [[ -f $d/SKILL.md ]] || continue
+      name="${d:t}"
+      entries+=("$host"$'\t'"$name"$'\t'"$d")
+      (( counts[$name]++ ))
+    done
+  done
+
+  local entry display
+  local -a parts
+  for entry in "${entries[@]}"; do
+    parts=("${(@s:	:)entry}")
+    host="${parts[1]}"
+    name="${parts[2]}"
+    if (( counts[$name] > 1 )); then
+      display="$host/$name"
+    else
+      display="$name"
+    fi
+    printf '%s\t%s\t%s\n' "$display" "$name" "${parts[3]}"
+  done | LC_ALL=C sort
+}
+
+# stdin に <display>\t<basename>\t<path> 形式の行を受け取り fzf で 1 行を
+# 選ばせて選択行をそのまま stdout に出す. 第 1 引数は fzf header 文字列.
+# preview は SKILL.md の YAML frontmatter (--- ... ---) のみを抽出して
+# 表示する (本文は確認の用を成さないため切り捨て).
+# fzf preview は zsh -c (subshell) で実行されるため .zshrc を読まず,
+# PATH が貧弱で bat / cat / cut が見つからないケースがある. main shell 側で
+# 各コマンドを絶対パスに解決して preview に埋め込む.
+_ymt_fz_skills_pick() {
+  local header="$1"
+  local cut_bin="${commands[cut]:-/usr/bin/cut}"
+  local cat_bin="${commands[cat]:-/bin/cat}"
+  local awk_bin="${commands[awk]:-/usr/bin/awk}"
+  local viewer
+  if [[ -n ${commands[bat]} ]]; then
+    viewer="${commands[bat]} --language yaml --color=always --style=plain"
+  else
+    viewer="$cat_bin"
+  fi
+
+  # awk script: 1 つ目の `---` 以降, 2 つ目の `---` までを emit
+  local awk_script='/^---$/{c++; next} c==1'
+  local preview_cmd
+  preview_cmd="path=\$(printf '%s' {} | $cut_bin -f3); $awk_bin '$awk_script' \"\$path/SKILL.md\" | $viewer"
+
+  fzf \
+    --delimiter $'\t' \
+    --with-nth=1 \
+    --preview "$preview_cmd" \
+    --preview-window=right:50%:wrap \
+    --header "$header"
+}
+
+_ymt_fz_skills() {
+  local name target
+
+  if [[ $# -gt 1 ]]; then
+    echo "Error: skill 名は 1 つだけ指定してください (received: $#)" >&2
+    return 1
+  fi
+
+  local list
+  list=$(_ymt_fz_skills_list)
+  if [[ -z $list ]]; then
+    {
+      echo "Error: 表示可能な skill がありません"
+      echo "探索 root:"
+      _ymt_fz_skill_roots | sed 's/^/  - /'
+    } >&2
+    return 1
+  fi
+
+  local match
+  if [[ $# -eq 1 ]]; then
+    local input="$1"
+    if [[ -z $input ]]; then
+      echo "Error: skill 名が空です" >&2
+      return 1
+    fi
+    # 1) display ($1) との完全一致を優先 (host/name 指定もここで解決)
+    match=$(printf '%s\n' "$list" | awk -F'\t' -v q="$input" '$1 == q {print; exit}')
+    if [[ -z $match ]]; then
+      # 2) basename ($2) との一致. 複数 host にまたがる場合は候補を fzf に
+      #    流して選ばせる (一覧経路と同じ UX).
+      local basename_rows
+      basename_rows=$(printf '%s\n' "$list" | awk -F'\t' -v q="$input" '$2 == q')
+      if [[ -n $basename_rows ]]; then
+        local row_count
+        row_count=$(printf '%s\n' "$basename_rows" | wc -l | tr -d ' ')
+        if (( row_count > 1 )); then
+          match=$(printf '%s\n' "$basename_rows" | _ymt_fz_skills_pick "Pick skill: '$input' は複数 host に存在")
+          [[ -z $match ]] && return 0
+        else
+          match="$basename_rows"
+        fi
+      fi
+    fi
+    if [[ -z $match ]]; then
+      {
+        echo "Error: skill '$input' が見つかりません"
+        echo "利用可能な skill 名:"
+        printf '%s\n' "$list" | cut -f1 | sed 's/^/  - /'
+      } >&2
+      return 1
+    fi
+  else
+    match=$(printf '%s\n' "$list" | _ymt_fz_skills_pick "Select skill to preview with mo")
+    [[ -z $match ]] && return 0
+  fi
+
+  name=$(printf '%s' "$match" | cut -f2)
+  target=$(printf '%s' "$match" | cut -f3)
+
+  local files
+  files=$(find -L "$target" -type f \( \
+    -name '*.md' -o -name '*.sh' -o -name '*.json' -o \
+    -name '*.yaml' -o -name '*.yml' -o -name '*.txt' -o \
+    -name '*.py' -o -name '*.ts' -o -name '*.js' \
+    \) | LC_ALL=C sort)
+
+  if [[ -z $files ]]; then
+    echo "Error: '$target' に表示可能なテキストファイルがありません" >&2
+    return 1
+  fi
+
+  local -a file_args
+  file_args=("${(@f)files}")
+
+  print -s "mo --target $name ${file_args[*]}"
+  mo --target "$name" "${file_args[@]}"
+}
+
 # AWS SSO profile 選択ログイン
 _ymt_fz_aws_sso() {
   local profiles
@@ -814,6 +982,10 @@ case "${1:-help}" in
   aws-sso)
     shift
     _ymt_fz_aws_sso "$@"
+    ;;
+  skills)
+    shift
+    _ymt_fz_skills "$@"
     ;;
   --help|-h)
     _ymt_fz_usage
