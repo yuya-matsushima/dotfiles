@@ -10,6 +10,7 @@ brew install --cask \
           appcleaner \
           aqua-voice \
           deskpad \
+          google-gemini \
           ghostty \
           keycastr \
           zoom
