@@ -97,6 +97,10 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("aws")
   fi
 
+  if [[ "$subcommand" == "skills" ]] && ! (( $+commands[mo] )); then
+    missing_deps+=("mo (brew install k1LoW/tap/mo)")
+  fi
+
   if [[ "$subcommand" == "lazygit" ]]; then
     if ! (( $+commands[lazygit] )); then
       missing_deps+=("lazygit")
@@ -158,6 +162,7 @@ Subcommands:
   lazygit   Git リポジトリを検索して lazygit で開く
   log       Git commit履歴検索（batでシンタックスハイライト）
   pr        GitHub Pull Request一覧
+  skills    Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
   vi/vim    ファイルをnvimで開く（fdを使用）
 
 Examples:
@@ -174,6 +179,7 @@ Examples:
   fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz log        # Git logを検索（Ctrl+Yでhash copy）
   fz pr         # Pull Requestを選択して詳細表示
+  fz skills     # Skill 一覧から選んで mo でブラウザプレビュー
   fz vi         # ファイルを検索してnvimで開く
   fz vim        # ファイルを検索してnvimで開く
 EOF
@@ -695,6 +701,124 @@ _ymt_fz_view() {
   fi
 }
 
+# Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
+# 5 root を共通配列で公開する関数 (autoload 関数内で typeset -g 経由でグローバル化)
+_ymt_fz_skill_roots() {
+  print -l \
+    "$HOME/.claude/skills" \
+    "$HOME/.codex/skills" \
+    "$HOME/.copilot/skills" \
+    "$HOME/.gemini/skills" \
+    "$HOME/.agents/skills"
+}
+
+# 引数で渡された skill 名を 5 root から順に解決し、最初に見つかった
+# 「symlink でない & SKILL.md を持つ」ディレクトリの絶対パスを stdout に出す
+_ymt_fz_skills_resolve() {
+  local name="$1" r target
+  for r in $(_ymt_fz_skill_roots); do
+    target="$r/$name"
+    [[ -L $target ]] && continue
+    [[ -d $target && -f $target/SKILL.md ]] || continue
+    echo "$target"
+    return 0
+  done
+  return 1
+}
+
+# 5 root から symlink でなく SKILL.md を持つ skill ディレクトリを列挙
+# 出力は "<name>\t<full path>"。basename 重複時は先勝ち。
+_ymt_fz_skills_list() {
+  local r d
+  for r in $(_ymt_fz_skill_roots); do
+    [[ -d $r ]] || continue
+    for d in $r/*(/N); do
+      [[ -L $d ]] && continue
+      [[ -f $d/SKILL.md ]] || continue
+      printf '%s\t%s\n' "${d:t}" "$d"
+    done
+  done | awk -F'\t' '!seen[$1]++' | LC_ALL=C sort
+}
+
+_ymt_fz_skills() {
+  local name target
+
+  if [[ $# -gt 1 ]]; then
+    echo "Error: skill 名は 1 つだけ指定してください (received: $#)" >&2
+    return 1
+  fi
+
+  if [[ $# -eq 1 ]]; then
+    name="$1"
+    case "$name" in
+      */*)
+        echo "Error: パス指定は受け付けません。skill 名のみ指定してください (例: pr-create)" >&2
+        return 1
+        ;;
+      "")
+        echo "Error: skill 名が空です" >&2
+        return 1
+        ;;
+    esac
+    if ! target=$(_ymt_fz_skills_resolve "$name"); then
+      {
+        echo "Error: skill '$name' が見つかりません"
+        echo "探索 root:"
+        _ymt_fz_skill_roots | sed 's/^/  - /'
+      } >&2
+      return 1
+    fi
+  else
+    local list selected
+    list=$(_ymt_fz_skills_list)
+    if [[ -z $list ]]; then
+      {
+        echo "Error: 表示可能な skill がありません"
+        echo "探索 root:"
+        _ymt_fz_skill_roots | sed 's/^/  - /'
+      } >&2
+      return 1
+    fi
+
+    local preview_cmd
+    if (( $+commands[bat] )); then
+      preview_cmd='path=$(printf "%s" {} | cut -f2); bat --style=plain --color=always --line-range=:80 -- "$path/SKILL.md"'
+    else
+      preview_cmd='path=$(printf "%s" {} | cut -f2); head -80 -- "$path/SKILL.md"'
+    fi
+
+    selected=$(echo "$list" | fzf \
+      --delimiter $'\t' \
+      --with-nth=1 \
+      --preview "$preview_cmd" \
+      --preview-window=right:60%:wrap \
+      --header "Select skill to preview with mo")
+
+    [[ -z $selected ]] && return 0
+
+    name=$(printf '%s' "$selected" | cut -f1)
+    target=$(printf '%s' "$selected" | cut -f2)
+  fi
+
+  local files
+  files=$(find -L "$target" -type f \( \
+    -name '*.md' -o -name '*.sh' -o -name '*.json' -o \
+    -name '*.yaml' -o -name '*.yml' -o -name '*.txt' -o \
+    -name '*.py' -o -name '*.ts' -o -name '*.js' \
+    \) | LC_ALL=C sort)
+
+  if [[ -z $files ]]; then
+    echo "Error: '$target' に表示可能なテキストファイルがありません" >&2
+    return 1
+  fi
+
+  local -a file_args
+  file_args=("${(@f)files}")
+
+  print -s "mo --target $name ${file_args[*]}"
+  mo --target "$name" "${file_args[@]}"
+}
+
 # AWS SSO profile 選択ログイン
 _ymt_fz_aws_sso() {
   local profiles
@@ -814,6 +938,10 @@ case "${1:-help}" in
   aws-sso)
     shift
     _ymt_fz_aws_sso "$@"
+    ;;
+  skills)
+    shift
+    _ymt_fz_skills "$@"
     ;;
   --help|-h)
     _ymt_fz_usage

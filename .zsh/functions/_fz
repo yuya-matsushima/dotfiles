@@ -63,6 +63,11 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
+        skills)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]' \
+            '1::skill name:_fz_skill_names'
+          ;;
       esac
       ;;
   esac
@@ -82,10 +87,28 @@ _fz_subcommands() {
     'kill:プロセス検索・kill'
     'log:Git commit履歴検索（batでシンタックスハイライト）'
     'pr:GitHub Pull Request一覧'
+    'skills:Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示'
     'vi:ファイルをnvimで開く（fdを使用）'
     'vim:ファイルをnvimで開く（fdを使用）'
   )
   _describe -t subcommands 'fz subcommand' subcommands
+}
+
+# fz skills 用の skill 名補完
+_fz_skill_names() {
+  local -a names
+  local r d
+  for r in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.copilot/skills" "$HOME/.gemini/skills" "$HOME/.agents/skills"; do
+    [[ -d $r ]] || continue
+    for d in $r/*(/N); do
+      [[ -L $d ]] && continue
+      [[ -f $d/SKILL.md ]] || continue
+      names+=("${d:t}")
+    done
+  done
+  # 重複除去
+  names=(${(u)names})
+  _describe -t skills 'skill name' names
 }
 
 # git log のオプション補完（簡易版）
