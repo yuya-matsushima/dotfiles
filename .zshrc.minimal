@@ -122,6 +122,7 @@ if (( $+commands[git] )); then
   alias root_path='git rev-parse --show-toplevel 2>/dev/null || echo .'
   alias root='cd $(root_path)'
 fi
+(( $+commands[mo] )) && alias mog='git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "Error: not in git repository" >&2; false; } && mo --target="$(basename "$(root_path)")"'
 if (( $+commands[go] )); then
   export GOPATH=$(go env GOPATH)
   export GOBIN=${GOPATH}/bin
