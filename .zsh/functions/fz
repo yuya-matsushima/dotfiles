@@ -752,8 +752,10 @@ _ymt_fz_skills_host_of_root() {
 _ymt_fz_skills_list() {
   local r d host name
   local -A counts
-  local -a entries
-  for r in $(_ymt_fz_skill_roots); do
+  local -a entries roots
+  roots=("${(@f)$(_ymt_fz_skill_roots)}")
+  for r in "${roots[@]}"; do
+    [[ -z $r ]] && continue
     [[ -d $r ]] || continue
     host=$(_ymt_fz_skills_host_of_root "$r")
     for d in $r/*(/N); do

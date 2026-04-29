@@ -142,12 +142,15 @@ _fz_skill_names() {
   done
 
   local -a candidates
-  local entry
+  local entry cand
   local -a parts
   for entry in "${entries[@]}"; do
     parts=("${(@s:	:)entry}")
     if (( counts[${parts[2]}] > 1 )); then
-      candidates+=("${parts[1]}/${parts[2]}")
+      # _describe は ":" を「候補:説明」の区切りとして解釈するため,
+      # repo 名や host を含む候補に現れる ":" は backslash でエスケープする
+      cand="${parts[1]}/${parts[2]}"
+      candidates+=("${cand//:/\\:}")
     else
       candidates+=("${parts[2]}")
     fi
