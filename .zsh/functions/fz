@@ -702,8 +702,8 @@ _ymt_fz_view() {
 }
 
 # Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
-# $HOME 直下と現在の git リポジトリ root 直下の skill ディレクトリ群を公開する
-# (autoload 関数内で typeset -g 経由でグローバル化)
+# $HOME 直下と現在の git リポジトリ root 直下の skill ディレクトリ群を列挙する
+# roots は標準出力 (print -l) で返す
 _ymt_fz_skill_roots() {
   local -a roots
   roots=(

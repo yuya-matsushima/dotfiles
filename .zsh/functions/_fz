@@ -98,7 +98,7 @@ _fz_subcommands() {
 # 本体 (_ymt_fz_skills_list) と同じく、basename が複数 host にまたがる場合のみ
 # 候補を <host>/<basename> 表記に変える
 # 探索 root は $HOME 直下に加え, 現在の git リポジトリ root 直下も対象
-# (リポジトリ由来は host を "repo:<host>" として区別する)
+# (リポジトリ由来は host を "<repo-name>:<host>" として区別する)
 _fz_skill_names() {
   local r d host name
   local -A counts
