@@ -97,14 +97,41 @@ _fz_subcommands() {
 # fz skills 用の skill 名補完
 # 本体 (_ymt_fz_skills_list) と同じく、basename が複数 host にまたがる場合のみ
 # 候補を <host>/<basename> 表記に変える
+# 探索 root は $HOME 直下に加え, 現在の git リポジトリ root 直下も対象
+# (リポジトリ由来は host を "repo:<host>" として区別する)
 _fz_skill_names() {
   local r d host name
   local -A counts
-  local -a entries
-  for r in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.copilot/skills" "$HOME/.gemini/skills" "$HOME/.agents/skills"; do
+  local -a entries roots
+
+  roots=(
+    "$HOME/.claude/skills"
+    "$HOME/.codex/skills"
+    "$HOME/.copilot/skills"
+    "$HOME/.gemini/skills"
+    "$HOME/.agents/skills"
+  )
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n $repo_root && $repo_root != $HOME ]]; then
+    roots+=(
+      "$repo_root/.claude/skills"
+      "$repo_root/.codex/skills"
+      "$repo_root/.copilot/skills"
+      "$repo_root/.gemini/skills"
+      "$repo_root/.agents/skills"
+    )
+  fi
+
+  for r in "${roots[@]}"; do
     [[ -d $r ]] || continue
     host="${${r:h}:t}"
     host="${host#.}"
+    case "$r" in
+      "$HOME/.claude/skills"|"$HOME/.codex/skills"|"$HOME/.copilot/skills"|"$HOME/.gemini/skills"|"$HOME/.agents/skills") ;;
+      *) host="repo:$host" ;;
+    esac
     for d in $r/*(/N); do
       [[ -L $d ]] && continue
       [[ -f $d/SKILL.md ]] || continue

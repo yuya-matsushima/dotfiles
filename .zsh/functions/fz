@@ -702,20 +702,46 @@ _ymt_fz_view() {
 }
 
 # Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
-# 5 root を共通配列で公開する関数 (autoload 関数内で typeset -g 経由でグローバル化)
+# $HOME 直下と現在の git リポジトリ root 直下の skill ディレクトリ群を公開する
+# (autoload 関数内で typeset -g 経由でグローバル化)
 _ymt_fz_skill_roots() {
-  print -l \
-    "$HOME/.claude/skills" \
-    "$HOME/.codex/skills" \
-    "$HOME/.copilot/skills" \
-    "$HOME/.gemini/skills" \
+  local -a roots
+  roots=(
+    "$HOME/.claude/skills"
+    "$HOME/.codex/skills"
+    "$HOME/.copilot/skills"
+    "$HOME/.gemini/skills"
     "$HOME/.agents/skills"
+  )
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n $repo_root && $repo_root != $HOME ]]; then
+    roots+=(
+      "$repo_root/.claude/skills"
+      "$repo_root/.codex/skills"
+      "$repo_root/.copilot/skills"
+      "$repo_root/.gemini/skills"
+      "$repo_root/.agents/skills"
+    )
+  fi
+
+  print -l -- "${roots[@]}"
 }
 
 # root path から host 名 (claude / codex / copilot / gemini / agents) を取り出す
+# $HOME 直下の root はそのまま, それ以外 (リポジトリ root 直下) は "repo:<host>"
+# として $HOME 側と区別する
 _ymt_fz_skills_host_of_root() {
-  local host="${${1:h}:t}"
-  echo "${host#.}"
+  local root="$1"
+  local host="${${root:h}:t}"
+  host="${host#.}"
+  case "$root" in
+    "$HOME/.claude/skills"|"$HOME/.codex/skills"|"$HOME/.copilot/skills"|"$HOME/.gemini/skills"|"$HOME/.agents/skills")
+      echo "$host" ;;
+    *)
+      echo "repo:$host" ;;
+  esac
 }
 
 # 5 root から symlink でなく SKILL.md を持つ skill ディレクトリを列挙
