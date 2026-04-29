@@ -130,7 +130,7 @@ _fz_skill_names() {
     host="${host#.}"
     case "$r" in
       "$HOME/.claude/skills"|"$HOME/.codex/skills"|"$HOME/.copilot/skills"|"$HOME/.gemini/skills"|"$HOME/.agents/skills") ;;
-      *) host="repo:$host" ;;
+      *) host="${${r:h:h}:t}:$host" ;;
     esac
     for d in $r/*(/N); do
       [[ -L $d ]] && continue

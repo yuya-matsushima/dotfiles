@@ -730,8 +730,9 @@ _ymt_fz_skill_roots() {
 }
 
 # root path から host 名 (claude / codex / copilot / gemini / agents) を取り出す
-# $HOME 直下の root はそのまま, それ以外 (リポジトリ root 直下) は "repo:<host>"
-# として $HOME 側と区別する
+# $HOME 直下の root はそのまま, それ以外 (リポジトリ root 直下) は
+# "<repo-name>:<host>" としてどの repo の skill か分かる形で返す
+# (root は "<repo-root>/.<host>/skills" 構造なので :h:h:t で repo 名が取れる)
 _ymt_fz_skills_host_of_root() {
   local root="$1"
   local host="${${root:h}:t}"
@@ -740,7 +741,8 @@ _ymt_fz_skills_host_of_root() {
     "$HOME/.claude/skills"|"$HOME/.codex/skills"|"$HOME/.copilot/skills"|"$HOME/.gemini/skills"|"$HOME/.agents/skills")
       echo "$host" ;;
     *)
-      echo "repo:$host" ;;
+      local repo_name="${${root:h:h}:t}"
+      echo "$repo_name:$host" ;;
   esac
 }
 
