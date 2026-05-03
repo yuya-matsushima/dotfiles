@@ -26,21 +26,6 @@ return {
     end,
   },
 
-  -- EditorConfig: Maintain consistent coding styles
-  {
-    'editorconfig/editorconfig-vim',
-    event = { 'BufReadPre', 'BufNewFile' },
-    init = function()
-      -- Disable for commit messages to preserve git defaults
-      vim.api.nvim_create_autocmd('FileType', {
-        pattern = { 'gitcommit', 'hgcommit' },
-        callback = function()
-          vim.b.EditorConfig_disable = 1
-        end,
-      })
-    end,
-  },
-
   -- Auto-pairs: Automatic bracket/quote pairing
   {
     'windwp/nvim-autopairs',

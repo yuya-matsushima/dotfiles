@@ -37,6 +37,15 @@ for types, settings in pairs(ft_settings) do
   })
 end
 
+-- Disable builtin EditorConfig for commit messages to preserve git defaults
+autocmd('FileType', {
+  group = config_group,
+  pattern = { 'gitcommit', 'hgcommit' },
+  callback = function()
+    vim.b.editorconfig_disable = true
+  end,
+})
+
 local buffer_group = augroup('BufferEvents', { clear = true })
 
 autocmd('BufWritePre', {
