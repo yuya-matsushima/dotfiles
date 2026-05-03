@@ -163,6 +163,15 @@ return {
           vim.lsp.buf.format({ async = false })
         end,
       })
+
+      -- Rust: 保存時に rustfmt 相当 (rust-analyzer の format)
+      vim.api.nvim_create_autocmd('BufWritePre', {
+        group = vim.api.nvim_create_augroup('LspFormatRust', { clear = true }),
+        pattern = '*.rs',
+        callback = function()
+          vim.lsp.buf.format({ async = false })
+        end,
+      })
     end,
   },
 
