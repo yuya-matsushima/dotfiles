@@ -37,10 +37,20 @@ for types, settings in pairs(ft_settings) do
   })
 end
 
--- Disable builtin EditorConfig for commit messages to preserve git defaults
-autocmd('FileType', {
+-- Disable builtin EditorConfig for commit message buffers.
+-- BufReadPre fires before BufRead, so vim.b.editorconfig = false is observed
+-- by the builtin's BufRead callback before it applies .editorconfig properties.
+autocmd({ 'BufReadPre', 'BufNewFile' }, {
   group = config_group,
-  pattern = { 'gitcommit', 'hgcommit' },
+  pattern = {
+    'COMMIT_EDITMSG',
+    'MERGE_MSG',
+    'TAG_EDITMSG',
+    'NOTES_EDITMSG',
+    'PULL_REQUEST_EDITMSG',
+    'git-rebase-todo',
+    'hg-editor-*.txt',
+  },
   callback = function()
     vim.b.editorconfig = false
   end,
