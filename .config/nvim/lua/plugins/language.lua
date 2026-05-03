@@ -23,6 +23,4 @@ return {
     end,
   },
 
-  -- Go
-  { 'mattn/vim-goimports', ft = 'go' },
 }
