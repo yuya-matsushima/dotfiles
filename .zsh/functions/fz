@@ -702,20 +702,48 @@ _ymt_fz_view() {
 }
 
 # Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
-# 5 root を共通配列で公開する関数 (autoload 関数内で typeset -g 経由でグローバル化)
+# $HOME 直下と現在の git リポジトリ root 直下の skill ディレクトリ群を列挙する
+# roots は標準出力 (print -l) で返す
 _ymt_fz_skill_roots() {
-  print -l \
-    "$HOME/.claude/skills" \
-    "$HOME/.codex/skills" \
-    "$HOME/.copilot/skills" \
-    "$HOME/.gemini/skills" \
+  local -a roots
+  roots=(
+    "$HOME/.claude/skills"
+    "$HOME/.codex/skills"
+    "$HOME/.copilot/skills"
+    "$HOME/.gemini/skills"
     "$HOME/.agents/skills"
+  )
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -n $repo_root && $repo_root != $HOME ]]; then
+    roots+=(
+      "$repo_root/.claude/skills"
+      "$repo_root/.codex/skills"
+      "$repo_root/.copilot/skills"
+      "$repo_root/.gemini/skills"
+      "$repo_root/.agents/skills"
+    )
+  fi
+
+  print -l -- "${roots[@]}"
 }
 
 # root path から host 名 (claude / codex / copilot / gemini / agents) を取り出す
+# $HOME 直下の root はそのまま, それ以外 (リポジトリ root 直下) は
+# "<repo-name>:<host>" としてどの repo の skill か分かる形で返す
+# (root は "<repo-root>/.<host>/skills" 構造なので :h:h:t で repo 名が取れる)
 _ymt_fz_skills_host_of_root() {
-  local host="${${1:h}:t}"
-  echo "${host#.}"
+  local root="$1"
+  local host="${${root:h}:t}"
+  host="${host#.}"
+  case "$root" in
+    "$HOME/.claude/skills"|"$HOME/.codex/skills"|"$HOME/.copilot/skills"|"$HOME/.gemini/skills"|"$HOME/.agents/skills")
+      echo "$host" ;;
+    *)
+      local repo_name="${${root:h:h}:t}"
+      echo "$repo_name:$host" ;;
+  esac
 }
 
 # 5 root から symlink でなく SKILL.md を持つ skill ディレクトリを列挙
@@ -724,8 +752,10 @@ _ymt_fz_skills_host_of_root() {
 _ymt_fz_skills_list() {
   local r d host name
   local -A counts
-  local -a entries
-  for r in $(_ymt_fz_skill_roots); do
+  local -a entries roots
+  roots=("${(@f)$(_ymt_fz_skill_roots)}")
+  for r in "${roots[@]}"; do
+    [[ -z $r ]] && continue
     [[ -d $r ]] || continue
     host=$(_ymt_fz_skills_host_of_root "$r")
     for d in $r/*(/N); do
