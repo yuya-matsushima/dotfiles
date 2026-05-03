@@ -152,14 +152,28 @@ return {
       })
 
       -- Go: 保存時に goimports 相当 (organizeImports) + gofmt 相当 (format)
+      -- code_action({ apply = true }) は非同期なので BufWritePre では import 反映前に
+      -- 保存が走る。buf_request_sync で workspace edit を直接適用する。
       vim.api.nvim_create_autocmd('BufWritePre', {
         group = vim.api.nvim_create_augroup('LspFormatGo', { clear = true }),
         pattern = '*.go',
         callback = function()
-          vim.lsp.buf.code_action({
-            context = { only = { 'source.organizeImports' } },
-            apply = true,
-          })
+          local bufnr = vim.api.nvim_get_current_buf()
+          local params = vim.lsp.util.make_range_params(0, 'utf-16')
+          params.context = { only = { 'source.organizeImports' }, diagnostics = {} }
+          local results = vim.lsp.buf_request_sync(bufnr, 'textDocument/codeAction', params, 3000)
+          for cid, res in pairs(results or {}) do
+            local client = vim.lsp.get_client_by_id(cid)
+            local enc = (client and client.offset_encoding) or 'utf-16'
+            for _, action in ipairs(res.result or {}) do
+              if action.edit then
+                vim.lsp.util.apply_workspace_edit(action.edit, enc)
+              end
+              if type(action.command) == 'table' then
+                vim.lsp.buf.execute_command(action.command)
+              end
+            end
+          end
           vim.lsp.buf.format({ async = false })
         end,
       })
