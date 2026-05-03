@@ -42,7 +42,7 @@ autocmd('FileType', {
   group = config_group,
   pattern = { 'gitcommit', 'hgcommit' },
   callback = function()
-    vim.b.editorconfig_disable = true
+    vim.b.editorconfig = false
   end,
 })
 
