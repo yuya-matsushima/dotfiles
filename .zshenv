@@ -50,6 +50,7 @@ local add_path_dirs=(
   $HOME/.lmstudio/bin
   $HOME/.local/bin
   $HOME/.antigravity/antigravity/bin
+  ${ASDF_DATA_DIR:-$HOME/.asdf}/shims
 )
 # Add GOPATH/bin only if GOPATH is defined
 [[ -n "$GOPATH" && -d "$GOPATH/bin" ]] && add_path_dirs+=("$GOPATH/bin")
