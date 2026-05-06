@@ -1,5 +1,5 @@
 -- ============================================================================
--- Keyboard Shortcuts Configuration
+-- Keyboard Shortcuts and Lightweight User Commands
 -- Migrated from .vimrc lines 207-228
 -- ============================================================================
 
@@ -44,3 +44,15 @@ vim.api.nvim_create_autocmd('FileType', {
     end, { buffer = true, noremap = true, desc = 'Paste/convert URL as Markdown link' })
   end,
 })
+
+-- ============================================================================
+-- TRANSLATE TO JAPANESE (Gemini API)
+-- ============================================================================
+
+vim.api.nvim_create_user_command('Translate', function(opts)
+  if opts.range > 0 then
+    require('utils.translate').translate(opts.line1, opts.line2)
+  else
+    require('utils.translate').translate()
+  end
+end, { range = true, desc = 'Translate buffer or range to Japanese (Gemini)' })
