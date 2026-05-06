@@ -48,6 +48,10 @@ return {
   {
     '3rd/image.nvim',
     ft = 'markdown',
+    -- VimR などの GUI クライアントは Kitty graphics protocol 非対応のため除外
+    cond = function()
+      return vim.g.gui_vimr ~= 1
+    end,
     config = function()
       require('image').setup({
         backend = 'kitty',  -- Ghostty + tmux: Kitty protocol with passthrough
