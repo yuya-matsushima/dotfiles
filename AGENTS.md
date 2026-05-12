@@ -27,6 +27,7 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 - `make setup_develop` : 開発機向けの軽量構成を導入します。
 - `make link` / `make unlink` : `$HOME` 配下へシンボリックリンクを張る／解除します。
 - `make asdf_update` : asdf プラグインを最新化します。ランタイム更新時に再実行してください。
+- `make skills` / `make skills_update` / `make skills_uninstall` : 社内共通 skill (`fillin-inc/internal-skills`) をインストール／更新／アンインストールします。`gh auth login` 済みであることが前提です。
 
 ## コーディングスタイルと命名規則
 - スクリプトは `/bin/sh` シバンと `set -e` を基本とし, 四スペースインデントを推奨します。
