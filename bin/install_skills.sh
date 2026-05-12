@@ -2,7 +2,7 @@
 set -e
 
 REPO="fillin-inc/internal-skills"
-SKILLS="code-review commit implement issue pr spec-issue spec-to-plan specify task"
+SKILLS="code-review commit implement issue pr spec-issue spec-to-plan spec task"
 
 do_install() {
     for skill in $SKILLS; do
