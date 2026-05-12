@@ -78,10 +78,6 @@ skills: ## Install internal-skills for Claude Code / Codex / Copilot / Gemini
 skills_update: ## Update internal-skills to latest versions
 	sh ./bin/install_skills.sh update
 
-.PHONY: skills_link
-skills_link: ## Create symlinks under $HOME/.claude/skills (skip if exists)
-	sh ./bin/install_skills.sh link
-
 .PHONY: asdf_nodejs
 asdf_nodejs: ## Install NodeJS
 	sh ./bin/asdf/nodejs.sh
