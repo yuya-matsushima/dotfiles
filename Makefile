@@ -74,6 +74,10 @@ claude_code: ## Install Claude Code CLI
 skills: ## Install internal-skills for Claude Code / Codex / Copilot / Gemini
 	sh ./bin/install_skills.sh install
 
+.PHONY: skills_uninstall
+skills_uninstall: ## Uninstall internal-skills from all agent directories
+	sh ./bin/install_skills.sh uninstall
+
 .PHONY: skills_update
 skills_update: ## Update internal-skills to latest versions
 	sh ./bin/install_skills.sh update
