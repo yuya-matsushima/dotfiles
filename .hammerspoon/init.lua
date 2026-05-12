@@ -103,11 +103,15 @@ toggleIMESwitcher:start()
 
 -- Ctrl+J で改行を挿入 (特定アプリ限定)
 local ctrlJTargetApps = {
-  ["Slack"] = true,
-  ["Obsidian"] = true,
-  ["Google Chrome"] = true,
-  ["Claude"] = true,
+  ["Brave"] = true,
   ["ChatGPT"] = true,
+  ["Claude"] = true,
+  ["Firefox"] = true,
+  ["Gemini"] = true,
+  ["Google Chrome"] = true,
+  ["Obsidian"] = true,
+  ["Safari"] = true,
+  ["Slack"] = true,
 }
 
 local ctrlJHotkey = hs.hotkey.new({ "ctrl" }, "j", function()
