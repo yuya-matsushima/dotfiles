@@ -9,7 +9,7 @@ SKILLS="code-review commit implement issue pr spec-issue spec-to-plan specify ta
 do_install() {
     mkdir -p "$AGENTS_SKILLS_DIR"
     for skill in $SKILLS; do
-        gh skill install "$REPO/$skill" --dir "$AGENTS_SKILLS_DIR" --force
+        gh skill install "$REPO" "$skill" --dir "$AGENTS_SKILLS_DIR" --force
     done
     do_link
 }
