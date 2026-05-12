@@ -6,7 +6,7 @@ SKILLS="code-review commit implement issue pr spec-issue spec-to-plan specify ta
 
 do_install() {
     for skill in $SKILLS; do
-        # $HOME/.agents/skills に配置 (Codex / Copilot / Gemini CLI が共用)
+        # $HOME/.codex/skills に配置 (Codex)
         gh skill install "$REPO" "$skill" --agent codex --scope user --force
         # $HOME/.claude/skills に配置 (Claude Code)
         gh skill install "$REPO" "$skill" --agent claude-code --scope user --force
