@@ -79,7 +79,7 @@ skills_update: ## Update internal-skills to latest versions
 	sh ./bin/install_skills.sh update
 
 .PHONY: skills_link
-skills_link: ## Re-create symlinks under $HOME/.claude/skills
+skills_link: ## Create symlinks under $HOME/.claude/skills (skip if exists)
 	sh ./bin/install_skills.sh link
 
 .PHONY: asdf_nodejs
