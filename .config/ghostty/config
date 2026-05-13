@@ -45,6 +45,7 @@ window-new-tab-position = end
 
 # Keybindings
 keybind = super+n=new_tab
+keybind = super+q=ignore
 
 # Others
 mouse-hide-while-typing = true
