@@ -2,7 +2,7 @@
 set -e
 
 REPO="fillin-inc/internal-skills"
-SKILLS="agents-init code-review commit debug implement issue pr requirements spec spec-issue spec-to-plan task verify"
+SKILLS="agents-init code-review commit debug flow implement issue pr requirements spec spec-issue verify"
 
 do_install() {
     for skill in $SKILLS; do
