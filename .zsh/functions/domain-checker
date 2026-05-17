@@ -11,9 +11,31 @@ if ! command -v whois >/dev/null 2>&1; then
   return 1
 fi
 
+# URL や path/query 付き文字列からホスト部分のみを抽出する
+# 例:
+#   https://user:pass@example.com:8080/foo?bar#baz → example.com
+#   example.com/foo?bar                            → example.com
+#   example.com                                    → example.com
+_ymt_dc_extract_domain() {
+  local input="$1"
+  if [[ "$input" == *"://"* ]]; then
+    input="${input#*://}"
+  fi
+  if [[ "$input" == *"@"* ]]; then
+    input="${input#*@}"
+  fi
+  input="${input%%/*}"
+  input="${input%%\?*}"
+  input="${input%%#*}"
+  input="${input%%:*}"
+  printf '%s' "$input"
+}
+
 _ymt_dc_usage() {
   cat <<EOF
 domain-checker is a simple tool to check DNS records for a domain.
+
+<domain> には URL (例: https://example.com/path?q=1) を渡してもよく, その場合はホスト部分を抽出して処理します。
 
 Usage:
   domain-checker <domain>          show all DNS records for a domain
@@ -136,24 +158,26 @@ case $1 in
     _ymt_dc_usage
   ;;
 
-  a)
-    _ymt_dc_a "$2"
-  ;;
-
-  mx)
-    _ymt_dc_mx "$2"
-  ;;
-
-  spf)
-    _ymt_dc_spf "$2"
-  ;;
-
-  dkim)
-    _ymt_dc_dkim "$2"
-  ;;
-
-  dmarc)
-    _ymt_dc_dmarc "$2"
+  a|mx|spf|dkim|dmarc)
+    local _SUBCMD="$1"
+    if [[ -z "$2" ]]; then
+      echo "Error: Please specify a domain" >&2
+      _ymt_dc_usage
+      return 1
+    fi
+    local _DOMAIN
+    _DOMAIN=$(_ymt_dc_extract_domain "$2")
+    if [[ -z "$_DOMAIN" ]]; then
+      echo "Error: Could not extract domain from '$2'" >&2
+      return 1
+    fi
+    case $_SUBCMD in
+      a)     _ymt_dc_a     "$_DOMAIN" ;;
+      mx)    _ymt_dc_mx    "$_DOMAIN" ;;
+      spf)   _ymt_dc_spf   "$_DOMAIN" ;;
+      dkim)  _ymt_dc_dkim  "$_DOMAIN" ;;
+      dmarc) _ymt_dc_dmarc "$_DOMAIN" ;;
+    esac
   ;;
 
   *)
@@ -162,6 +186,12 @@ case $1 in
       _ymt_dc_usage
       return 1
     fi
-    _ymt_dc_all "$1"
+    local _DOMAIN
+    _DOMAIN=$(_ymt_dc_extract_domain "$1")
+    if [[ -z "$_DOMAIN" ]]; then
+      echo "Error: Could not extract domain from '$1'" >&2
+      return 1
+    fi
+    _ymt_dc_all "$_DOMAIN"
   ;;
 esac
