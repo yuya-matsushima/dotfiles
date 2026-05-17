@@ -24,9 +24,10 @@ _ymt_dc_extract_domain() {
   # path / query / fragment を先に切り落として authority だけにしてから
   # userinfo (@) や port (:) を剥がす。順序を逆にすると
   # https://example.com/path?email=a@b.com のような URL で b.com を返してしまう。
+  # extendedglob 下では # / ? が glob 演算子になるのでエスケープが必要
   input="${input%%/*}"
   input="${input%%\?*}"
-  input="${input%%#*}"
+  input="${input%%\#*}"
   if [[ "$input" == *"@"* ]]; then
     input="${input#*@}"
   fi
