@@ -1,0 +1,43 @@
+#!/bin/zsh
+
+_ymt_teecopy_usage() {
+  cat <<EOF
+teecopy reads stdin, prints it to the terminal, and copies the output to the clipboard with ANSI escape sequences stripped.
+
+Usage:
+    <command> | teecopy
+
+Examples:
+    terraform plan | teecopy
+    kubectl describe pod foo | teecopy
+
+Options:
+    --help, -h         print help
+
+Dependencies:
+    pbcopy (macOS)
+EOF
+}
+
+_ymt_teecopy() {
+  if ! command -v pbcopy >/dev/null 2>&1; then
+    echo "Error: pbcopy is not available (macOS required)" >&2
+    return 1
+  fi
+  tee >(sed $'s/\x1b\\[[0-9;]*m//g' | pbcopy)
+}
+
+case ${1} in
+  -h|--help)
+    _ymt_teecopy_usage
+  ;;
+
+  '')
+    _ymt_teecopy
+  ;;
+
+  *)
+    _ymt_teecopy_usage >&2
+    return 1
+  ;;
+esac
