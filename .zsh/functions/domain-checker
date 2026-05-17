@@ -21,12 +21,15 @@ _ymt_dc_extract_domain() {
   if [[ "$input" == *"://"* ]]; then
     input="${input#*://}"
   fi
-  if [[ "$input" == *"@"* ]]; then
-    input="${input#*@}"
-  fi
+  # path / query / fragment を先に切り落として authority だけにしてから
+  # userinfo (@) や port (:) を剥がす。順序を逆にすると
+  # https://example.com/path?email=a@b.com のような URL で b.com を返してしまう。
   input="${input%%/*}"
   input="${input%%\?*}"
   input="${input%%#*}"
+  if [[ "$input" == *"@"* ]]; then
+    input="${input#*@}"
+  fi
   input="${input%%:*}"
   printf '%s' "$input"
 }
