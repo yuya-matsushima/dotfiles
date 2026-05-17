@@ -246,6 +246,30 @@ _ymt_fz_log() {
 
 # プロセスkill
 _ymt_fz_kill() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<'EOF'
+fz kill - プロセスを検索して kill する
+
+Usage: fz kill [signal]
+
+Arguments:
+  signal    送信するシグナル番号または名前 (デフォルト: 9 = SIGKILL)
+            例: TERM, HUP, INT, 9, 15
+
+Behavior:
+  ps -eo の一覧から fzf で選択. TAB で複数選択可.
+  プレビューに対象プロセス + 子プロセス一覧を表示.
+
+Examples:
+  fz kill        # SIGKILL (-9) で kill
+  fz kill 15     # SIGTERM (-15) で kill
+  fz kill TERM   # 同上 (名前指定)
+EOF
+      return 0
+      ;;
+  esac
+
   local pid
   local list
   list=$(LC_ALL=C ps -eo pid,user,pcpu,pmem,etime,args \
@@ -320,6 +344,31 @@ _ymt_fz_collect_descendants() {
 
 # dev サーバ kill
 _ymt_fz_devkill() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<'EOF'
+fz devkill - 開発サーバプロセスを検索して子孫プロセスごと kill
+
+Usage: fz devkill
+
+Behavior:
+  正規表現でマッチしたプロセスのみ候補に出し, 選択した root から
+  子孫 PID を BFS で収集して SIGTERM → 0.5s 後に残っていれば SIGKILL.
+
+Detected patterns:
+  pnpm dev / pnpm run dev / npm run dev / yarn dev / bun dev
+  vite / webpack-dev-server / next-server / next dev / nuxt dev
+  astro dev / remix dev / turbo run dev / svelte-kit dev
+
+  対象外: 上記以外 (独自スクリプトなどは検出されません)
+
+Examples:
+  fz devkill
+EOF
+      return 0
+      ;;
+  esac
+
   local self_pid=$$
   local list
   list=$(LC_ALL=C ps -eo pid,ppid,user,etime,pcpu,pmem,command \
@@ -634,6 +683,25 @@ _ymt_fz_lazygit() {
 
 # ファイル検索
 _ymt_fz_find() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<'EOF'
+fz find - ファイル検索 (fd を使用)
+
+Usage: fz find
+
+Behavior:
+  fd -t f でファイル一覧を取得し fzf で選択.
+  選択したパスを stdout に出力 + pbcopy が存在すればクリップボードにコピー.
+  .gitignore は尊重される.
+
+Examples:
+  fz find
+EOF
+      return 0
+      ;;
+  esac
+
   # fdコマンドの存在チェック
   if ! (( $+commands[fd] )); then
     echo "Error: fd command is required for find subcommand" >&2
@@ -815,6 +883,36 @@ _ymt_fz_skills_pick() {
 }
 
 _ymt_fz_skills() {
+  case "${1:-}" in
+    -h|--help)
+      cat <<'EOF'
+fz skills - skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
+
+Usage: fz skills [<name>]
+
+Arguments:
+  <name>    skill 名 (省略時は fzf で選択)
+            "<host>/<name>" 形式で host を限定指定可
+            host: claude / codex / copilot / gemini / agents
+                  または "<repo>:<host>" ($HOME 直下以外の root)
+
+Resolution:
+  1) display 名 ("<host>/<name>" 含む) と完全一致するもの
+  2) basename 一致. 複数 host にまたがる場合は fzf で再選択
+
+Roots:
+  $HOME/.{claude,codex,copilot,gemini,agents}/skills
+  <repo-root>/.{claude,codex,copilot,gemini,agents}/skills
+
+Examples:
+  fz skills              # 一覧から選択
+  fz skills commit       # commit skill を直接開く
+  fz skills claude/foo   # claude host の foo を直接指定
+EOF
+      return 0
+      ;;
+  esac
+
   local name target
 
   if [[ $# -gt 1 ]]; then
@@ -895,6 +993,13 @@ _ymt_fz_skills() {
 
 # AWS SSO profile 選択ログイン
 _ymt_fz_aws_sso() {
+  case "${1:-}" in
+    -h|--help)
+      aws-sso --help
+      return $?
+      ;;
+  esac
+
   local profiles
   profiles=$(aws-sso list) || return 1
 
