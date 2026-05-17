@@ -15,6 +15,26 @@ aws-sso は IAM Identity Center (SSO) 経由の AWS ログインと AWS_PROFILE 
     成功した場合のみ AWS_PROFILE=<profile> を export します.
     <profile> は ~/.aws/config の SSO profile のみ指定可能です.
 
+profile の追加方法:
+    list / login が拾うのは ~/.aws/config に書かれた SSO profile だけです.
+    AWS access portal でロールが増えても自動反映されないため,
+    新しい account / role を使うには以下のいずれかで profile を追記します.
+
+    1) 手動で ~/.aws/config に追記する (既存 sso_session を再利用)
+
+        [profile <profile-name>]
+        sso_session = <session-name>
+        sso_account_id = <account-id>
+        sso_role_name = <role-name>      # 例: Developer / ReadOnlyAccess
+        region = ap-northeast-1
+        output = json
+
+    2) aws CLI に対話で追加させる
+
+        aws configure sso --sso-session <session-name>
+
+    追記後に aws-sso list / fz aws-sso に出てくるようになります.
+
 依存関係:
     aws CLI
 EOF
