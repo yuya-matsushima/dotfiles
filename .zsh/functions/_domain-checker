@@ -13,6 +13,8 @@ _domain-checker() {
     command)
       subcmds=(
         'a:show A records for a domain'
+        'aaaa:show AAAA records for a domain'
+        'shodan:show Shodan InternetDB info for all A/AAAA IPs'
         'mx:show MX records for a domain'
         'spf:show SPF record for a domain'
         'dkim:show DKIM record for a domain'
