@@ -1,15 +1,13 @@
 #!/bin/zsh
 
 # Check dependencies
-if ! command -v dig >/dev/null 2>&1; then
-  echo "Error: dig command not found. Please install bind-tools or dnsutils." >&2
-  return 1
-fi
-
-if ! command -v whois >/dev/null 2>&1; then
-  echo "Error: whois command not found. Please install whois." >&2
-  return 1
-fi
+for _ymt_dc_cmd in dig whois curl jq; do
+  if ! command -v "$_ymt_dc_cmd" >/dev/null 2>&1; then
+    echo "Error: $_ymt_dc_cmd command not found. Please install $_ymt_dc_cmd." >&2
+    return 1
+  fi
+done
+unset _ymt_dc_cmd
 
 # URL や path/query 付き文字列からホスト部分のみを抽出する
 # 例:
@@ -44,6 +42,8 @@ domain-checker is a simple tool to check DNS records for a domain.
 Usage:
   domain-checker <domain>          show all DNS records for a domain
   domain-checker a <domain>        show A records for a domain
+  domain-checker aaaa <domain>     show AAAA records for a domain
+  domain-checker shodan <domain>   show Shodan InternetDB info for all A/AAAA IPs
   domain-checker mx <domain>       show MX records for a domain
   domain-checker spf <domain>      show SPF record for a domain
   domain-checker dkim <domain>     show DKIM record for a domain
@@ -54,7 +54,9 @@ Options:
 
 Dependencies:
   awk
+  curl
   dig
+  jq
   whois
 EOF
 }
