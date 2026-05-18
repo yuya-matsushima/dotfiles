@@ -97,10 +97,10 @@ _ymt_dc_shodan_lookup() {
   case "$http_status" in
     200)
       printf '%s' "$body" | jq -r '
-        (if (.ports // []) | length > 0 then "  - ports: " + (.ports | map(tostring) | join(", ")) else "" end),
-        (if (.hostnames // []) | length > 0 then "  - hostnames: " + (.hostnames | join(", ")) else "" end),
-        (if (.vulns // []) | length > 0 then "  - vulns: " + (.vulns | join(", ")) else "" end),
-        (if (.cpes // []) | length > 0 then "  - cpes: " + (.cpes | join(", ")) else "" end),
+        (if (.ports // []) | length > 0 then "  - ports:\n" + (.ports | map("    - " + tostring) | join("\n")) else "" end),
+        (if (.hostnames // []) | length > 0 then "  - hostnames:\n" + (.hostnames | map("    - " + .) | join("\n")) else "" end),
+        (if (.vulns // []) | length > 0 then "  - vulns:\n" + (.vulns | map("    - " + .) | join("\n")) else "" end),
+        (if (.cpes // []) | length > 0 then "  - cpes:\n" + (.cpes | map("    - " + .) | join("\n")) else "" end),
         (if (.tags // []) | length > 0 then "  - tags:\n" + (.tags | map("    - " + .) | join("\n")) else "" end)
       ' | grep -v '^$'
       ;;
