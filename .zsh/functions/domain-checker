@@ -75,7 +75,8 @@ _ymt_dc_a() {
   else
     echo "$A_RECORDS" | while IFS= read -r line; do
       [[ -n "$line" ]] && echo "* $line"
-      [[ -n "$line" ]] && _ymt_dc_shodan_lookup "$line"
+      # CNAME 行は末尾が "." になるため除外し、IP のみ Shodan に投げる
+      [[ -n "$line" && "$line" != *. ]] && _ymt_dc_shodan_lookup "$line"
     done
   fi
 }
@@ -128,7 +129,7 @@ _ymt_dc_aaaa() {
   else
     echo "$AAAA_RECORDS" | while IFS= read -r line; do
       [[ -n "$line" ]] && echo "* $line"
-      [[ -n "$line" ]] && _ymt_dc_shodan_lookup "$line"
+      [[ -n "$line" && "$line" != *. ]] && _ymt_dc_shodan_lookup "$line"
     done
   fi
 }
@@ -209,7 +210,7 @@ _ymt_dc_shodan() {
     return
   fi
   echo "$ALL_IPS" | while IFS= read -r line; do
-    if [[ -n "$line" ]]; then
+    if [[ -n "$line" && "$line" != *. ]]; then
       echo "* $line"
       _ymt_dc_shodan_lookup "$line"
     fi
