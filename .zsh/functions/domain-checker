@@ -87,14 +87,14 @@ _ymt_dc_shodan_lookup() {
     echo "  (Shodan InternetDB does not support IPv6)"
     return
   fi
-  local response status body
+  local response http_status body
   if ! response=$(curl -sS -m 5 -w '\n%{http_code}' "https://internetdb.shodan.io/$ip" 2>/dev/null); then
     echo "  (Shodan API error: curl failed)"
     return
   fi
-  status="${response##*$'\n'}"
+  http_status="${response##*$'\n'}"
   body="${response%$'\n'*}"
-  case "$status" in
+  case "$http_status" in
     200)
       local ports hostnames vulns cpes tags
       ports=$(printf '%s' "$body" | jq -r 'if (.ports // []) | length > 0 then "  - ports: " + (.ports | map(tostring) | join(", ")) else "" end')
@@ -110,7 +110,7 @@ _ymt_dc_shodan_lookup() {
       echo "  (no Shodan data)"
       ;;
     *)
-      echo "  (Shodan API error: $status)"
+      echo "  (Shodan API error: $http_status)"
       ;;
   esac
 }
