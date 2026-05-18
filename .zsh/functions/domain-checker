@@ -73,9 +73,62 @@ _ymt_dc_a() {
   if [[ -z "$A_RECORDS" ]]; then
     echo "* No A records found."
   else
-    # A_RECORDS を改行で分割し表示（whoisは重いので略）
     echo "$A_RECORDS" | while IFS= read -r line; do
       [[ -n "$line" ]] && echo "* $line"
+      [[ -n "$line" ]] && _ymt_dc_shodan_lookup "$line"
+    done
+  fi
+}
+
+_ymt_dc_shodan_lookup() {
+  local ip="$1"
+  if [[ "$ip" == *":"* ]]; then
+    echo "  (Shodan InternetDB does not support IPv6)"
+    return
+  fi
+  local response status body
+  if ! response=$(curl -sS -m 5 -w '\n%{http_code}' "https://internetdb.shodan.io/$ip" 2>/dev/null); then
+    echo "  (Shodan API error: curl failed)"
+    return
+  fi
+  status="${response##*$'\n'}"
+  body="${response%$'\n'*}"
+  case "$status" in
+    200)
+      local ports hostnames vulns cpes tags
+      ports=$(printf '%s' "$body" | jq -r 'if (.ports // []) | length > 0 then "  - ports: " + (.ports | map(tostring) | join(", ")) else "" end')
+      hostnames=$(printf '%s' "$body" | jq -r 'if (.hostnames // []) | length > 0 then "  - hostnames: " + (.hostnames | join(", ")) else "" end')
+      vulns=$(printf '%s' "$body" | jq -r 'if (.vulns // []) | length > 0 then "  - vulns: " + (.vulns | join(", ")) else "" end')
+      cpes=$(printf '%s' "$body" | jq -r 'if (.cpes // []) | length > 0 then "  - cpes: " + (.cpes | join(", ")) else "" end')
+      tags=$(printf '%s' "$body" | jq -r 'if (.tags // []) | length > 0 then "  - tags: " + (.tags | join(", ")) else "" end')
+      for _line in "$ports" "$hostnames" "$vulns" "$cpes" "$tags"; do
+        [[ -n "$_line" ]] && echo "$_line"
+      done
+      ;;
+    404)
+      echo "  (no Shodan data)"
+      ;;
+    *)
+      echo "  (Shodan API error: $status)"
+      ;;
+  esac
+}
+
+_ymt_dc_aaaa() {
+  local DOMAIN="$1"
+  local AAAA_RECORDS
+  if ! AAAA_RECORDS=$(dig aaaa +short "$DOMAIN" 2>/dev/null); then
+    echo "Error: Failed to query AAAA records for $DOMAIN" >&2
+    return 1
+  fi
+
+  echo "## AAAA records for $DOMAIN:\n"
+  if [[ -z "$AAAA_RECORDS" ]]; then
+    echo "* No AAAA records found."
+  else
+    echo "$AAAA_RECORDS" | while IFS= read -r line; do
+      [[ -n "$line" ]] && echo "* $line"
+      [[ -n "$line" ]] && _ymt_dc_shodan_lookup "$line"
     done
   fi
 }
@@ -146,9 +199,28 @@ _ymt_dc_dmarc() {
   fi
 }
 
+_ymt_dc_shodan() {
+  local DOMAIN="$1"
+  echo "## Shodan InternetDB for $DOMAIN:\n"
+  local ALL_IPS
+  ALL_IPS=$(dig a +short "$DOMAIN" 2>/dev/null; dig aaaa +short "$DOMAIN" 2>/dev/null)
+  if [[ -z "$ALL_IPS" ]]; then
+    echo "* No A/AAAA records found."
+    return
+  fi
+  echo "$ALL_IPS" | while IFS= read -r line; do
+    if [[ -n "$line" ]]; then
+      echo "* $line"
+      _ymt_dc_shodan_lookup "$line"
+    fi
+  done
+}
+
 _ymt_dc_all() {
   local DOMAIN="$1"
   _ymt_dc_a "$DOMAIN"
+  echo ""
+  _ymt_dc_aaaa "$DOMAIN"
   echo ""
   _ymt_dc_mx "$DOMAIN"
   echo ""
@@ -164,7 +236,7 @@ case $1 in
     _ymt_dc_usage
   ;;
 
-  a|mx|spf|dkim|dmarc)
+  a|aaaa|mx|spf|dkim|dmarc|shodan)
     local _SUBCMD="$1"
     if [[ -z "$2" ]]; then
       echo "Error: Please specify a domain" >&2
@@ -178,11 +250,13 @@ case $1 in
       return 1
     fi
     case $_SUBCMD in
-      a)     _ymt_dc_a     "$_DOMAIN" ;;
-      mx)    _ymt_dc_mx    "$_DOMAIN" ;;
-      spf)   _ymt_dc_spf   "$_DOMAIN" ;;
-      dkim)  _ymt_dc_dkim  "$_DOMAIN" ;;
-      dmarc) _ymt_dc_dmarc "$_DOMAIN" ;;
+      a)      _ymt_dc_a      "$_DOMAIN" ;;
+      aaaa)   _ymt_dc_aaaa   "$_DOMAIN" ;;
+      mx)     _ymt_dc_mx     "$_DOMAIN" ;;
+      spf)    _ymt_dc_spf    "$_DOMAIN" ;;
+      dkim)   _ymt_dc_dkim   "$_DOMAIN" ;;
+      dmarc)  _ymt_dc_dmarc  "$_DOMAIN" ;;
+      shodan) _ymt_dc_shodan "$_DOMAIN" ;;
     esac
   ;;
 
