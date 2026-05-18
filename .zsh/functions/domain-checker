@@ -127,7 +127,6 @@ _ymt_dc_aaaa() {
   else
     echo "$AAAA_RECORDS" | while IFS= read -r line; do
       [[ -n "$line" ]] && echo "* $line"
-      [[ -n "$line" && "$line" != *. ]] && _ymt_dc_shodan_lookup "$line"
     done
   fi
 }
