@@ -88,7 +88,7 @@ _ymt_dc_shodan_lookup() {
     return
   fi
   local response http_status body
-  if ! response=$(curl -sS -m 5 -w '\n%{http_code}' "https://internetdb.shodan.io/$ip" 2>/dev/null); then
+  if ! response=$(curl -s -m 5 -w '\n%{http_code}' "https://internetdb.shodan.io/$ip"); then
     echo "  (Shodan API error: curl failed)"
     return
   fi
@@ -96,15 +96,13 @@ _ymt_dc_shodan_lookup() {
   body="${response%$'\n'*}"
   case "$http_status" in
     200)
-      local ports hostnames vulns cpes tags
-      ports=$(printf '%s' "$body" | jq -r 'if (.ports // []) | length > 0 then "  - ports: " + (.ports | map(tostring) | join(", ")) else "" end')
-      hostnames=$(printf '%s' "$body" | jq -r 'if (.hostnames // []) | length > 0 then "  - hostnames: " + (.hostnames | join(", ")) else "" end')
-      vulns=$(printf '%s' "$body" | jq -r 'if (.vulns // []) | length > 0 then "  - vulns: " + (.vulns | join(", ")) else "" end')
-      cpes=$(printf '%s' "$body" | jq -r 'if (.cpes // []) | length > 0 then "  - cpes: " + (.cpes | join(", ")) else "" end')
-      tags=$(printf '%s' "$body" | jq -r 'if (.tags // []) | length > 0 then "  - tags: " + (.tags | join(", ")) else "" end')
-      for _line in "$ports" "$hostnames" "$vulns" "$cpes" "$tags"; do
-        [[ -n "$_line" ]] && echo "$_line"
-      done
+      printf '%s' "$body" | jq -r '
+        (if (.ports // []) | length > 0 then "  - ports: " + (.ports | map(tostring) | join(", ")) else "" end),
+        (if (.hostnames // []) | length > 0 then "  - hostnames: " + (.hostnames | join(", ")) else "" end),
+        (if (.vulns // []) | length > 0 then "  - vulns: " + (.vulns | join(", ")) else "" end),
+        (if (.cpes // []) | length > 0 then "  - cpes: " + (.cpes | join(", ")) else "" end),
+        (if (.tags // []) | length > 0 then "  - tags: " + (.tags | join(", ")) else "" end)
+      ' | grep -v '^$'
       ;;
     404)
       echo "  (no Shodan data)"
@@ -210,10 +208,10 @@ _ymt_dc_shodan() {
     return
   fi
   echo "$ALL_IPS" | while IFS= read -r line; do
-    if [[ -n "$line" && "$line" != *. ]]; then
-      echo "* $line"
-      _ymt_dc_shodan_lookup "$line"
-    fi
+    [[ -z "$line" ]] && continue
+    echo "* $line"
+    # CNAME 行 (末尾 ".") は表示のみ。IP 行のみ Shodan に投げる
+    [[ "$line" != *. ]] && _ymt_dc_shodan_lookup "$line"
   done
 }
 
