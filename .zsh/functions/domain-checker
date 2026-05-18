@@ -101,7 +101,7 @@ _ymt_dc_shodan_lookup() {
         (if (.hostnames // []) | length > 0 then "  - hostnames: " + (.hostnames | join(", ")) else "" end),
         (if (.vulns // []) | length > 0 then "  - vulns: " + (.vulns | join(", ")) else "" end),
         (if (.cpes // []) | length > 0 then "  - cpes: " + (.cpes | join(", ")) else "" end),
-        (if (.tags // []) | length > 0 then "  - tags: " + (.tags | join(", ")) else "" end)
+        (if (.tags // []) | length > 0 then "  - tags:\n" + (.tags | map("    - " + .) | join("\n")) else "" end)
       ' | grep -v '^$'
       ;;
     404)
