@@ -147,6 +147,9 @@ if (( $+commands[erd] )); then
   alias treeless='erd --color=force | less -R'
 fi
 (( $+commands[rg] )) && alias rgless='rg --pcre2 --pretty --context 2 --no-heading --color=always'
+
+# URL (? や * を含む) を引数に取りたい関数は noglob で zsh の glob 展開を抑止する
+alias domain-checker='noglob domain-checker'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
 (( $+commands[delta] )) && alias gitdiff="git diff --no-index"
 if (( $+commands[asdf] )); then
