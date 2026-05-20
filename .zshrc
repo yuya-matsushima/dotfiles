@@ -266,4 +266,11 @@ if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]]; then
   fi
 fi
 
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
+# End of LM Studio CLI section
+
+# Added by Antigravity CLI installer
+export PATH="$HOME/.local/bin:$PATH"
+
 [ -n "$ZSH_PROFILE" ] && zprof | less
