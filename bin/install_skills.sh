@@ -4,18 +4,18 @@ set -e
 REPO="fillin-inc/internal-skills"
 SKILLS="agents-init code-review commit debug flow implement issue pr requirements spec spec-issue verify"
 
-# antigravity-cli は $HOME/.antigravity/skills を参照するため,
-# $HOME/.agents/skills への symlink を作成して共用する
+# antigravity-cli は Global 配置として $HOME/.gemini/antigravity-cli/skills を
+# 参照するため, $HOME/.agents/skills への symlink を作成して共用する
 link_antigravity_skills() {
     src="$HOME/.agents/skills"
-    dest="$HOME/.antigravity/skills"
+    dest="$HOME/.gemini/antigravity-cli/skills"
 
     if [ ! -d "$src" ]; then
         echo "skip antigravity link: $src does not exist"
         return
     fi
 
-    mkdir -p "$HOME/.antigravity"
+    mkdir -p "$HOME/.gemini/antigravity-cli"
 
     if [ -L "$dest" ]; then
         current="$(readlink "$dest")"
@@ -59,7 +59,7 @@ do_uninstall() {
     done
 
     # $HOME/.agents/skills を指す symlink のみ削除
-    antigravity_link="$HOME/.antigravity/skills"
+    antigravity_link="$HOME/.gemini/antigravity-cli/skills"
     if [ -L "$antigravity_link" ]; then
         current="$(readlink "$antigravity_link")"
         if [ "$current" = "$HOME/.agents/skills" ]; then
