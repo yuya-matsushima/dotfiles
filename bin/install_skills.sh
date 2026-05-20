@@ -4,6 +4,36 @@ set -e
 REPO="fillin-inc/internal-skills"
 SKILLS="agents-init code-review commit debug flow implement issue pr requirements spec spec-issue verify"
 
+# antigravity-cli は Global 配置として $HOME/.gemini/antigravity-cli/skills を
+# 参照するため, $HOME/.agents/skills への symlink を作成して共用する
+link_antigravity_skills() {
+    src="$HOME/.agents/skills"
+    dest="$HOME/.gemini/antigravity-cli/skills"
+
+    if [ ! -d "$src" ]; then
+        echo "skip antigravity link: $src does not exist"
+        return
+    fi
+
+    mkdir -p "$HOME/.gemini/antigravity-cli"
+
+    if [ -L "$dest" ]; then
+        current="$(readlink "$dest")"
+        if [ "$current" = "$src" ]; then
+            echo "antigravity link: $dest -> $src (already linked)"
+            return
+        fi
+        echo "antigravity link: replace existing symlink $dest -> $current"
+        rm "$dest"
+    elif [ -e "$dest" ]; then
+        echo "antigravity link: $dest exists and is not a symlink, skipping" >&2
+        return
+    fi
+
+    ln -s "$src" "$dest"
+    echo "antigravity link: $dest -> $src"
+}
+
 do_install() {
     for skill in $SKILLS; do
         # $HOME/.agents/skills に配置 (Codex / Copilot / Gemini CLI 等が共用)
@@ -11,6 +41,8 @@ do_install() {
         # $HOME/.claude/skills に配置 (Claude Code)
         gh skill install "$REPO" "$skill" --agent claude-code --scope user --force
     done
+
+    link_antigravity_skills
 }
 
 do_uninstall() {
@@ -25,10 +57,23 @@ do_uninstall() {
             fi
         done
     done
+
+    # $HOME/.agents/skills を指す symlink のみ削除
+    antigravity_link="$HOME/.gemini/antigravity-cli/skills"
+    if [ -L "$antigravity_link" ]; then
+        current="$(readlink "$antigravity_link")"
+        if [ "$current" = "$HOME/.agents/skills" ]; then
+            echo "remove: $antigravity_link"
+            rm "$antigravity_link"
+        else
+            echo "keep: $antigravity_link -> $current (not managed)"
+        fi
+    fi
 }
 
 do_update() {
     gh skill update --all
+    link_antigravity_skills
 }
 
 CMD="${1:-install}"
