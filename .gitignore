@@ -12,8 +12,9 @@
 *.dylib
 .hammerspoon/hs/libspaces*dylib.dSYM/*
 
-# Claude Code
+# Coding Agent
 .claude
+.antigravitycli/
 
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/
@@ -26,4 +27,3 @@
 **/captures/
 **/markdown/
 webdata-output/
-

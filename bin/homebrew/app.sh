@@ -5,6 +5,7 @@ set -e
 brew install k1LoW/tap/mo
 
 brew install --cask \
+          antigravity-cli \
           docker \
           displayplacer \
           firefox \
