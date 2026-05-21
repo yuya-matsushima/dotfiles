@@ -27,3 +27,7 @@
 **/markdown/
 webdata-output/
 
+# Antigravity CLI
+.antigravitycli/
+
+
