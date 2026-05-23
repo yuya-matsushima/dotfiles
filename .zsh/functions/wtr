@@ -134,7 +134,7 @@ _ymt_wtr_add() {
         ;;
       --agent)
         ((i++))
-        if [[ $i -gt $n ]]; then
+        if [[ $i -gt $n ]] || [[ "${args[$i]}" == --* ]]; then
           echo "Error: --agent requires a value" >&2
           echo "Usage: wtr add <branch> [--agent <cmd>]" >&2
           return 1
