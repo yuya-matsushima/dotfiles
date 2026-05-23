@@ -2,7 +2,7 @@
 set -e
 
 REPO="fillin-inc/internal-skills"
-SKILLS="agents-init code-review commit debug flow implement issue pr requirements spec spec-issue verify"
+SKILLS="agents-init code-review commit debug dig flow implement issue pr requirements spec verify"
 
 # antigravity-cli は Global 配置として $HOME/.gemini/antigravity-cli/skills を
 # 参照するため, $HOME/.agents/skills への symlink を作成して共用する
