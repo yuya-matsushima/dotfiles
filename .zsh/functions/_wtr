@@ -33,7 +33,9 @@ _wtr() {
           _arguments \
             '1:branch name:__wtr_branches' \
             '2:worktree name:' \
-            '--no-copy[skip copying config files]'
+            '--no-copy[skip copying config files]' \
+            '--base[branch to derive from (fzf if omitted)]:base branch:__wtr_branches' \
+            '--agent[command or function to launch in worktree]:agent command:'
           ;;
 
         remove|rm)

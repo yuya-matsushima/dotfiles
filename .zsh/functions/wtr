@@ -5,13 +5,13 @@ _ymt_wtr_usage() {
 wtr is a command to support git worktree operations.
 
 Usage:
-    wtr add <branch> [name]    create new worktree and copy config files
-    wtr list                   list all worktrees
-    wtr remove [worktree]      remove worktree (fzf selection if not specified)
-    wtr cd [worktree]          change directory to worktree (fzf selection if not specified)
-    wtr copy [source] [target] copy config files between worktrees
-    wtr prune                  prune worktree information
-    wtr help                   print this help
+    wtr add <branch> [name] [options]  create new worktree and copy config files
+    wtr list                           list all worktrees
+    wtr remove [worktree]              remove worktree (fzf selection if not specified)
+    wtr cd [worktree]                  change directory to worktree (fzf selection if not specified)
+    wtr copy [source] [target]         copy config files between worktrees
+    wtr prune                          prune worktree information
+    wtr help                           print this help
 
 Aliases:
     l, ls -> list
@@ -21,8 +21,20 @@ Aliases:
 Options:
     --help, -h         print help
     --no-copy          (add) skip copying config files
+    --base [<branch>]  (add) branch to derive from; omit value for fzf selection
+    --agent <cmd>      (add) command/function to launch in the new worktree after creation
     -f, --force        (remove) force remove
     -y, --yes          (copy) skip overwrite confirmation
+
+Worktree layout:
+    New worktrees are created at:
+        <parent>/<repo>.worktrees/<name>
+    Example:
+        ~/Project/Personal/dotfiles.worktrees/feat-x
+
+Auto-symlinked paths (if present in main repo):
+    .claude/skills   -> <worktree>/.claude/skills
+    .agents/skills   -> <worktree>/.agents/skills
 
 Dependencies:
     git (required)
@@ -33,6 +45,15 @@ Config files to copy (default patterns):
     .envrc
     *.local
     .*.local
+
+Examples:
+    wtr add feat/x
+    wtr add feat/x --base develop
+    wtr add feat/x --base
+    wtr add feat/x --agent claude
+    wtr add feat/x --agent claude-yolo
+    wtr add feat/x --base develop --agent claude-yolo
+    wtr add feat/x --no-copy
 EOF
 }
 
@@ -40,12 +61,10 @@ _ymt_wtr_check_dependencies() {
   local subcommand="$1"
   local missing_deps=()
 
-  # git is required
   if ! (( $+commands[git] )); then
     missing_deps+=("git")
   fi
 
-  # fzf is optional but needed for some features
   if [[ "$subcommand" == "remove" || "$subcommand" == "cd" || "$subcommand" == "copy" ]]; then
     if ! (( $+commands[fzf] )); then
       echo "Warning: fzf is not installed. Interactive selection will not be available." >&2
@@ -66,7 +85,7 @@ _ymt_wtr_get_main_worktree() {
 }
 
 _ymt_wtr_get_repo_name() {
-  basename "$(git rev-parse --show-toplevel)"
+  basename "$(_ymt_wtr_get_main_worktree)"
 }
 
 _ymt_wtr_detect_copy_files() {
@@ -77,43 +96,98 @@ _ymt_wtr_detect_copy_files() {
     return 1
   fi
 
-  # Find files matching default patterns
   find "$source_dir" -maxdepth 1 \( -name '.env*' -o -name '.envrc' -o -name '*.local' -o -name '.*.local' \) -type f
 }
 
-_ymt_wtr_add() {
-  local branch_name="$1"
-  local worktree_name="$2"
-  local no_copy=false
+_ymt_wtr_symlink_skills() {
+  local main_worktree="$1"
+  local worktree_path="$2"
 
-  # Parse options
-  shift 2 2>/dev/null
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
+  for skills_rel in ".claude/skills" ".agents/skills"; do
+    local src="${main_worktree}/${skills_rel}"
+    local dst="${worktree_path}/${skills_rel}"
+    if [[ -d "$src" ]]; then
+      mkdir -p "$(dirname "$dst")"
+      ln -s "$src" "$dst"
+      echo "  Symlinked: ${skills_rel}"
+    fi
+  done
+}
+
+_ymt_wtr_add() {
+  local branch_name=""
+  local worktree_name=""
+  local no_copy=false
+  local agent_name=""
+  local base_branch=""
+  local base_flag_set=false
+
+  local args=("$@")
+  local n=${#args[@]}
+  local i=1
+
+  while [[ $i -le $n ]]; do
+    local arg="${args[$i]}"
+    case "$arg" in
       --no-copy)
         no_copy=true
-        shift
+        ;;
+      --agent)
+        ((i++))
+        if [[ $i -gt $n ]]; then
+          echo "Error: --agent requires a value" >&2
+          echo "Usage: wtr add <branch> [--agent <cmd>]" >&2
+          return 1
+        fi
+        agent_name="${args[$i]}"
+        ;;
+      --base)
+        base_flag_set=true
+        if [[ $((i+1)) -le $n ]] && [[ "${args[$((i+1))]}" != --* ]]; then
+          ((i++))
+          base_branch="${args[$i]}"
+        fi
+        ;;
+      -*)
         ;;
       *)
-        shift
+        if [[ -z "$branch_name" ]]; then
+          branch_name="$arg"
+        elif [[ -z "$worktree_name" ]]; then
+          worktree_name="$arg"
+        fi
         ;;
     esac
+    ((i++))
   done
 
-  # Validate branch name
   if [[ -z "$branch_name" ]]; then
     echo "Error: Branch name is required" >&2
-    echo "Usage: wtr add <branch> [name] [--no-copy]" >&2
+    echo "Usage: wtr add <branch> [name] [--base [<base>]] [--agent <cmd>] [--no-copy]" >&2
     return 1
   fi
 
-  # Use branch name as worktree name if not specified
   if [[ -z "$worktree_name" ]]; then
-    # Replace slashes with hyphens for directory name
     worktree_name="${branch_name//\//-}"
   fi
 
-  # Get repository name and create worktree path
+  # --base without value: fzf branch selection
+  if [[ "$base_flag_set" == true && -z "$base_branch" ]]; then
+    if ! (( $+commands[fzf] )); then
+      echo "Error: fzf is required for interactive --base selection" >&2
+      return 1
+    fi
+    base_branch=$(git branch --all 2>/dev/null \
+      | sed 's/^[* ]*//' \
+      | sed 's|^remotes/||' \
+      | sort -u \
+      | fzf --header="Select base branch for $branch_name")
+    if [[ -z "$base_branch" ]]; then
+      echo "No base branch selected, cancelled" >&2
+      return 1
+    fi
+  fi
+
   local repo_name
   repo_name=$(_ymt_wtr_get_repo_name)
   if [[ $? -ne 0 ]]; then
@@ -128,41 +202,45 @@ _ymt_wtr_add() {
 
   local parent_dir
   parent_dir="$(dirname "$main_worktree")"
-  local worktree_path="${parent_dir}/${repo_name}-${worktree_name}"
+  local worktrees_dir="${parent_dir}/${repo_name}.worktrees"
+  local worktree_path="${worktrees_dir}/${worktree_name}"
 
-  # Check if worktree already exists
   if [[ -d "$worktree_path" ]]; then
     echo "Error: Directory already exists at $worktree_path" >&2
     return 1
   fi
 
-  # Check if branch exists
+  mkdir -p "$worktrees_dir"
+
+  # Determine if branch already exists
   local branch_exists=false
   if git show-ref --verify --quiet "refs/heads/$branch_name" || \
      git show-ref --verify --quiet "refs/remotes/origin/$branch_name"; then
     branch_exists=true
   fi
 
-  # Create worktree
   echo "Creating worktree at $worktree_path for branch $branch_name..."
+
   if [[ "$branch_exists" == true ]]; then
-    # Use existing branch
     if ! git worktree add "$worktree_path" "$branch_name"; then
       echo "Error: Failed to create worktree" >&2
       return 1
     fi
   else
-    # Create new branch from current HEAD or main/master
-    local base_branch
-    if git show-ref --verify --quiet refs/heads/main; then
-      base_branch="main"
-    elif git show-ref --verify --quiet refs/heads/master; then
-      base_branch="master"
+    # Determine base
+    if [[ -z "$base_branch" ]]; then
+      if git show-ref --verify --quiet refs/heads/main; then
+        base_branch="main"
+      elif git show-ref --verify --quiet refs/heads/master; then
+        base_branch="master"
+      else
+        base_branch="HEAD"
+      fi
+      echo "Branch $branch_name does not exist. Creating new branch from $base_branch..."
     else
-      base_branch="HEAD"
+      echo "Branch $branch_name does not exist. Creating new branch from $base_branch..."
     fi
 
-    echo "Branch $branch_name does not exist. Creating new branch from $base_branch..."
     if ! git worktree add -b "$branch_name" "$worktree_path" "$base_branch"; then
       echo "Error: Failed to create worktree" >&2
       return 1
@@ -171,7 +249,10 @@ _ymt_wtr_add() {
 
   echo "Worktree created successfully at $worktree_path"
 
-  # Copy config files unless --no-copy is specified
+  # Auto-symlink skills directories
+  _ymt_wtr_symlink_skills "$main_worktree" "$worktree_path"
+
+  # Copy config files unless --no-copy
   if [[ "$no_copy" == false ]]; then
     echo "Copying config files..."
     local copy_files
@@ -198,6 +279,19 @@ _ymt_wtr_add() {
     fi
   fi
 
+  # Launch agent if specified
+  if [[ -n "$agent_name" ]]; then
+    if ! whence "$agent_name" > /dev/null 2>&1; then
+      echo "Error: agent '$agent_name' not found (whence check failed)" >&2
+      echo "Worktree created at $worktree_path"
+      cd "$worktree_path" || return 1
+      return 1
+    fi
+    cd "$worktree_path" || return 1
+    echo "Launching agent: $agent_name"
+    "$agent_name"
+  fi
+
   return 0
 }
 
@@ -206,7 +300,6 @@ _ymt_wtr_remove() {
   local worktree_path=""
   local force=false
 
-  # Parse options
   shift 1 2>/dev/null
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -220,7 +313,6 @@ _ymt_wtr_remove() {
     esac
   done
 
-  # If no worktree specified, use fzf to select
   if [[ -z "$worktree_input" ]]; then
     if ! (( $+commands[fzf] )); then
       echo "Error: fzf is required for interactive selection" >&2
@@ -241,11 +333,9 @@ _ymt_wtr_remove() {
 
     worktree_path=$(echo "$selected" | awk '{print $1}')
   else
-    # If input is a directory, use it directly
     if [[ -d "$worktree_input" ]]; then
       worktree_path="$worktree_input"
     else
-      # Search for matching worktree by branch name or path
       local matching_worktree
       matching_worktree=$(git worktree list --porcelain | awk '
         BEGIN { path=""; branch="" }
@@ -267,7 +357,6 @@ _ymt_wtr_remove() {
     fi
   fi
 
-  # Check if it's the main worktree
   local main_worktree
   main_worktree=$(_ymt_wtr_get_main_worktree)
 
@@ -276,7 +365,6 @@ _ymt_wtr_remove() {
     return 1
   fi
 
-  # Remove worktree
   echo "Removing worktree at $worktree_path..."
   if [[ "$force" == true ]]; then
     if ! git worktree remove --force "$worktree_path"; then
@@ -299,12 +387,10 @@ _ymt_wtr_cd() {
   local worktree_input="$1"
   local worktree_path=""
 
-  # Handle cd - (go to previous directory)
   if [[ "$worktree_input" == "-" ]]; then
     if [[ -n "$OLDPWD" && -d "$OLDPWD" ]]; then
       local prev_dir="$OLDPWD"
 
-      # Get branch name for previous directory
       local branch_name
       branch_name=$(git worktree list --porcelain | awk -v path="$prev_dir" '
         /^worktree / { wt=$2 }
@@ -332,7 +418,6 @@ _ymt_wtr_cd() {
     fi
   fi
 
-  # If no worktree specified, use fzf to select
   if [[ -z "$worktree_input" ]]; then
     if ! (( $+commands[fzf] )); then
       echo "Error: fzf is required for interactive selection" >&2
@@ -353,11 +438,9 @@ _ymt_wtr_cd() {
 
     worktree_path=$(echo "$selected" | awk '{print $1}')
   else
-    # If input is a directory, use it directly
     if [[ -d "$worktree_input" ]]; then
       worktree_path="$worktree_input"
     else
-      # Search for matching worktree by branch name or path
       local matching_worktree
       matching_worktree=$(git worktree list --porcelain | awk '
         BEGIN { path=""; branch="" }
@@ -379,13 +462,11 @@ _ymt_wtr_cd() {
     fi
   fi
 
-  # Validate worktree path
   if [[ ! -d "$worktree_path" ]]; then
     echo "Error: Worktree does not exist: $worktree_path" >&2
     return 1
   fi
 
-  # Get branch name for this worktree
   local branch_name
   branch_name=$(git worktree list --porcelain | awk -v path="$worktree_path" '
     /^worktree / { wt=$2 }
@@ -399,7 +480,6 @@ _ymt_wtr_cd() {
     }
   ')
 
-  # Change directory
   cd "$worktree_path" || return 1
 
   if [[ -n "$branch_name" ]]; then
@@ -415,7 +495,6 @@ _ymt_wtr_copy() {
   local target_worktree="$2"
   local skip_confirmation=false
 
-  # Parse options
   shift 2 2>/dev/null
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -429,7 +508,6 @@ _ymt_wtr_copy() {
     esac
   done
 
-  # If source not specified, use fzf to select or default to main worktree
   if [[ -z "$source_worktree" ]]; then
     if (( $+commands[fzf] )); then
       local selected
@@ -450,12 +528,10 @@ _ymt_wtr_copy() {
     fi
   fi
 
-  # If target not specified, use current directory
   if [[ -z "$target_worktree" ]]; then
     target_worktree="$(pwd)"
   fi
 
-  # Validate paths
   if [[ ! -d "$source_worktree" ]]; then
     echo "Error: Source worktree does not exist: $source_worktree" >&2
     return 1
@@ -466,7 +542,6 @@ _ymt_wtr_copy() {
     return 1
   fi
 
-  # Detect files to copy
   local copy_files
   copy_files=$(_ymt_wtr_detect_copy_files "$source_worktree")
 
@@ -480,7 +555,6 @@ _ymt_wtr_copy() {
     echo "  $(basename "$file")"
   done
 
-  # Confirmation
   if [[ "$skip_confirmation" == false ]]; then
     echo -n "Proceed with copying? [y/N]: "
     read -r response
@@ -490,7 +564,6 @@ _ymt_wtr_copy() {
     fi
   fi
 
-  # Copy files
   local copied_count=0
   echo "$copy_files" | while IFS= read -r file; do
     local filename
