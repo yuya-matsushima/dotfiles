@@ -108,8 +108,11 @@ _ymt_wtr_symlink_skills() {
     local dst="${worktree_path}/${skills_rel}"
     if [[ -d "$src" ]]; then
       mkdir -p "$(dirname "$dst")"
-      ln -s "$src" "$dst"
-      echo "  Symlinked: ${skills_rel}"
+      if ln -s "$src" "$dst"; then
+        echo "  Symlinked: ${skills_rel}"
+      else
+        echo "  Warning: failed to symlink ${skills_rel}" >&2
+      fi
     fi
   done
 }
@@ -136,7 +139,7 @@ _ymt_wtr_add() {
         ((i++))
         if [[ $i -gt $n ]] || [[ "${args[$i]}" == --* ]]; then
           echo "Error: --agent requires a value" >&2
-          echo "Usage: wtr add <branch> [--agent <cmd>]" >&2
+          echo "Usage: wtr add <branch> [name] [--base [<base>]] [--agent <cmd>] [--no-copy]" >&2
           return 1
         fi
         agent_name="${args[$i]}"
@@ -149,6 +152,9 @@ _ymt_wtr_add() {
         fi
         ;;
       -*)
+        echo "Error: unknown option '$arg'" >&2
+        echo "Usage: wtr add <branch> [name] [--base [<base>]] [--agent <cmd>] [--no-copy]" >&2
+        return 1
         ;;
       *)
         if [[ -z "$branch_name" ]]; then
@@ -178,6 +184,7 @@ _ymt_wtr_add() {
       return 1
     fi
     base_branch=$(git branch --all 2>/dev/null \
+      | grep -v ' -> ' \
       | sed 's/^[* ]*//' \
       | sed 's|^remotes/||' \
       | sort -u \
@@ -290,6 +297,7 @@ _ymt_wtr_add() {
     cd "$worktree_path" || return 1
     echo "Launching agent: $agent_name"
     "$agent_name"
+    return $?
   fi
 
   return 0

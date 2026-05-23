@@ -63,7 +63,7 @@ _wtr() {
 # Helper function to list git branches
 __wtr_branches() {
   local -a branches
-  branches=(${(f)"$(git branch --all 2>/dev/null | sed 's/^[* ]*//' | sed 's/remotes\///')"})
+  branches=(${(f)"$(git branch --all 2>/dev/null | grep -v ' -> ' | sed 's/^[* ]*//' | sed 's/remotes\///')"})
   _describe 'branches' branches
 }
 
