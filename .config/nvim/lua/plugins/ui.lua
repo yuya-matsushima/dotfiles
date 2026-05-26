@@ -26,6 +26,15 @@ local function line_location()
   return '[' .. string.format('%d/%d', line, total) .. ']'
 end
 
+-- Markdown word/char count (visual selection takes precedence)
+local function md_count()
+  if vim.bo.filetype ~= 'markdown' then return '' end
+  local wc = vim.fn.wordcount()
+  local words = wc.visual_words or wc.words
+  local chars = wc.visual_chars or wc.chars
+  return string.format('[%dw/%dc]', words, chars)
+end
+
 -- File type without icon
 local function filetype_no_icon()
   return '[' .. vim.bo.filetype .. ']'
@@ -70,7 +79,8 @@ return {
           },
           -- Right side
           lualine_x = {
-            { line_location, padding = 0 },  -- Line/total (leftmost on right side)
+            { md_count, padding = 0 },  -- Markdown only: word/char count (leftmost on right side)
+            { line_location, padding = 0 },  -- Line/total
             { filetype_no_icon, padding = 0 },
             { encoding_bracketed, padding = 0 },
             { keyboard_type, padding = 0 },
