@@ -46,6 +46,11 @@ window-new-tab-position = end
 # Keybindings
 keybind = super+n=new_tab
 keybind = super+q=ignore
+# 誤爆防止: close 系ショートカットを全て無効化し, window の close ボタンのみで閉じる
+keybind = super+w=ignore
+keybind = super+alt+w=ignore
+keybind = super+shift+w=ignore
+keybind = super+alt+shift+w=ignore
 
 # Others
 mouse-hide-while-typing = true
