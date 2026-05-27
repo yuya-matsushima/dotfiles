@@ -2,7 +2,10 @@
 
 # add-internal-skill: fillin-inc/internal-skills の skill を, 現在の git
 # リポジトリ (project scope) の .claude/skills と .agents/skills 両方へ追加する。
-# 未インストールの skill のみを fzf で複数選択し, gh skill install で配置する。
+#
+# 候補一覧・プレビュー・インストールをすべて GitHub の同一 ref (最新タグ) から
+# 解決するため, fzf に表示された skill は必ずインストールできる。ローカルに
+# internal-skills を clone している必要はない (ネットワーク接続が前提)。
 
 _ymt_ais_usage() {
   local repo="$1"
@@ -10,7 +13,9 @@ _ymt_ais_usage() {
 add-internal-skill installs ${repo} skills into the current git repository
 (project scope), placing each skill into both .claude/skills and .agents/skills.
 
-未インストールの skill のみが fzf に表示されます。複数選択 (Tab) して Enter で追加します。
+候補一覧・プレビュー・インストールはいずれも GitHub の ${repo} (最新タグ) を
+参照します。未インストールの skill のみが fzf に表示されます。複数選択 (Tab) して
+Enter で追加します。
 
 Usage:
   add-internal-skill          fzf で未インストール skill を複数選択して追加
@@ -19,27 +24,11 @@ Usage:
 Options:
   -h, --help                  print help
 
-Environment:
-  INTERNAL_SKILLS_DIR         利用可能な skill 一覧を読み取るローカルリポジトリのパス
-                              (既定: \$HOME/Project/fillin/internal-skills)
-
 Dependencies:
   fzf
-  gh
+  gh   (gh auth login 済みであること)
   git
 EOF
-}
-
-# 利用可能な skill 名を 1 行ずつ出力する。
-# gh skill に一覧コマンドが無いため, ローカルリポジトリの skills/*/SKILL.md を走査する。
-_ymt_ais_available() {
-  local repo="$1"
-  local d
-  for d in "$repo"/skills/*(/N); do
-    [[ -L "$d" ]] && continue
-    [[ -f "$d/SKILL.md" ]] || continue
-    print -- "${d:t}"
-  done
 }
 
 # インストール元 (GitHub repository slug)
@@ -76,11 +65,21 @@ if [[ -z "$repo_root" ]]; then
   return 1
 fi
 
-# 利用可能な skill 一覧の取得元 (ローカルリポジトリ)
-local skills_repo="${INTERNAL_SKILLS_DIR:-$HOME/Project/fillin/internal-skills}"
-if [[ ! -d "$skills_repo/skills" ]]; then
-  echo "Error: skills directory not found: $skills_repo/skills" >&2
-  echo "Set INTERNAL_SKILLS_DIR to the local $repo_slug checkout." >&2
+# gh skill install は「最新タグ → default branch HEAD」の順でバージョンを解決する。
+# 一覧・プレビュー・install を同じ ref に揃えるため, 最新タグを特定して明示的に pin
+# する。タグが無いリポジトリでは ref を指定せず, 全工程が default branch HEAD を参照する。
+local skill_ref
+skill_ref=$(gh api "repos/$repo_slug/tags" --jq '.[].name' 2>/dev/null | sort -V | tail -1)
+local ref_qs=""
+[[ -n "$skill_ref" ]] && ref_qs="?ref=$skill_ref"
+
+# 利用可能な skill 一覧をリモートから取得 (skills/*/ のディレクトリ名)
+local available
+if ! available=$(gh api "repos/$repo_slug/contents/skills$ref_qs" \
+                   --jq '.[] | select(.type=="dir") | .name' 2>&1); then
+  echo "Error: failed to list skills from $repo_slug." >&2
+  echo "  $available" >&2
+  echo "  gh auth status とネットワーク接続を確認してください。" >&2
   return 1
 fi
 
@@ -94,20 +93,20 @@ while IFS= read -r name; do
     continue
   fi
   candidates+=("$name")
-done < <(_ymt_ais_available "$skills_repo")
+done <<< "$available"
 
 if (( ${#candidates[@]} == 0 )); then
   echo "All available skills are already installed in this repository."
   return 0
 fi
 
-# fzf で複数選択 (プレビューに SKILL.md を表示)
+# fzf で複数選択 (プレビューは同一 ref の SKILL.md をリモート取得)
 local -a selected
 selected=(${(f)"$(
   printf '%s\n' "${candidates[@]}" | fzf \
     --multi \
     --header='Tab で複数選択, Enter で追加 (Esc で中止)' \
-    --preview="cat $skills_repo/skills/{}/SKILL.md" \
+    --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/skills/{}/SKILL.md$ref_qs'" \
     --preview-window='right:60%:wrap'
 )"})
 
@@ -116,12 +115,18 @@ if (( ${#selected[@]} == 0 )); then
   return 0
 fi
 
-# インストール (各 skill を .claude/skills と .agents/skills 両方へ)
+# インストール (各 skill を .claude/skills と .agents/skills 両方へ, 一覧と同じ ref に pin)
+local -a pin_args=()
+[[ -n "$skill_ref" ]] && pin_args=(--pin "$skill_ref")
+
 local skill
 for skill in "${selected[@]}"; do
-  echo "install: $skill -> $repo_root/.claude/skills, $repo_root/.agents/skills"
-  gh skill install "$repo_slug" "$skill" --agent claude-code --scope project --force || return 1
-  gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force || return 1
+  echo "install: $skill (${skill_ref:-HEAD}) -> $repo_root/.claude/skills, $repo_root/.agents/skills"
+  if ! gh skill install "$repo_slug" "$skill" --agent claude-code   --scope project --force "${pin_args[@]}" ||
+     ! gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}"; then
+    echo "Error: failed to install '$skill'." >&2
+    return 1
+  fi
 done
 
 echo "Done: ${#selected[@]} skill(s) installed."
