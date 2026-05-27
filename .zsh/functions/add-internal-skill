@@ -35,15 +35,8 @@ EOF
 # インストール元 (GitHub repository slug)
 local repo_slug="fillin-inc/internal-skills"
 
-# Check dependencies
-local _ymt_ais_cmd
-for _ymt_ais_cmd in fzf gh git; do
-  if ! command -v "$_ymt_ais_cmd" >/dev/null 2>&1; then
-    echo "Error: $_ymt_ais_cmd command not found. Please install $_ymt_ais_cmd." >&2
-    return 1
-  fi
-done
-
+# ヘルプ / 引数チェック (外部コマンド不要なので依存チェックより先に処理する。
+# fzf/gh/git 未導入の環境でも -h / --help が動くようにするため)
 case "${1:-}" in
   -h|--help|help)
     _ymt_ais_usage "$repo_slug"
@@ -57,6 +50,15 @@ case "${1:-}" in
     return 1
     ;;
 esac
+
+# Check dependencies
+local _ymt_ais_cmd
+for _ymt_ais_cmd in fzf gh git; do
+  if ! command -v "$_ymt_ais_cmd" >/dev/null 2>&1; then
+    echo "Error: $_ymt_ais_cmd command not found. Please install $_ymt_ais_cmd." >&2
+    return 1
+  fi
+done
 
 # project scope は git リポジトリのルートを基準にするため, repo 内での実行が前提
 local repo_root
