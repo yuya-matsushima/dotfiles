@@ -28,6 +28,7 @@ Dependencies:
   fzf
   gh   (gh auth login 済みであること)
   git
+  bat  (任意: あれば SKILL.md プレビューを syntax highlight)
 EOF
 }
 
@@ -100,13 +101,22 @@ if (( ${#candidates[@]} == 0 )); then
   return 0
 fi
 
+# プレビューア: bat があれば markdown を syntax highlight, 無ければ cat にフォールバック
+# (行折り返しは fzf の preview-window=wrap に任せるため bat 側は --wrap=never)
+local previewer
+if command -v bat >/dev/null 2>&1; then
+  previewer="bat --language=md --color=always --style=plain --paging=never --wrap=never"
+else
+  previewer="cat"
+fi
+
 # fzf で複数選択 (プレビューは同一 ref の SKILL.md をリモート取得)
 local -a selected
 selected=(${(f)"$(
   printf '%s\n' "${candidates[@]}" | fzf \
     --multi \
     --header='Tab で複数選択, Enter で追加 (Esc で中止)' \
-    --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/skills/{}/SKILL.md$ref_qs'" \
+    --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/skills/{}/SKILL.md$ref_qs' | $previewer" \
     --preview-window='right:60%:wrap'
 )"})
 
