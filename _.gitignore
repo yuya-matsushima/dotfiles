@@ -32,3 +32,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Design tools
+*.af~lock~
