@@ -1,0 +1,12 @@
+#compdef add-skill
+
+# add-skill の補完定義
+# skill 選択は fzf で行うため, 引数補完は -h/--help と repository (owner/repo) のみ。
+
+_add-skill() {
+  _arguments \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1:repository (owner/repo):'
+}
+
+_add-skill "$@"
