@@ -161,6 +161,29 @@ if (( ${#selected[@]} == 0 )); then
   return 0
 fi
 
+# 選択 skill 間の leaf 名衝突を検証する。
+# gh skill install は leaf 名 (skill ディレクトリ名) で install 先を決めるため,
+# category 違いで同名の skill (skills/aws/deploy と skills/gcp/deploy 等) を同時に
+# 選ぶと, 同じ .claude/skills/<leaf> / .agents/skills/<leaf> へ --force で上書き
+# される。並行実行では同一ディレクトリへの同時書き込みにもなり, 一方が黙って失われた
+# まま両方「成功」と報告されてしまう。これを防ぐためここで弾く。
+local -A leaf_seen
+local conflict=0
+for skill in "${selected[@]}"; do
+  leaf="${skill:t}"
+  if [[ -n "${leaf_seen[$leaf]:-}" ]]; then
+    echo "Error: skill name conflict on '$leaf': '${leaf_seen[$leaf]}' と '$skill'." >&2
+    echo "  両者は同じ install 先 (.claude/skills/$leaf, .agents/skills/$leaf) を共有するため同時にインストールできません。" >&2
+    conflict=1
+  else
+    leaf_seen[$leaf]="$skill"
+  fi
+done
+if (( conflict )); then
+  echo "  片方ずつ選び直して再実行してください。" >&2
+  return 1
+fi
+
 # インストール (各 skill を .claude/skills と .agents/skills 両方へ, 一覧と同じ ref に pin)。
 # skill 単位で並行ジョブを起動し, 出力混在を避けるため各ジョブのログは一時ファイルへ。
 local -a pin_args=()
