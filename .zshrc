@@ -150,6 +150,8 @@ fi
 
 # URL (? や * を含む) を引数に取りたい関数は noglob で zsh の glob 展開を抑止する
 alias domain-checker='noglob domain-checker'
+# add-internal-skill は add-skill を fillin-inc/internal-skills 固定で呼ぶショートカット
+alias add-internal-skill='add-skill fillin-inc/internal-skills'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
 (( $+commands[delta] )) && alias gitdiff="git diff --no-index"
 if (( $+commands[asdf] )); then
