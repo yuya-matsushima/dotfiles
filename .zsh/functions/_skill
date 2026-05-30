@@ -1,0 +1,45 @@
+#compdef skill
+
+# skill の補完定義
+# 第1引数でサブコマンド (add/remove) を補完し, その後サブコマンド固有の
+# オプション/引数を補完する。skill 選択自体は fzf が担うため, 補完は
+# サブコマンド名・オプション・add の repository (owner/repo) のみ。
+
+_skill() {
+  local curcontext="$curcontext" state line
+  local -a subcommands
+  subcommands=(
+    'add:install skills from a GitHub repository'
+    'remove:remove installed skills'
+  )
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :->subcmd' \
+    '*:: :->args'
+
+  case "$state" in
+    subcmd)
+      _describe -t commands 'skill subcommand' subcommands
+      ;;
+    args)
+      case "$line[1]" in
+        add)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '(-g --global -u --user)'{-g,--global}'[install to global (user) scope ($HOME)]' \
+            '(-g --global -u --user)'{-u,--user}'[install to global (user) scope ($HOME)]' \
+            '1:repository (owner/repo):'
+          ;;
+        remove)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '(-g --global -u --user)'{-g,--global}'[remove from global (user) scope ($HOME)]' \
+            '(-g --global -u --user)'{-u,--user}'[remove from global (user) scope ($HOME)]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_skill "$@"
