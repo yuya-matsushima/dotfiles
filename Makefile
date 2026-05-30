@@ -70,18 +70,6 @@ asdf_terraform: asdf_cloud ## Install Terraform Tools
 claude_code: ## Install Claude Code CLI
 	sh ./bin/claude_code.sh
 
-.PHONY: skills
-skills: ## Install internal-skills for Claude Code / Codex / Copilot / Gemini
-	sh ./bin/install_skills.sh install
-
-.PHONY: skills_uninstall
-skills_uninstall: ## Uninstall internal-skills from all agent directories
-	sh ./bin/install_skills.sh uninstall
-
-.PHONY: skills_update
-skills_update: ## Update internal-skills to latest versions
-	sh ./bin/install_skills.sh update
-
 .PHONY: asdf_nodejs
 asdf_nodejs: ## Install NodeJS
 	sh ./bin/asdf/nodejs.sh
