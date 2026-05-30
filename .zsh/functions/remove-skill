@@ -28,6 +28,10 @@ Status markers in fzf:
   [claude-only]  .claude/skills のみ存在
   [agents-only]  .agents/skills のみ存在
 
+Key bindings in fzf:
+  ctrl-u       現在表示中 (フィルタ結果) を全選択。"both" 等で絞り込んでから
+               押せば該当状態だけを一括選択できる
+
 Dependencies:
   fzf
   git  (project scope 時のみ必須)
@@ -129,14 +133,17 @@ fi
 local preview_cmd="skill_md='$base_dir/.claude/skills/{2}/SKILL.md'; [[ -f \"\$skill_md\" ]] || skill_md='$base_dir/.agents/skills/{2}/SKILL.md'; $previewer \"\$skill_md\" 2>/dev/null"
 
 # fzf で複数選択
+# --nth は付けず status 列も検索対象にするため, "both" 等で絞り込んでから ctrl-u を
+# 押せば該当状態だけを一括選択できる。
+# ctrl-u: select-all は「現在のフィルタ結果のみ」を選択する (空 query なら全件)。
 local -a selected_lines
 selected_lines=(${(f)"$(
   printf '%s\n' "${(o)candidates[@]}" | fzf \
     --multi \
     --delimiter=$'\t' \
     --with-nth=1,2 \
-    --nth=2 \
-    --header='[both]=両方在, [claude-only]=Claudeのみ, [agents-only]=Agentsのみ | Tab 複数選択, Enter で削除, Esc で中止' \
+    --bind='ctrl-u:select-all' \
+    --header='ctrl-u: 表示中を全選択 (both 等で絞ってから押すと一括選択) | Tab 複数選択, Enter で削除, Esc で中止' \
     --preview="$preview_cmd" \
     --preview-window='right:60%:wrap'
 )"})
