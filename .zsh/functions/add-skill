@@ -18,49 +18,66 @@
 # ネスト関数内の heredoc が終端 (EOF) を取りこぼす既知の癖があるため。
 
 _ymt_as_usage() {
-  print -r -- 'add-skill installs skills from an arbitrary GitHub repository into the current
-git repository (project scope), placing each skill into both .claude/skills and
-.agents/skills.
+  print -r -- 'add-skill installs skills from an arbitrary GitHub repository, placing each
+skill into both .claude/skills and .agents/skills.
 
 候補一覧・プレビュー・インストールはいずれも対象リポジトリの最新タグ (無ければ
 default branch HEAD) を参照します。flat な skills/<skill>/SKILL.md でも, ネスト
-した skills/<category>/<skill>/SKILL.md でも対応します。未インストールの skill
-のみが fzf に表示されます。複数選択 (Tab) して Enter で並行インストールします。
+した skills/<category>/<skill>/SKILL.md でも対応します。インストール済み / 部分
+インストール / 未導入を状態マーカー付きで fzf に表示します。複数選択 (Tab) して
+Enter で並行インストールします。
 
 Usage:
-  add-skill <owner/repo>      指定リポジトリの未インストール skill を fzf で選択して追加
-  add-skill                   対象リポジトリを対話入力してから選択
-  add-skill -h                print help
+  add-skill <owner/repo>         現在の git リポジトリ (project scope) へ追加
+  add-skill -g <owner/repo>      $HOME (global/user scope) へ追加
+  add-skill                      対象リポジトリを対話入力してから選択
+  add-skill -h                   print help
 
 Options:
   -h, --help                  print help
+  -g, --global, -u, --user    global (user) scope へインストール ($HOME 基準)
+
+Status markers in fzf:
+  [installed]  .claude/skills と .agents/skills の両方に存在
+  [partial]    どちらか片方のみ存在
+  [available]  未インストール
 
 Dependencies:
   fzf
   gh   (gh auth login 済みであること)
-  git
+  git  (project scope 時のみ必須)
   bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
 }
 
 # ヘルプ / 引数チェック (外部コマンド不要なので依存チェックより先に処理する。
 # fzf/gh/git 未導入の環境でも -h / --help が動くようにするため)
-local repo_slug=""
-case "${1:-}" in
-  -h|--help|help)
-    _ymt_as_usage
-    return 0
-    ;;
-  "")
-    ;;
-  -*)
-    echo "Error: unknown option: $1" >&2
-    _ymt_as_usage >&2
-    return 1
-    ;;
-  *)
-    repo_slug="$1"
-    ;;
-esac
+local repo_slug="" global_mode=0
+while (( $# > 0 )); do
+  case "$1" in
+    -h|--help|help)
+      _ymt_as_usage
+      return 0
+      ;;
+    -g|--global|-u|--user)
+      global_mode=1
+      shift
+      ;;
+    -*)
+      echo "Error: unknown option: $1" >&2
+      _ymt_as_usage >&2
+      return 1
+      ;;
+    *)
+      if [[ -n "$repo_slug" ]]; then
+        echo "Error: unexpected argument: $1" >&2
+        _ymt_as_usage >&2
+        return 1
+      fi
+      repo_slug="$1"
+      shift
+      ;;
+  esac
+done
 
 # Check dependencies
 local _ymt_as_cmd
@@ -81,12 +98,19 @@ if [[ "$repo_slug" != */* ]]; then
   return 1
 fi
 
-# project scope は git リポジトリのルートを基準にするため, repo 内での実行が前提
-local repo_root
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-if [[ -z "$repo_root" ]]; then
-  echo "Error: Not a git repository. add-skill installs at project scope." >&2
-  return 1
+# インストール先ベースディレクトリを決定する
+local base_dir
+if (( global_mode )); then
+  base_dir="$HOME"
+else
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -z "$repo_root" ]]; then
+    echo "Error: Not a git repository. add-skill installs at project scope." >&2
+    echo "  global scope へインストールするには -g オプションを使用してください。" >&2
+    return 1
+  fi
+  base_dir="$repo_root"
 fi
 
 # gh skill install は「最新タグ -> default branch HEAD」の順でバージョンを解決する。
@@ -118,22 +142,32 @@ if ! available=$(gh api "repos/$repo_slug/git/trees/$ref?recursive=1" \
   return 1
 fi
 
-# 未インストール skill を抽出
-# (skill パスの leaf 名で .claude/skills と .agents/skills の両在を「済」として除外)
+# skill ごとにインストール状態を付与して候補一覧を生成する。
+# フォーマット: <status>\t<skill_path>
+#   [installed]  .claude/skills と .agents/skills の両方に存在
+#   [partial]    どちらか片方のみ存在
+#   [available]  未インストール
 local -a candidates
-local line skill_path leaf
+local line skill_path leaf has_claude has_agents _tab=$'\t'
 while IFS= read -r line; do
   [[ -n "$line" ]] || continue
   skill_path="${line%/SKILL.md}"
   leaf="${skill_path:t}"
-  if [[ -e "$repo_root/.claude/skills/$leaf" && -e "$repo_root/.agents/skills/$leaf" ]]; then
-    continue
+  has_claude=0
+  has_agents=0
+  [[ -e "$base_dir/.claude/skills/$leaf" ]] && has_claude=1
+  [[ -e "$base_dir/.agents/skills/$leaf" ]] && has_agents=1
+  if (( has_claude && has_agents )); then
+    candidates+=("[installed]${_tab}${skill_path}")
+  elif (( has_claude || has_agents )); then
+    candidates+=("[partial]${_tab}${skill_path}")
+  else
+    candidates+=("[available]${_tab}${skill_path}")
   fi
-  candidates+=("$skill_path")
 done <<< "$available"
 
 if (( ${#candidates[@]} == 0 )); then
-  echo "No installable skills found in $repo_slug (all installed or none present)."
+  echo "No skills found in $repo_slug."
   return 0
 fi
 
@@ -146,20 +180,31 @@ else
   previewer="cat"
 fi
 
-# fzf で複数選択 (プレビューは同一 ref の SKILL.md をリモート取得)
-local -a selected
-selected=(${(f)"$(
+# fzf で複数選択 (TAB 区切りの "status\tpath" 形式で表示)
+# --delimiter で TAB 分割, --with-nth=1,2 で両列表示, --nth=2 で path 列を検索対象にする。
+local -a selected_lines
+selected_lines=(${(f)"$(
   printf '%s\n' "${candidates[@]}" | fzf \
     --multi \
-    --header='Tab で複数選択, Enter で追加 (Esc で中止)' \
-    --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{}/SKILL.md$ref_qs' | $previewer" \
+    --delimiter=$'\t' \
+    --with-nth=1,2 \
+    --nth=2 \
+    --header='[installed]=両方在, [partial]=片方在, [available]=未導入 | Tab 複数選択, Enter で追加, Esc で中止' \
+    --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{2}/SKILL.md$ref_qs' | $previewer" \
     --preview-window='right:60%:wrap'
 )"})
 
-if (( ${#selected[@]} == 0 )); then
+if (( ${#selected_lines[@]} == 0 )); then
   echo "No skill selected. Nothing to do."
   return 0
 fi
+
+# TAB 区切りからパスカラム (2列目) を取り出す
+local -a selected
+local sel_line
+for sel_line in "${selected_lines[@]}"; do
+  selected+=("${sel_line#*$'\t'}")
+done
 
 # 選択 skill 間の leaf 名衝突を検証する。
 # gh skill install は leaf 名 (skill ディレクトリ名) で install 先を決めるため,
@@ -195,11 +240,18 @@ tmpdir=$(mktemp -d) || { echo "Error: failed to create temp dir." >&2; return 1;
 local -a pids=() jobs=()
 local skill i=1
 for skill in "${selected[@]}"; do
-  echo "install: $skill (${skill_ref:-$ref}) -> $repo_root/.claude/skills, $repo_root/.agents/skills"
-  {
-    gh skill install "$repo_slug" "$skill" --agent claude-code   --scope project --force "${pin_args[@]}" &&
-    gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}"
-  } >"$tmpdir/$i.log" 2>&1 &
+  echo "install: $skill (${skill_ref:-$ref}) -> $base_dir/.claude/skills, $base_dir/.agents/skills"
+  if (( global_mode )); then
+    {
+      gh skill install "$repo_slug" "$skill" --agent claude-code --scope user --force "${pin_args[@]}" &&
+      gh skill install "$repo_slug" "$skill" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}"
+    } >"$tmpdir/$i.log" 2>&1 &
+  else
+    {
+      gh skill install "$repo_slug" "$skill" --agent claude-code   --scope project --force "${pin_args[@]}" &&
+      gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}"
+    } >"$tmpdir/$i.log" 2>&1 &
+  fi
   pids+=($!)
   jobs+=("$skill")
   ((i++))
