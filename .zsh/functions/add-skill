@@ -185,22 +185,34 @@ else
   previewer="cat"
 fi
 
+# ctrl-u 用一時ファイル: reload-sync で [installed] のみに差し替えてから toggle-all,
+# その後全件に戻す。change-query は非同期リフィルタのため全件が toggle される問題があり,
+# reload-sync (同期) を使うことで確実に [installed] のみを対象にできる。
+local _ymt_as_tmp_all _ymt_as_tmp_inst
+_ymt_as_tmp_all=$(mktemp) || { echo "Error: failed to create temp file." >&2; return 1; }
+_ymt_as_tmp_inst=$(mktemp) || { rm -f "$_ymt_as_tmp_all"; echo "Error: failed to create temp file." >&2; return 1; }
+printf '%s\n' "${candidates[@]}" > "$_ymt_as_tmp_all"
+for c in "${candidates[@]}"; do
+  [[ "$c" == \[installed\]* ]] && echo "$c"
+done > "$_ymt_as_tmp_inst"
+
 # fzf で複数選択 (TAB 区切りの "status\tpath" 形式で表示)
-# --delimiter で TAB 分割, --with-nth=1,2 で両列表示。
-# --nth を外すことで ctrl-u の change-query がステータス列 (field 1) にもヒットし,
-# [installed] のみを toggle できる。通常検索はスキル名が主で status 文字列と衝突しない。
-# ctrl-u: query を "[installed]" に絞り toggle → query をリセット (fzf は開いたまま)
+# --delimiter で TAB 分割, --with-nth=1,2 で両列表示, --nth=2 で path 列を検索対象にする。
+# ctrl-u: reload-sync([installed]のみ) → toggle-all → reload-sync(全件) で fzf は開いたまま
 local -a selected_lines
 selected_lines=(${(f)"$(
   printf '%s\n' "${candidates[@]}" | fzf \
     --multi \
     --delimiter=$'\t' \
     --with-nth=1,2 \
-    --bind='ctrl-u:change-query(\[installed\])+toggle-all+change-query()' \
+    --nth=2 \
+    --bind="ctrl-u:reload-sync(cat ${(q)_ymt_as_tmp_inst})+toggle-all+reload-sync(cat ${(q)_ymt_as_tmp_all})" \
     --header='ctrl-u: [installed]を全 toggle | [installed]=両方在, [partial]=片方在, [available]=未導入 | Tab 複数選択, Enter で追加, Esc で中止' \
     --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{2}/SKILL.md$ref_qs' | $previewer" \
     --preview-window='right:60%:wrap'
 )"})
+
+rm -f "$_ymt_as_tmp_all" "$_ymt_as_tmp_inst"
 
 if (( ${#selected_lines[@]} == 0 )); then
   echo "No skill selected. Nothing to do."
