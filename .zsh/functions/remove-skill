@@ -1,0 +1,200 @@
+#!/bin/zsh
+
+# remove-skill: .claude/skills と .agents/skills から skill を削除する。
+#
+# gh skill コマンドに削除サブコマンドが存在しないため, skill ディレクトリを
+# 直接 rm -rf する。fzf でインストール済み skill を選択し, 確認後に削除する。
+#
+# 注意: usage は heredoc ではなく print -r -- を使う。zsh native autoload では
+# ネスト関数内の heredoc が終端 (EOF) を取りこぼす既知の癖があるため。
+
+_ymt_rs_usage() {
+  print -r -- 'remove-skill removes installed skills from .claude/skills and .agents/skills.
+
+インストール済みの skill を fzf で選択して削除します。
+gh skill コマンドには削除サブコマンドが存在しないため, ディレクトリを直接削除します。
+
+Usage:
+  remove-skill               現在の git リポジトリ (project scope) の skill を削除
+  remove-skill -g            $HOME (global/user scope) の skill を削除
+  remove-skill -h            print help
+
+Options:
+  -h, --help                  print help
+  -g, --global, -u, --user    global (user) scope の skill を削除 ($HOME 基準)
+
+Status markers in fzf:
+  [both]         .claude/skills と .agents/skills の両方に存在
+  [claude-only]  .claude/skills のみ存在
+  [agents-only]  .agents/skills のみ存在
+
+Dependencies:
+  fzf
+  git  (project scope 時のみ必須)
+  bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
+}
+
+# ヘルプ / 引数チェック
+local global_mode=0
+while (( $# > 0 )); do
+  case "$1" in
+    -h|--help|help)
+      _ymt_rs_usage
+      return 0
+      ;;
+    -g|--global|-u|--user)
+      global_mode=1
+      shift
+      ;;
+    -*)
+      echo "Error: unknown option: $1" >&2
+      _ymt_rs_usage >&2
+      return 1
+      ;;
+    *)
+      echo "Error: unexpected argument: $1" >&2
+      _ymt_rs_usage >&2
+      return 1
+      ;;
+  esac
+done
+
+# Check dependencies (git は project scope 時のみ必須)
+local _ymt_rs_cmd
+local -a _ymt_rs_deps=(fzf)
+(( !global_mode )) && _ymt_rs_deps+=(git)
+for _ymt_rs_cmd in "${_ymt_rs_deps[@]}"; do
+  if ! command -v "$_ymt_rs_cmd" >/dev/null 2>&1; then
+    echo "Error: $_ymt_rs_cmd command not found. Please install $_ymt_rs_cmd." >&2
+    return 1
+  fi
+done
+
+# インストール先ベースディレクトリを決定する
+local base_dir
+if (( global_mode )); then
+  base_dir="$HOME"
+else
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [[ -z "$repo_root" ]]; then
+    echo "Error: Not a git repository." >&2
+    echo "  global scope の skill を削除するには -g オプションを使用してください。" >&2
+    return 1
+  fi
+  base_dir="$repo_root"
+fi
+
+# 両ディレクトリからインストール済み skill 名を収集し union を作る
+local -A skill_union
+local d
+for d in "$base_dir/.claude/skills"/*(N/); do
+  skill_union[${d:t}]=1
+done
+for d in "$base_dir/.agents/skills"/*(N/); do
+  skill_union[${d:t}]=1
+done
+
+if (( ${#skill_union} == 0 )); then
+  echo "No skills installed in $base_dir."
+  return 0
+fi
+
+# skill ごとにインストール状態を付与して候補一覧を生成する
+local -a candidates
+local skill_name has_claude has_agents _tab=$'\t'
+for skill_name in "${(@k)skill_union}"; do
+  has_claude=0
+  has_agents=0
+  [[ -e "$base_dir/.claude/skills/$skill_name" ]] && has_claude=1
+  [[ -e "$base_dir/.agents/skills/$skill_name" ]] && has_agents=1
+  if (( has_claude && has_agents )); then
+    candidates+=("[both]${_tab}${skill_name}")
+  elif (( has_claude )); then
+    candidates+=("[claude-only]${_tab}${skill_name}")
+  else
+    candidates+=("[agents-only]${_tab}${skill_name}")
+  fi
+done
+
+# プレビューア: bat があれば markdown を syntax highlight, 無ければ cat にフォールバック
+local previewer
+if command -v bat >/dev/null 2>&1; then
+  previewer="bat --language=md --color=always --style=plain --paging=never --wrap=never"
+else
+  previewer="cat"
+fi
+
+# プレビュー: .claude/skills 優先, 無ければ .agents/skills の SKILL.md を表示
+local preview_cmd="skill_md='$base_dir/.claude/skills/{2}/SKILL.md'; [[ -f \"\$skill_md\" ]] || skill_md='$base_dir/.agents/skills/{2}/SKILL.md'; $previewer \"\$skill_md\" 2>/dev/null"
+
+# fzf で複数選択
+local -a selected_lines
+selected_lines=(${(f)"$(
+  printf '%s\n' "${(o)candidates[@]}" | fzf \
+    --multi \
+    --delimiter=$'\t' \
+    --with-nth=1,2 \
+    --nth=2 \
+    --header='[both]=両方在, [claude-only]=Claudeのみ, [agents-only]=Agentsのみ | Tab 複数選択, Enter で削除, Esc で中止' \
+    --preview="$preview_cmd" \
+    --preview-window='right:60%:wrap'
+)"})
+
+if (( ${#selected_lines[@]} == 0 )); then
+  echo "No skill selected. Nothing to do."
+  return 0
+fi
+
+# TAB 区切りから skill 名カラム (2列目) を取り出す
+local -a selected
+local sel_line
+for sel_line in "${selected_lines[@]}"; do
+  selected+=("${sel_line#*$'\t'}")
+done
+
+# 削除確認
+echo "以下の skill を削除します:"
+local s
+for s in "${selected[@]}"; do
+  local targets=()
+  [[ -e "$base_dir/.claude/skills/$s" ]] && targets+=(".claude/skills/$s")
+  [[ -e "$base_dir/.agents/skills/$s" ]] && targets+=(".agents/skills/$s")
+  echo "  - $s  (${(j:, :)targets})"
+done
+local confirm
+read "confirm?実行しますか? [y/N]: "
+if [[ "$confirm" != [yY] ]]; then
+  echo "Cancelled."
+  return 0
+fi
+
+# 削除実行
+local fail=0
+for s in "${selected[@]}"; do
+  local removed=0
+  if [[ -e "$base_dir/.claude/skills/$s" ]]; then
+    if rm -rf "$base_dir/.claude/skills/$s"; then
+      removed=1
+    else
+      echo "FAILED to remove: .claude/skills/$s" >&2
+      fail=1
+    fi
+  fi
+  if [[ -e "$base_dir/.agents/skills/$s" ]]; then
+    if rm -rf "$base_dir/.agents/skills/$s"; then
+      removed=1
+    else
+      echo "FAILED to remove: .agents/skills/$s" >&2
+      fail=1
+    fi
+  fi
+  (( removed && !fail )) && echo "removed: $s"
+done
+
+if (( fail )); then
+  echo "Error: some skills failed to remove." >&2
+  return 1
+fi
+
+echo "Done: ${#selected[@]} skill(s) removed."

@@ -42,6 +42,9 @@ Status markers in fzf:
   [partial]    どちらか片方のみ存在
   [available]  未インストール
 
+Key bindings in fzf:
+  ctrl-u       [installed] を全選択して即確定 (一括更新)
+
 Dependencies:
   fzf
   gh   (gh auth login 済みであること)
@@ -184,29 +187,47 @@ fi
 
 # fzf で複数選択 (TAB 区切りの "status\tpath" 形式で表示)
 # --delimiter で TAB 分割, --with-nth=1,2 で両列表示, --nth=2 で path 列を検索対象にする。
-local -a selected_lines
-selected_lines=(${(f)"$(
+# ctrl-u: [installed] を全選択して即確定 (--expect で検出)
+local fzf_key fzf_out
+fzf_out=$(
   printf '%s\n' "${candidates[@]}" | fzf \
     --multi \
+    --expect=ctrl-u \
     --delimiter=$'\t' \
     --with-nth=1,2 \
     --nth=2 \
-    --header='[installed]=両方在, [partial]=片方在, [available]=未導入 | Tab 複数選択, Enter で追加, Esc で中止' \
+    --header='ctrl-u: [installed]を全選択 | [installed]=両方在, [partial]=片方在, [available]=未導入 | Tab 複数選択, Enter で追加, Esc で中止' \
     --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{2}/SKILL.md$ref_qs' | $previewer" \
     --preview-window='right:60%:wrap'
-)"})
+)
 
-if (( ${#selected_lines[@]} == 0 )); then
-  echo "No skill selected. Nothing to do."
-  return 0
-fi
+fzf_key=$(head -1 <<< "$fzf_out")
 
-# TAB 区切りからパスカラム (2列目) を取り出す
 local -a selected
-local sel_line
-for sel_line in "${selected_lines[@]}"; do
-  selected+=("${sel_line#*$'\t'}")
-done
+if [[ "$fzf_key" == "ctrl-u" ]]; then
+  # ctrl-u: [installed] の全 skill を自動選択
+  local c
+  for c in "${candidates[@]}"; do
+    [[ "$c" == \[installed\]* ]] && selected+=("${c#*$'\t'}")
+  done
+  if (( ${#selected[@]} == 0 )); then
+    echo "No installed skills found in $repo_slug. Nothing to update."
+    return 0
+  fi
+  echo "Update: ${#selected[@]} installed skill(s)."
+else
+  # 通常選択: 先頭行 (キー行) を除いた残りを取り出す
+  local -a selected_lines
+  selected_lines=(${(f)"$(tail -n +2 <<< "$fzf_out")"})
+  if (( ${#selected_lines[@]} == 0 )); then
+    echo "No skill selected. Nothing to do."
+    return 0
+  fi
+  local sel_line
+  for sel_line in "${selected_lines[@]}"; do
+    selected+=("${sel_line#*$'\t'}")
+  done
+fi
 
 # 選択 skill 間の leaf 名衝突を検証する。
 # gh skill install は leaf 名 (skill ディレクトリ名) で install 先を決めるため,

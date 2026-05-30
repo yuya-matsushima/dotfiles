@@ -1,0 +1,12 @@
+#compdef remove-skill
+
+# remove-skill の補完定義
+
+_remove-skill() {
+  _arguments \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '(-g --global -u --user)'{-g,--global}'[remove from global (user) scope ($HOME)]' \
+    '(-g --global -u --user)'{-u,--user}'[remove from global (user) scope ($HOME)]'
+}
+
+_remove-skill "$@"
