@@ -195,7 +195,7 @@ selected_lines=(${(f)"$(
     --delimiter=$'\t' \
     --with-nth=1,2 \
     --nth=2 \
-    --bind='ctrl-u:change-query(\[installed\])+select-all+change-query()' \
+    --bind='ctrl-u:change-query(\[installed\])+toggle-all+change-query()' \
     --header='ctrl-u: [installed]を全選択 | [installed]=両方在, [partial]=片方在, [available]=未導入 | Tab 複数選択, Enter で追加, Esc で中止' \
     --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{2}/SKILL.md$ref_qs' | $previewer" \
     --preview-window='right:60%:wrap'
