@@ -1,0 +1,534 @@
+#!/bin/zsh
+
+# skill: GitHub リポジトリの skill を管理する統合コマンド。
+#
+#   skill add [-g] <owner/repo>   skill をインストール (省略時は対話入力)
+#   skill remove [-g]             インストール済み skill を削除
+#
+# add / remove のロジックはネスト関数 _ymt_skill_add / _ymt_skill_remove に
+# 持たせ, 第1引数 (サブコマンド) で振り分ける。各サブ関数の終了ステータスは
+# return $? で skill 全体へ伝播させる。
+#
+# 注意: usage は heredoc ではなく print -r -- を使う。zsh native autoload では
+# ネスト関数内の heredoc が終端 (EOF) を取りこぼす既知の癖があるため。
+
+# 全体ヘルプ (サブコマンド概要)
+_ymt_skill_usage() {
+  print -r -- 'skill manages skills from GitHub repositories.
+
+Usage:
+  skill add [-g] <owner/repo>   skill をインストール (project scope, -g で user scope)
+  skill remove [-g]             インストール済み skill を fzf で選択して削除
+  skill -h                      print this help
+
+Subcommands:
+  add      GitHub リポジトリの skill を .claude/skills と .agents/skills へ追加
+  remove   .claude/skills と .agents/skills から skill を削除
+
+詳細は "skill add -h" / "skill remove -h" を参照してください。'
+}
+
+# add サブコマンドのヘルプ
+_ymt_skill_add_usage() {
+  print -r -- 'skill add installs skills from an arbitrary GitHub repository, placing each
+skill into both .claude/skills and .agents/skills.
+
+候補一覧・プレビュー・インストールはいずれも対象リポジトリの最新タグ (無ければ
+default branch HEAD) を参照します。flat な skills/<skill>/SKILL.md でも, ネスト
+した skills/<category>/<skill>/SKILL.md でも対応します。インストール済み / 部分
+インストール / 未導入を状態マーカー付きで fzf に表示します。複数選択 (Tab) して
+Enter で並行インストールします。
+
+Usage:
+  skill add <owner/repo>         現在の git リポジトリ (project scope) へ追加
+  skill add -g <owner/repo>      $HOME (global/user scope) へ追加
+  skill add                      対象リポジトリを対話入力してから選択
+  skill add -h                   print help
+
+Options:
+  -h, --help                  print help
+  -g, --global, -u, --user    global (user) scope へインストール ($HOME 基準)
+
+Status markers in fzf:
+  [installed]  .claude/skills と .agents/skills の両方に存在
+  [partial]    どちらか片方のみ存在
+  [available]  未インストール
+
+Key bindings in fzf:
+  ctrl-u       現在表示中 (フィルタ結果) を全選択。"installed" 等で絞り込んでから
+               押せばインストール済みだけを一括選択できる
+
+Dependencies:
+  fzf
+  gh   (gh auth login 済みであること)
+  git  (project scope 時のみ必須)
+  bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
+}
+
+# remove サブコマンドのヘルプ
+_ymt_skill_remove_usage() {
+  print -r -- 'skill remove removes installed skills from .claude/skills and .agents/skills.
+
+インストール済みの skill を fzf で選択して削除します。
+gh skill コマンドには削除サブコマンドが存在しないため, ディレクトリを直接削除します。
+
+Usage:
+  skill remove               現在の git リポジトリ (project scope) の skill を削除
+  skill remove -g            $HOME (global/user scope) の skill を削除
+  skill remove -h            print help
+
+Options:
+  -h, --help                  print help
+  -g, --global, -u, --user    global (user) scope の skill を削除 ($HOME 基準)
+
+Status markers in fzf:
+  [both]         .claude/skills と .agents/skills の両方に存在
+  [claude-only]  .claude/skills のみ存在
+  [agents-only]  .agents/skills のみ存在
+
+Key bindings in fzf:
+  ctrl-u       現在表示中 (フィルタ結果) を全選択。"both" 等で絞り込んでから
+               押せば該当状態だけを一括選択できる
+
+Dependencies:
+  fzf
+  git  (project scope 時のみ必須)
+  bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
+}
+
+# add サブコマンド本体
+_ymt_skill_add() {
+  # ヘルプ / 引数チェック (外部コマンド不要なので依存チェックより先に処理する。
+  # fzf/gh/git 未導入の環境でも -h / --help が動くようにするため)
+  local repo_slug="" global_mode=0
+  while (( $# > 0 )); do
+    case "$1" in
+      -h|--help|help)
+        _ymt_skill_add_usage
+        return 0
+        ;;
+      -g|--global|-u|--user)
+        global_mode=1
+        shift
+        ;;
+      -*)
+        echo "Error: unknown option: $1" >&2
+        _ymt_skill_add_usage >&2
+        return 1
+        ;;
+      *)
+        if [[ -n "$repo_slug" ]]; then
+          echo "Error: unexpected argument: $1" >&2
+          _ymt_skill_add_usage >&2
+          return 1
+        fi
+        repo_slug="$1"
+        shift
+        ;;
+    esac
+  done
+
+  # Check dependencies (git は project scope 時のみ必須)
+  local _ymt_as_cmd
+  local -a _ymt_as_deps=(fzf gh)
+  (( !global_mode )) && _ymt_as_deps+=(git)
+  for _ymt_as_cmd in "${_ymt_as_deps[@]}"; do
+    if ! command -v "$_ymt_as_cmd" >/dev/null 2>&1; then
+      echo "Error: $_ymt_as_cmd command not found. Please install $_ymt_as_cmd." >&2
+      return 1
+    fi
+  done
+
+  # 対象リポジトリ (省略時は対話入力)
+  if [[ -z "$repo_slug" ]]; then
+    read "repo_slug?Target repository (owner/repo): "
+  fi
+  if [[ "$repo_slug" != */* ]]; then
+    echo "Error: repository must be in 'owner/repo' format: ${repo_slug:-<empty>}" >&2
+    _ymt_skill_add_usage >&2
+    return 1
+  fi
+
+  # インストール先ベースディレクトリを決定する
+  local base_dir
+  if (( global_mode )); then
+    base_dir="$HOME"
+  else
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+      echo "Error: Not a git repository. skill add installs at project scope." >&2
+      echo "  global scope へインストールするには -g オプションを使用してください。" >&2
+      return 1
+    fi
+    base_dir="$repo_root"
+  fi
+
+  # gh skill install は「最新タグ -> default branch HEAD」の順でバージョンを解決する。
+  # 一覧・プレビュー・install を同じ ref に揃えるため, 最新タグを特定して明示的に pin
+  # する。タグが無いリポジトリでは default branch を ref に使う (tree API は HEAD を
+  # 解決できないため, ref は必ず具体名にする)。pin はタグがある場合のみ行う。
+  local skill_ref ref
+  skill_ref=$(gh api "repos/$repo_slug/tags" --jq '.[].name' 2>/dev/null | sort -V | tail -1)
+  if [[ -n "$skill_ref" ]]; then
+    ref="$skill_ref"
+  else
+    if ! ref=$(gh api "repos/$repo_slug" --jq '.default_branch' 2>&1); then
+      echo "Error: failed to resolve default branch of $repo_slug." >&2
+      echo "  $ref" >&2
+      echo "  リポジトリ名 / gh auth status / ネットワーク接続を確認してください。" >&2
+      return 1
+    fi
+  fi
+  local ref_qs="?ref=$ref"
+
+  # 利用可能な skill 一覧をリモートから取得 (ネスト対応)。
+  # git tree から skills/.../SKILL.md の blob を抽出し, skill のパスを得る。
+  local available
+  if ! available=$(gh api "repos/$repo_slug/git/trees/$ref?recursive=1" \
+                     --jq '.tree[] | select(.type=="blob" and (.path|test("^skills/.+/SKILL\\.md$"))) | .path' 2>&1); then
+    echo "Error: failed to list skills from $repo_slug." >&2
+    echo "  $available" >&2
+    echo "  gh auth status とネットワーク接続を確認してください。" >&2
+    return 1
+  fi
+
+  # skill ごとにインストール状態を付与して候補一覧を生成する。
+  # フォーマット: <status>\t<skill_path>
+  #   [installed]  .claude/skills と .agents/skills の両方に存在
+  #   [partial]    どちらか片方のみ存在
+  #   [available]  未インストール
+  local -a candidates
+  local line skill_path leaf has_claude has_agents _tab=$'\t'
+  # 状態マーカーを色分けする (fzf --ansi で解釈)。緑=導入済 黄=部分 シアン=未導入
+  local c_green=$'\e[32m' c_yellow=$'\e[33m' c_cyan=$'\e[36m' c_reset=$'\e[0m'
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    skill_path="${line%/SKILL.md}"
+    leaf="${skill_path:t}"
+    has_claude=0
+    has_agents=0
+    [[ -e "$base_dir/.claude/skills/$leaf" ]] && has_claude=1
+    [[ -e "$base_dir/.agents/skills/$leaf" ]] && has_agents=1
+    if (( has_claude && has_agents )); then
+      candidates+=("${c_green}[installed]${c_reset}${_tab}${skill_path}")
+    elif (( has_claude || has_agents )); then
+      candidates+=("${c_yellow}[partial]${c_reset}${_tab}${skill_path}")
+    else
+      candidates+=("${c_cyan}[available]${c_reset}${_tab}${skill_path}")
+    fi
+  done <<< "$available"
+
+  if (( ${#candidates[@]} == 0 )); then
+    echo "No skills found in $repo_slug."
+    return 0
+  fi
+
+  # プレビューア: bat があれば markdown を syntax highlight, 無ければ cat にフォールバック
+  # (行折り返しは fzf の preview-window=wrap に任せるため bat 側は --wrap=never)
+  local previewer
+  if command -v bat >/dev/null 2>&1; then
+    previewer="bat --language=md --color=always --style=plain --paging=never --wrap=never"
+  else
+    previewer="cat"
+  fi
+
+  # fzf で複数選択 (TAB 区切りの "status\tpath" 形式で表示)
+  # --delimiter で TAB 分割, --with-nth=1,2 で両列表示。--nth は付けず status 列も検索対象に
+  # するため, "installed" 等で絞り込んでから ctrl-u を押せば [installed] だけを一括選択できる。
+  # ctrl-u: select-all は「現在のフィルタ結果のみ」を選択する (空 query なら全件)。
+  local -a selected_lines
+  selected_lines=(${(f)"$(
+    printf '%s\n' "${candidates[@]}" | fzf \
+      --ansi \
+      --multi \
+      --delimiter=$'\t' \
+      --with-nth=1,2 \
+      --bind='ctrl-u:select-all' \
+      --header='ctrl-u: 表示中を全選択 (installed 等で絞ってから押すと一括選択) | Tab 複数選択, Enter で追加, Esc で中止' \
+      --preview="gh api -H 'Accept: application/vnd.github.raw' 'repos/$repo_slug/contents/{2}/SKILL.md$ref_qs' | $previewer" \
+      --preview-window='right:60%:wrap'
+  )"})
+
+  if (( ${#selected_lines[@]} == 0 )); then
+    echo "No skill selected. Nothing to do."
+    return 0
+  fi
+
+  # TAB 区切りからパスカラム (2列目) を取り出す
+  local -a selected
+  local sel_line
+  for sel_line in "${selected_lines[@]}"; do
+    selected+=("${sel_line#*$'\t'}")
+  done
+
+  # 選択 skill 間の leaf 名衝突を検証する。
+  # gh skill install は leaf 名 (skill ディレクトリ名) で install 先を決めるため,
+  # category 違いで同名の skill (skills/aws/deploy と skills/gcp/deploy 等) を同時に
+  # 選ぶと, 同じ .claude/skills/<leaf> / .agents/skills/<leaf> へ --force で上書き
+  # される。並行実行では同一ディレクトリへの同時書き込みにもなり, 一方が黙って失われた
+  # まま両方「成功」と報告されてしまう。これを防ぐためここで弾く。
+  local -A leaf_seen
+  local conflict=0
+  for skill in "${selected[@]}"; do
+    leaf="${skill:t}"
+    if [[ -n "${leaf_seen[$leaf]:-}" ]]; then
+      echo "Error: skill name conflict on '$leaf': '${leaf_seen[$leaf]}' と '$skill'." >&2
+      echo "  両者は同じ install 先 (.claude/skills/$leaf, .agents/skills/$leaf) を共有するため同時にインストールできません。" >&2
+      conflict=1
+    else
+      leaf_seen[$leaf]="$skill"
+    fi
+  done
+  if (( conflict )); then
+    echo "  片方ずつ選び直して再実行してください。" >&2
+    return 1
+  fi
+
+  # インストール (各 skill を .claude/skills と .agents/skills 両方へ, 一覧と同じ ref に pin)。
+  # skill 単位で並行ジョブを起動し, 出力混在を避けるため各ジョブのログは一時ファイルへ。
+  local -a pin_args=()
+  [[ -n "$skill_ref" ]] && pin_args=(--pin "$skill_ref")
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || { echo "Error: failed to create temp dir." >&2; return 1; }
+
+  local -a pids=() jobs=()
+  local skill i=1
+  for skill in "${selected[@]}"; do
+    echo "install: $skill (${skill_ref:-$ref}) -> $base_dir/.claude/skills, $base_dir/.agents/skills"
+    if (( global_mode )); then
+      {
+        gh skill install "$repo_slug" "$skill" --agent claude-code --scope user --force "${pin_args[@]}" &&
+        gh skill install "$repo_slug" "$skill" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}"
+      } >"$tmpdir/$i.log" 2>&1 &
+    else
+      {
+        gh skill install "$repo_slug" "$skill" --agent claude-code   --scope project --force "${pin_args[@]}" &&
+        gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}"
+      } >"$tmpdir/$i.log" 2>&1 &
+    fi
+    pids+=($!)
+    jobs+=("$skill")
+    ((i++))
+  done
+
+  # 各ジョブを回収して成否を集計 (zsh 配列は 1-indexed)
+  local fail=0
+  for i in {1..${#pids[@]}}; do
+    if wait "$pids[$i]"; then
+      echo "ok: $jobs[$i]"
+    else
+      echo "FAILED: $jobs[$i]" >&2
+      cat "$tmpdir/$i.log" >&2
+      fail=1
+    fi
+  done
+
+  rm -rf "$tmpdir"
+
+  if (( fail )); then
+    echo "Error: some skills failed to install." >&2
+    return 1
+  fi
+
+  echo "Done: ${#selected[@]} skill(s) installed."
+}
+
+# remove サブコマンド本体
+_ymt_skill_remove() {
+  # ヘルプ / 引数チェック
+  local global_mode=0
+  while (( $# > 0 )); do
+    case "$1" in
+      -h|--help|help)
+        _ymt_skill_remove_usage
+        return 0
+        ;;
+      -g|--global|-u|--user)
+        global_mode=1
+        shift
+        ;;
+      -*)
+        echo "Error: unknown option: $1" >&2
+        _ymt_skill_remove_usage >&2
+        return 1
+        ;;
+      *)
+        echo "Error: unexpected argument: $1" >&2
+        _ymt_skill_remove_usage >&2
+        return 1
+        ;;
+    esac
+  done
+
+  # Check dependencies (git は project scope 時のみ必須)
+  local _ymt_rs_cmd
+  local -a _ymt_rs_deps=(fzf)
+  (( !global_mode )) && _ymt_rs_deps+=(git)
+  for _ymt_rs_cmd in "${_ymt_rs_deps[@]}"; do
+    if ! command -v "$_ymt_rs_cmd" >/dev/null 2>&1; then
+      echo "Error: $_ymt_rs_cmd command not found. Please install $_ymt_rs_cmd." >&2
+      return 1
+    fi
+  done
+
+  # インストール先ベースディレクトリを決定する
+  local base_dir
+  if (( global_mode )); then
+    base_dir="$HOME"
+  else
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+      echo "Error: Not a git repository." >&2
+      echo "  global scope の skill を削除するには -g オプションを使用してください。" >&2
+      return 1
+    fi
+    base_dir="$repo_root"
+  fi
+
+  # 両ディレクトリからインストール済み skill 名を収集し union を作る
+  local -A skill_union
+  local d
+  for d in "$base_dir/.claude/skills"/*(N/); do
+    skill_union[${d:t}]=1
+  done
+  for d in "$base_dir/.agents/skills"/*(N/); do
+    skill_union[${d:t}]=1
+  done
+
+  if (( ${#skill_union} == 0 )); then
+    echo "No skills installed in $base_dir."
+    return 0
+  fi
+
+  # skill ごとにインストール状態を付与して候補一覧を生成する
+  local -a candidates
+  local skill_name has_claude has_agents _tab=$'\t'
+  # 状態マーカーを色分けする (fzf --ansi で解釈)。緑=両方 黄=claude のみ シアン=agents のみ
+  local c_green=$'\e[32m' c_yellow=$'\e[33m' c_cyan=$'\e[36m' c_reset=$'\e[0m'
+  for skill_name in "${(@k)skill_union}"; do
+    has_claude=0
+    has_agents=0
+    [[ -e "$base_dir/.claude/skills/$skill_name" ]] && has_claude=1
+    [[ -e "$base_dir/.agents/skills/$skill_name" ]] && has_agents=1
+    if (( has_claude && has_agents )); then
+      candidates+=("${c_green}[both]${c_reset}${_tab}${skill_name}")
+    elif (( has_claude )); then
+      candidates+=("${c_yellow}[claude-only]${c_reset}${_tab}${skill_name}")
+    else
+      candidates+=("${c_cyan}[agents-only]${c_reset}${_tab}${skill_name}")
+    fi
+  done
+
+  # プレビューア: bat があれば markdown を syntax highlight, 無ければ cat にフォールバック
+  local previewer
+  if command -v bat >/dev/null 2>&1; then
+    previewer="bat --language=md --color=always --style=plain --paging=never --wrap=never"
+  else
+    previewer="cat"
+  fi
+
+  # プレビュー: .claude/skills 優先, 無ければ .agents/skills の SKILL.md を表示
+  local preview_cmd="skill_md='$base_dir/.claude/skills/{2}/SKILL.md'; [[ -f \"\$skill_md\" ]] || skill_md='$base_dir/.agents/skills/{2}/SKILL.md'; $previewer \"\$skill_md\" 2>/dev/null"
+
+  # fzf で複数選択
+  # --nth は付けず status 列も検索対象にするため, "both" 等で絞り込んでから ctrl-u を
+  # 押せば該当状態だけを一括選択できる。
+  # ctrl-u: select-all は「現在のフィルタ結果のみ」を選択する (空 query なら全件)。
+  local -a selected_lines
+  selected_lines=(${(f)"$(
+    printf '%s\n' "${(o)candidates[@]}" | fzf \
+      --ansi \
+      --multi \
+      --delimiter=$'\t' \
+      --with-nth=1,2 \
+      --bind='ctrl-u:select-all' \
+      --header='ctrl-u: 表示中を全選択 (both 等で絞ってから押すと一括選択) | Tab 複数選択, Enter で削除, Esc で中止' \
+      --preview="$preview_cmd" \
+      --preview-window='right:60%:wrap'
+  )"})
+
+  if (( ${#selected_lines[@]} == 0 )); then
+    echo "No skill selected. Nothing to do."
+    return 0
+  fi
+
+  # TAB 区切りから skill 名カラム (2列目) を取り出す
+  local -a selected
+  local sel_line
+  for sel_line in "${selected_lines[@]}"; do
+    selected+=("${sel_line#*$'\t'}")
+  done
+
+  # 削除確認
+  echo "以下の skill を削除します:"
+  local s
+  for s in "${selected[@]}"; do
+    local targets=()
+    [[ -e "$base_dir/.claude/skills/$s" ]] && targets+=(".claude/skills/$s")
+    [[ -e "$base_dir/.agents/skills/$s" ]] && targets+=(".agents/skills/$s")
+    echo "  - $s  (${(j:, :)targets})"
+  done
+  local confirm
+  read "confirm?実行しますか? [y/N]: "
+  if [[ "$confirm" != [yY] ]]; then
+    echo "Cancelled."
+    return 0
+  fi
+
+  # 削除実行
+  local fail=0
+  for s in "${selected[@]}"; do
+    local removed=0
+    if [[ -e "$base_dir/.claude/skills/$s" ]]; then
+      if rm -rf "$base_dir/.claude/skills/$s"; then
+        removed=1
+      else
+        echo "FAILED to remove: .claude/skills/$s" >&2
+        fail=1
+      fi
+    fi
+    if [[ -e "$base_dir/.agents/skills/$s" ]]; then
+      if rm -rf "$base_dir/.agents/skills/$s"; then
+        removed=1
+      else
+        echo "FAILED to remove: .agents/skills/$s" >&2
+        fail=1
+      fi
+    fi
+    (( removed && !fail )) && echo "removed: $s"
+  done
+
+  if (( fail )); then
+    echo "Error: some skills failed to remove." >&2
+    return 1
+  fi
+
+  echo "Done: ${#selected[@]} skill(s) removed."
+}
+
+# サブコマンドディスパッチ。各サブ関数の終了ステータスを return $? で伝播する。
+local subcmd="${1:-}"
+case "$subcmd" in
+  -h|--help|help|"")
+    _ymt_skill_usage
+    return 0
+    ;;
+  add)
+    shift
+    _ymt_skill_add "$@"
+    return $?
+    ;;
+  remove)
+    shift
+    _ymt_skill_remove "$@"
+    return $?
+    ;;
+  *)
+    echo "Error: unknown subcommand: $subcmd" >&2
+    _ymt_skill_usage >&2
+    return 1
+    ;;
+esac
