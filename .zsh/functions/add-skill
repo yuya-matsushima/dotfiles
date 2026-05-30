@@ -79,9 +79,11 @@ while (( $# > 0 )); do
   esac
 done
 
-# Check dependencies
+# Check dependencies (git は project scope 時のみ必須)
 local _ymt_as_cmd
-for _ymt_as_cmd in fzf gh git; do
+local -a _ymt_as_deps=(fzf gh)
+(( !global_mode )) && _ymt_as_deps+=(git)
+for _ymt_as_cmd in "${_ymt_as_deps[@]}"; do
   if ! command -v "$_ymt_as_cmd" >/dev/null 2>&1; then
     echo "Error: $_ymt_as_cmd command not found. Please install $_ymt_as_cmd." >&2
     return 1
