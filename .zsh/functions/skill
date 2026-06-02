@@ -92,6 +92,8 @@ Status markers in fzf:
   [update: x->y]  現在の pin より新しいタグがある (更新対象)
   [up-to-date]    既に最新タグに pin 済み (選んでも --force で再 DL されるだけ)
   [unknown]       タグの無いリポジトリ由来でバージョン比較不能 (選べば HEAD で再 DL)
+  [pinned: x]     pin が現存タグに無い (削除済みタグ等で解決不能, 選択しても skip)
+  [api-error]     タグ API 取得に失敗 (認証切れ/通信障害等, 選択しても skip)
   [no-metadata]   frontmatter に github 由来情報が無く更新不能 (選択しても skip)
 
 Key bindings in fzf:
@@ -529,10 +531,13 @@ _ymt_skill_update() {
     elif [[ "$pinned" == "$latest" ]]; then
       candidates+=("${c_green}[up-to-date]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
     elif [[ -n "$pinned" && "$(print -rl -- "$pinned" "$latest" | sort -V | tail -1)" == "$pinned" ]]; then
-      # 現在の pin が最新タグより新しい (独自タグへ pin 済み / 最新タグが削除された等)。
-      # latest へ "更新" するとダウングレードになるため更新対象にせず, 再 install 時も
-      # 現在の pin を維持する (ref 列に latest ではなく pinned を入れる)。
-      candidates+=("${c_green}[up-to-date]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${pinned}")
+      # 現在の pin が最新タグより新しくソートされる。--paginate で全タグ取得済みなので
+      # latest は現存タグの最大値であり, pin が現存タグに含まれるなら pin <= latest と
+      # なるはず。つまりこの分岐に来る = pin が現存タグに無い (削除済みタグ / SHA /
+      # ブランチ等で解決不能)。latest へ "更新" するとダウングレード, pinned で再
+      # install すると --pin が解決できず失敗するため, 更新対象外とする (repo/path を
+      # 空にして選択時の skip ロジックに乗せる)。
+      candidates+=("${c_gray}[pinned: ${pinned}]${c_reset}${_tab}${skill_name}${_tab}${_tab}${_tab}")
     else
       # latest > pinned (または pinned 不明) → 真の更新。
       candidates+=("${c_yellow}[update: ${pinned:-?}->${latest}]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
