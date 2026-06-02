@@ -500,8 +500,11 @@ _ymt_skill_update() {
     repo="${repo%.git}"
 
     # リポジトリごとの最新タグを解決 (キャッシュ)。タグが無ければ空 (=unknown)。
+    # --paginate で全ページのタグを取得する (tags API は 30 件/ページ。30 件超で
+    # 最大バージョンが 2 ページ目以降にあると, 先頭ページだけの sort では古いタグを
+    # 最新と誤判定し更新でダウングレードしてしまう)。
     if [[ -z "${repo_latest[$repo]+set}" ]]; then
-      repo_latest[$repo]=$(gh api "repos/$repo/tags" --jq '.[].name' 2>/dev/null | sort -V | tail -1)
+      repo_latest[$repo]=$(gh api --paginate "repos/$repo/tags" --jq '.[].name' 2>/dev/null | sort -V | tail -1)
     fi
     latest="${repo_latest[$repo]}"
 
@@ -524,12 +527,16 @@ _ymt_skill_update() {
   fi
 
   # プレビュー: リモート最新の SKILL.md を表示する (更新後に入る内容)。
-  # repo (4列目) / github_path (5列目) / latest (6列目) を使う。latest が空ならローカルを表示。
+  # 候補行は status\tname\trepo\tpath\tlatest。fzf の {N} は --delimiter 分割の
+  # 全フィールド番号 (--with-nth は表示のみで番号に影響しない) なので,
+  # repo=3列目 / github_path=4列目 / latest=5列目 を参照する。latest が空ならローカルを表示。
+  # 注意: プレビューは fzf が $SHELL -c で実行する。SHELL が zsh の場合, 変数名 'path' は
+  # $PATH 連動の特殊配列を壊し gh/bat/cat が失われるため, skill パスは sk_path で受ける。
   local preview_cmd
-  preview_cmd='repo={4}; path={5}; ref={6};'
-  preview_cmd+=' if [[ -n "$repo" && -n "$path" ]]; then'
+  preview_cmd='repo={3}; sk_path={4}; ref={5};'
+  preview_cmd+=' if [[ -n "$repo" && -n "$sk_path" ]]; then'
   preview_cmd+='   ref_qs=""; [[ -n "$ref" ]] && ref_qs="?ref=$ref";'
-  preview_cmd+="   gh api -H 'Accept: application/vnd.github.raw' \"repos/\$repo/contents/\$path/SKILL.md\$ref_qs\" 2>/dev/null | $previewer;"
+  preview_cmd+="   gh api -H 'Accept: application/vnd.github.raw' \"repos/\$repo/contents/\$sk_path/SKILL.md\$ref_qs\" 2>/dev/null | $previewer;"
   preview_cmd+=' else'
   preview_cmd+="   local_md='$base_dir/.claude/skills/{2}/SKILL.md'; [[ -f \"\$local_md\" ]] || local_md='$base_dir/.agents/skills/{2}/SKILL.md'; $previewer \"\$local_md\" 2>/dev/null;"
   preview_cmd+=' fi'
