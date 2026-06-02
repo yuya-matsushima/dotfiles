@@ -455,13 +455,14 @@ _ymt_skill_update() {
   #   (repo/github_path/latest は更新実行に必要なので候補行へ埋め込んで持ち回る)
   local -a candidates
   local skill_name skill_md repo_url repo gh_path pinned latest _tab=$'\t'
-  # frontmatter パース用の作業変数 (ループ外で宣言する。ループ内で local 再宣言すると
-  # 既存ローカルが 'name=値' として stdout に漏れるため)。
-  local fm_key fm_val
-  # 同一リポジトリの最新タグ解決をキャッシュ (gh api の重複呼び出しを避ける)
-  local -A repo_latest
+  # frontmatter パース用 / タグ解決用の作業変数 (ループ外で宣言する。ループ内で local
+  # 再宣言すると既存ローカルが 'name=値' として stdout に漏れるため)。
+  local fm_key fm_val tags_out tags_rc
+  # 同一リポジトリの最新タグ解決をキャッシュ (gh api の重複呼び出しを避ける)。
+  # repo_apierr はタグ API 失敗を空レスポンスと区別するためのフラグ。
+  local -A repo_latest repo_apierr
   # 状態マーカーを色分けする (fzf --ansi で解釈)。
-  # 緑=最新 黄=更新あり シアン=タグ無し グレー=メタ無し
+  # 緑=最新 黄=更新あり シアン=タグ無し グレー=メタ無し/API 失敗
   local c_green=$'\e[32m' c_yellow=$'\e[33m' c_cyan=$'\e[36m' c_gray=$'\e[90m' c_reset=$'\e[0m'
 
   echo "Resolving update targets from skill frontmatter..." >&2
@@ -499,21 +500,41 @@ _ymt_skill_update() {
     repo="${repo_url#https://github.com/}"
     repo="${repo%.git}"
 
-    # リポジトリごとの最新タグを解決 (キャッシュ)。タグが無ければ空 (=unknown)。
+    # リポジトリごとの最新タグを解決 (キャッシュ)。
     # --paginate で全ページのタグを取得する (tags API は 30 件/ページ。30 件超で
     # 最大バージョンが 2 ページ目以降にあると, 先頭ページだけの sort では古いタグを
     # 最新と誤判定し更新でダウングレードしてしまう)。
+    # gh api の失敗 (認証切れ/通信障害/権限不足) は空レスポンス (タグ無し) と区別する。
+    # パイプ (| sort | tail) の終了ステータスは tail のものになり gh の失敗を覆い隠すため,
+    # 先に gh の出力と rc を取得してから整形する。失敗時は repo_apierr で記録し更新対象外。
     if [[ -z "${repo_latest[$repo]+set}" ]]; then
-      repo_latest[$repo]=$(gh api --paginate "repos/$repo/tags" --jq '.[].name' 2>/dev/null | sort -V | tail -1)
+      tags_out=$(gh api --paginate "repos/$repo/tags" --jq '.[].name' 2>/dev/null)
+      tags_rc=$?
+      if (( tags_rc != 0 )); then
+        repo_apierr[$repo]=1
+        repo_latest[$repo]=""
+      else
+        repo_latest[$repo]=$(print -r -- "$tags_out" | sort -V | tail -1)
+      fi
     fi
     latest="${repo_latest[$repo]}"
 
-    if [[ -z "$latest" ]]; then
+    if [[ -n "${repo_apierr[$repo]:-}" ]]; then
+      # タグ API 失敗。選んで更新すると --pin 無しで HEAD を掴む恐れがあるため更新対象外。
+      # repo/path を空にして選択時の skip ロジックに乗せる。
+      candidates+=("${c_gray}[api-error]${c_reset}${_tab}${skill_name}${_tab}${_tab}${_tab}")
+    elif [[ -z "$latest" ]]; then
       # タグ無しリポジトリ: バージョン比較不能。選べば HEAD で再 DL する。
       candidates+=("${c_cyan}[unknown]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}")
     elif [[ "$pinned" == "$latest" ]]; then
       candidates+=("${c_green}[up-to-date]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
+    elif [[ -n "$pinned" && "$(print -rl -- "$pinned" "$latest" | sort -V | tail -1)" == "$pinned" ]]; then
+      # 現在の pin が最新タグより新しい (独自タグへ pin 済み / 最新タグが削除された等)。
+      # latest へ "更新" するとダウングレードになるため更新対象にせず, 再 install 時も
+      # 現在の pin を維持する (ref 列に latest ではなく pinned を入れる)。
+      candidates+=("${c_green}[up-to-date]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${pinned}")
     else
+      # latest > pinned (または pinned 不明) → 真の更新。
       candidates+=("${c_yellow}[update: ${pinned:-?}->${latest}]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
     fi
   done
@@ -563,14 +584,14 @@ _ymt_skill_update() {
   fi
 
   # 選択行から (name, repo, path, latest) を取り出す。
-  # [no-metadata] (repo 空) は更新不能なので skip する。
+  # 更新不能な状態 ([no-metadata] / [api-error]) は repo/path が空なので skip する。
   local -a upd_names upd_repos upd_paths upd_refs
   local sel_line s_status s_name s_repo s_path s_ref
   local skipped=0
   for sel_line in "${selected_lines[@]}"; do
     IFS=$'\t' read -r s_status s_name s_repo s_path s_ref <<< "$sel_line"
     if [[ -z "$s_repo" || -z "$s_path" ]]; then
-      echo "skip (no metadata): $s_name" >&2
+      echo "skip (not updatable): $s_name" >&2
       skipped=1
       continue
     fi
