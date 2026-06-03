@@ -7,7 +7,7 @@ wtr is a command to support git worktree operations.
 Usage:
     wtr add <branch> [name] [options]  create new worktree and copy config files
     wtr list                           list all worktrees
-    wtr remove [worktree]              remove worktree (fzf selection if not specified)
+    wtr remove [worktree]              remove worktree(s) (fzf multi-select if not specified)
     wtr cd [worktree]                  change directory to worktree (fzf selection if not specified)
     wtr copy [source] [target]         copy config files between worktrees
     wtr prune                          prune worktree information
@@ -304,43 +304,36 @@ _ymt_wtr_add() {
 }
 
 _ymt_wtr_remove() {
-  local worktree_input="$1"
-  local worktree_path=""
+  local worktree_input=""
   local force=false
 
-  shift 1 2>/dev/null
+  # オプション解析 (引数指定と -f/--force を分離)
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -f|--force)
         force=true
         shift
         ;;
+      -*)
+        shift
+        ;;
       *)
+        # 最初の非オプション引数を worktree_input として受け取る
+        if [[ -z "$worktree_input" ]]; then
+          worktree_input="$1"
+        fi
         shift
         ;;
     esac
   done
 
-  if [[ -z "$worktree_input" ]]; then
-    if ! (( $+commands[fzf] )); then
-      echo "Error: fzf is required for interactive selection" >&2
-      echo "Usage: wtr remove <worktree>" >&2
-      return 1
-    fi
+  local main_worktree
+  main_worktree=$(_ymt_wtr_get_main_worktree)
 
-    local selected
-    selected=$(git worktree list | sed '1d' | fzf \
-      --header="Select worktree to remove" \
-      --preview='git -C {1} status' \
-      --preview-window=right:50%)
+  # --- 引数指定あり: 後方互換の単一削除 ---
+  if [[ -n "$worktree_input" ]]; then
+    local worktree_path=""
 
-    if [[ -z "$selected" ]]; then
-      echo "No worktree selected"
-      return 0
-    fi
-
-    worktree_path=$(echo "$selected" | awk '{print $1}')
-  else
     if [[ -d "$worktree_input" ]]; then
       worktree_path="$worktree_input"
     else
@@ -363,31 +356,122 @@ _ymt_wtr_remove() {
         return 1
       fi
     fi
+
+    if [[ "$worktree_path" == "$main_worktree" ]]; then
+      echo "Error: Cannot remove main worktree" >&2
+      return 1
+    fi
+
+    echo "Removing worktree at $worktree_path..."
+    if [[ "$force" == true ]]; then
+      if ! git worktree remove --force "$worktree_path"; then
+        echo "Error: Failed to remove worktree" >&2
+        return 1
+      fi
+    else
+      if ! git worktree remove "$worktree_path"; then
+        echo "Error: Failed to remove worktree" >&2
+        echo "Try using -f or --force option" >&2
+        return 1
+      fi
+    fi
+
+    echo "Worktree removed successfully"
+    return 0
   fi
 
-  local main_worktree
-  main_worktree=$(_ymt_wtr_get_main_worktree)
-
-  if [[ "$worktree_path" == "$main_worktree" ]]; then
-    echo "Error: Cannot remove main worktree" >&2
+  # --- 引数なし: fzf 複数選択 ---
+  if ! (( $+commands[fzf] )); then
+    echo "Error: fzf is required for interactive selection" >&2
+    echo "Usage: wtr remove <worktree>" >&2
     return 1
   fi
 
-  echo "Removing worktree at $worktree_path..."
-  if [[ "$force" == true ]]; then
-    if ! git worktree remove --force "$worktree_path"; then
-      echo "Error: Failed to remove worktree" >&2
-      return 1
-    fi
-  else
-    if ! git worktree remove "$worktree_path"; then
-      echo "Error: Failed to remove worktree" >&2
-      echo "Try using -f or --force option" >&2
-      return 1
-    fi
+  # main worktree (先頭行) を除いた候補一覧を生成する。
+  # 注意: 変数名 'path' は zsh の $PATH 連動特殊配列を壊すため使わない。
+  local wt_list
+  wt_list=$(git worktree list | sed '1d')
+
+  if [[ -z "$wt_list" ]]; then
+    echo "No removable worktrees found"
+    return 0
   fi
 
-  echo "Worktree removed successfully"
+  # fzf で複数選択 (Tab で選択, Enter で確定)。
+  # --bind='ctrl-u:select-all' で表示中を一括選択できる。
+  local -a selected_lines
+  selected_lines=(${(f)"$(
+    echo "$wt_list" | fzf \
+      --multi \
+      --bind='ctrl-u:select-all' \
+      --header='ctrl-u: 表示中を全選択 | Tab 複数選択, Enter で削除, Esc で中止' \
+      --preview='git -C {1} status' \
+      --preview-window=right:50%
+  )"})
+
+  if (( ${#selected_lines[@]} == 0 )); then
+    echo "No worktree selected"
+    return 0
+  fi
+
+  # 選択行から worktree パスを取り出す
+  local -a selected_paths
+  local sel_line wt_path
+  for sel_line in "${selected_lines[@]}"; do
+    wt_path=$(echo "$sel_line" | awk '{print $1}')
+    # main worktree が紛れ込んでいた場合は除外する (念のため)
+    if [[ "$wt_path" == "$main_worktree" ]]; then
+      echo "Warning: Skipping main worktree: $wt_path" >&2
+      continue
+    fi
+    selected_paths+=("$wt_path")
+  done
+
+  if (( ${#selected_paths[@]} == 0 )); then
+    echo "No removable worktree selected"
+    return 0
+  fi
+
+  # 削除対象一覧を表示して確認
+  echo "以下の worktree を削除します:"
+  for wt_path in "${selected_paths[@]}"; do
+    echo "  - $wt_path"
+  done
+  local confirm
+  read "confirm?実行しますか? [y/N]: "
+  if [[ "$confirm" != [yY] ]]; then
+    echo "Cancelled."
+    return 0
+  fi
+
+  # 削除実行 (1つ失敗しても残りを処理し、最後に集計)
+  local fail=0
+  for wt_path in "${selected_paths[@]}"; do
+    echo "Removing worktree at $wt_path..."
+    if [[ "$force" == true ]]; then
+      if git worktree remove --force "$wt_path"; then
+        echo "ok: $wt_path"
+      else
+        echo "FAILED: $wt_path" >&2
+        fail=1
+      fi
+    else
+      if git worktree remove "$wt_path"; then
+        echo "ok: $wt_path"
+      else
+        echo "FAILED: $wt_path" >&2
+        echo "  Try using -f or --force option" >&2
+        fail=1
+      fi
+    fi
+  done
+
+  if (( fail )); then
+    echo "Error: some worktrees failed to remove." >&2
+    return 1
+  fi
+
+  echo "Done: ${#selected_paths[@]} worktree(s) removed."
   return 0
 }
 
