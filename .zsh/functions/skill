@@ -18,14 +18,16 @@ _ymt_skill_usage() {
 
 Usage:
   skill add [-g] <owner/repo>   skill をインストール (project scope, -g で user scope)
+  skill update [-g]             インストール済み skill を fzf で選択して最新化
   skill remove [-g]             インストール済み skill を fzf で選択して削除
   skill -h                      print this help
 
 Subcommands:
   add      GitHub リポジトリの skill を .claude/skills と .agents/skills へ追加
+  update   インストール済み skill を frontmatter から自動解決して最新へ更新
   remove   .claude/skills と .agents/skills から skill を削除
 
-詳細は "skill add -h" / "skill remove -h" を参照してください。'
+詳細は "skill add -h" / "skill update -h" / "skill remove -h" を参照してください。'
 }
 
 # add サブコマンドのヘルプ
@@ -62,6 +64,47 @@ Dependencies:
   fzf
   gh   (gh auth login 済みであること)
   git  (project scope 時のみ必須)
+  bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
+}
+
+# update サブコマンドのヘルプ
+_ymt_skill_update_usage() {
+  print -r -- 'skill update re-installs already-installed skills at their latest version,
+resolving the source repository automatically from each skill SKILL.md frontmatter.
+
+リポジトリを手動指定する必要はありません。インストール済み skill の SKILL.md
+frontmatter (metadata.github-repo / github-path / github-pinned) から元リポジトリ・
+skill パス・現在の pin バージョンを読み取り, リポジトリごとの最新タグ (無ければ
+default branch HEAD) と比較して更新候補を fzf に表示します。複数選択 (Tab) して
+Enter で並行更新します。更新は add と同じく .claude/skills と .agents/skills の両方を
+最新タグに pin して再インストールします。
+
+Usage:
+  skill update                  現在の git リポジトリ (project scope) の skill を更新
+  skill update -g               $HOME (global/user scope) の skill を更新
+  skill update -h               print help
+
+Options:
+  -h, --help                  print help
+  -g, --global, -u, --user    global (user) scope の skill を更新 ($HOME 基準)
+
+Status markers in fzf:
+  [update: x->y]  現在の pin より新しいタグがある (更新対象)
+  [up-to-date]    既に最新タグに pin 済み (選んでも --force で再 DL されるだけ)
+  [unknown]       タグの無いリポジトリ由来でバージョン比較不能 (選べば HEAD で再 DL)
+  [pinned: x]     pin が現存タグに無い (削除済みタグ等で解決不能, 選択しても skip)
+  [api-error]     タグ API 取得に失敗 (認証切れ/通信障害等, 選択しても skip)
+  [no-metadata]   frontmatter に github 由来情報が無く更新不能 (選択しても skip)
+
+Key bindings in fzf:
+  ctrl-u       現在表示中 (フィルタ結果) を全選択。"update" 等で絞り込んでから
+               押せば更新対象だけを一括選択できる
+
+Dependencies:
+  fzf
+  gh   (gh auth login 済みであること)
+  git  (project scope 時のみ必須)
+  awk  (frontmatter パース; 標準コマンド)
   bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
 }
 
@@ -335,6 +378,316 @@ _ymt_skill_add() {
   echo "Done: ${#selected[@]} skill(s) installed."
 }
 
+# update サブコマンド本体
+# インストール済み skill の SKILL.md frontmatter から元リポジトリを自動解決し,
+# リポジトリごとの最新タグと比較して fzf で選択更新する。
+#
+# 注意: base_dir 決定 / previewer 設定 / 並行インストールジョブは _ymt_skill_add と
+# ほぼ同一だが, スコープを広げないためここでは流用 (コピー) で実装する。共通部分の
+# ヘルパー関数化 (_ymt_skill_resolve_base_dir 等) は別 PR に切り出す方針。
+_ymt_skill_update() {
+  # ヘルプ / 引数チェック (位置引数は取らない)
+  local global_mode=0
+  while (( $# > 0 )); do
+    case "$1" in
+      -h|--help|help)
+        _ymt_skill_update_usage
+        return 0
+        ;;
+      -g|--global|-u|--user)
+        global_mode=1
+        shift
+        ;;
+      -*)
+        echo "Error: unknown option: $1" >&2
+        _ymt_skill_update_usage >&2
+        return 1
+        ;;
+      *)
+        echo "Error: unexpected argument: $1" >&2
+        _ymt_skill_update_usage >&2
+        return 1
+        ;;
+    esac
+  done
+
+  # Check dependencies (git は project scope 時のみ必須。awk は標準前提)
+  local _ymt_us_cmd
+  local -a _ymt_us_deps=(fzf gh)
+  (( !global_mode )) && _ymt_us_deps+=(git)
+  for _ymt_us_cmd in "${_ymt_us_deps[@]}"; do
+    if ! command -v "$_ymt_us_cmd" >/dev/null 2>&1; then
+      echo "Error: $_ymt_us_cmd command not found. Please install $_ymt_us_cmd." >&2
+      return 1
+    fi
+  done
+
+  # インストール先ベースディレクトリを決定する
+  local base_dir
+  if (( global_mode )); then
+    base_dir="$HOME"
+  else
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -z "$repo_root" ]]; then
+      echo "Error: Not a git repository." >&2
+      echo "  global scope の skill を更新するには -g オプションを使用してください。" >&2
+      return 1
+    fi
+    base_dir="$repo_root"
+  fi
+
+  # 両ディレクトリからインストール済み skill 名を収集し union を作る
+  local -A skill_union
+  local d
+  for d in "$base_dir/.claude/skills"/*(N/); do
+    skill_union[${d:t}]=1
+  done
+  for d in "$base_dir/.agents/skills"/*(N/); do
+    skill_union[${d:t}]=1
+  done
+
+  if (( ${#skill_union} == 0 )); then
+    echo "No skills installed in $base_dir."
+    return 0
+  fi
+
+  # skill ごとに frontmatter を読み, 状態マーカー付きの候補一覧を生成する。
+  # フォーマット: <status>\t<skill_name>\t<repo>\t<github_path>\t<latest>
+  #   (repo/github_path/latest は更新実行に必要なので候補行へ埋め込んで持ち回る)
+  local -a candidates
+  local skill_name skill_md repo_url repo gh_path pinned latest _tab=$'\t'
+  # frontmatter パース用 / タグ解決用の作業変数 (ループ外で宣言する。ループ内で local
+  # 再宣言すると既存ローカルが 'name=値' として stdout に漏れるため)。
+  local fm_key fm_val tags_out tags_rc
+  # 同一リポジトリの最新タグ解決をキャッシュ (gh api の重複呼び出しを避ける)。
+  # repo_apierr はタグ API 失敗を空レスポンスと区別するためのフラグ。
+  local -A repo_latest repo_apierr
+  # 状態マーカーを色分けする (fzf --ansi で解釈)。
+  # 緑=最新 黄=更新あり シアン=タグ無し グレー=メタ無し/API 失敗
+  local c_green=$'\e[32m' c_yellow=$'\e[33m' c_cyan=$'\e[36m' c_gray=$'\e[90m' c_reset=$'\e[0m'
+
+  echo "Resolving update targets from skill frontmatter..." >&2
+  for skill_name in "${(@k)skill_union}"; do
+    # SKILL.md は .claude/skills 優先, 無ければ .agents/skills を見る
+    skill_md="$base_dir/.claude/skills/$skill_name/SKILL.md"
+    [[ -f "$skill_md" ]] || skill_md="$base_dir/.agents/skills/$skill_name/SKILL.md"
+
+    repo_url=""
+    gh_path=""
+    pinned=""
+    if [[ -f "$skill_md" ]]; then
+      # frontmatter (先頭 --- ... ---) の metadata から github-* を抽出する。
+      # d==1 (frontmatter 内) に限定するため本文中の --- やコードブロックは拾わない。
+      while IFS=$'\t' read -r fm_key fm_val; do
+        case "$fm_key" in
+          github-repo)   repo_url="$fm_val" ;;
+          github-path)   gh_path="$fm_val" ;;
+          github-pinned) pinned="$fm_val" ;;
+        esac
+      done < <(awk '
+        /^---[[:space:]]*$/ { d++; next }
+        d==1 && /^[[:space:]]+github-(repo|path|pinned):[[:space:]]/ {
+          key=$1; sub(/:$/, "", key); $1=""; sub(/^[[:space:]]+/, "")
+          print key "\t" $0
+        }
+      ' "$skill_md")
+    fi
+
+    # github-repo / github-path が取れなければ更新不能 (メタ無し)
+    if [[ -z "$repo_url" || -z "$gh_path" ]]; then
+      candidates+=("${c_gray}[no-metadata]${c_reset}${_tab}${skill_name}${_tab}${_tab}${_tab}")
+      continue
+    fi
+    repo="${repo_url#https://github.com/}"
+    repo="${repo%.git}"
+
+    # リポジトリごとの最新タグを解決 (キャッシュ)。
+    # --paginate で全ページのタグを取得する (tags API は 30 件/ページ。30 件超で
+    # 最大バージョンが 2 ページ目以降にあると, 先頭ページだけの sort では古いタグを
+    # 最新と誤判定し更新でダウングレードしてしまう)。
+    # gh api の失敗 (認証切れ/通信障害/権限不足) は空レスポンス (タグ無し) と区別する。
+    # パイプ (| sort | tail) の終了ステータスは tail のものになり gh の失敗を覆い隠すため,
+    # 先に gh の出力と rc を取得してから整形する。失敗時は repo_apierr で記録し更新対象外。
+    if [[ -z "${repo_latest[$repo]+set}" ]]; then
+      tags_out=$(gh api --paginate "repos/$repo/tags" --jq '.[].name' 2>/dev/null)
+      tags_rc=$?
+      if (( tags_rc != 0 )); then
+        repo_apierr[$repo]=1
+        repo_latest[$repo]=""
+      else
+        repo_latest[$repo]=$(print -r -- "$tags_out" | sort -V | tail -1)
+      fi
+    fi
+    latest="${repo_latest[$repo]}"
+
+    if [[ -n "${repo_apierr[$repo]:-}" ]]; then
+      # タグ API 失敗。選んで更新すると --pin 無しで HEAD を掴む恐れがあるため更新対象外。
+      # repo/path を空にして選択時の skip ロジックに乗せる。
+      candidates+=("${c_gray}[api-error]${c_reset}${_tab}${skill_name}${_tab}${_tab}${_tab}")
+    elif [[ -z "$latest" ]]; then
+      # タグ無しリポジトリ: バージョン比較不能。選べば HEAD で再 DL する。
+      candidates+=("${c_cyan}[unknown]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}")
+    elif [[ "$pinned" == "$latest" ]]; then
+      candidates+=("${c_green}[up-to-date]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
+    elif [[ -n "$pinned" && "$(print -rl -- "$pinned" "$latest" | sort -V | tail -1)" == "$pinned" ]]; then
+      # 現在の pin が最新タグより新しくソートされる。--paginate で全タグ取得済みなので
+      # latest は現存タグの最大値であり, pin が現存タグに含まれるなら pin <= latest と
+      # なるはず。つまりこの分岐に来る = pin が現存タグに無い (削除済みタグ / SHA /
+      # ブランチ等で解決不能)。latest へ "更新" するとダウングレード, pinned で再
+      # install すると --pin が解決できず失敗するため, 更新対象外とする (repo/path を
+      # 空にして選択時の skip ロジックに乗せる)。
+      candidates+=("${c_gray}[pinned: ${pinned}]${c_reset}${_tab}${skill_name}${_tab}${_tab}${_tab}")
+    else
+      # latest > pinned (または pinned 不明) → 真の更新。
+      candidates+=("${c_yellow}[update: ${pinned:-?}->${latest}]${c_reset}${_tab}${skill_name}${_tab}${repo}${_tab}${gh_path}${_tab}${latest}")
+    fi
+  done
+
+  # プレビューア: bat があれば markdown を syntax highlight, 無ければ cat にフォールバック
+  local previewer
+  if command -v bat >/dev/null 2>&1; then
+    previewer="bat --language=md --color=always --style=plain --paging=never --wrap=never"
+  else
+    previewer="cat"
+  fi
+
+  # プレビュー: リモート最新の SKILL.md を表示する (更新後に入る内容)。
+  # 候補行は status\tname\trepo\tpath\tlatest。fzf の {N} は --delimiter 分割の
+  # 全フィールド番号 (--with-nth は表示のみで番号に影響しない) なので,
+  # repo=3列目 / github_path=4列目 / latest=5列目 を参照する。latest が空ならローカルを表示。
+  # 注意: プレビューは fzf が $SHELL -c で実行する。SHELL が zsh の場合, 変数名 'path' は
+  # $PATH 連動の特殊配列を壊し gh/bat/cat が失われるため, skill パスは sk_path で受ける。
+  local preview_cmd
+  preview_cmd='repo={3}; sk_path={4}; ref={5};'
+  preview_cmd+=' if [[ -n "$repo" && -n "$sk_path" ]]; then'
+  preview_cmd+='   ref_qs=""; [[ -n "$ref" ]] && ref_qs="?ref=$ref";'
+  preview_cmd+="   gh api -H 'Accept: application/vnd.github.raw' \"repos/\$repo/contents/\$sk_path/SKILL.md\$ref_qs\" 2>/dev/null | $previewer;"
+  preview_cmd+=' else'
+  preview_cmd+="   local_md='$base_dir/.claude/skills/{2}/SKILL.md'; [[ -f \"\$local_md\" ]] || local_md='$base_dir/.agents/skills/{2}/SKILL.md'; $previewer \"\$local_md\" 2>/dev/null;"
+  preview_cmd+=' fi'
+
+  # fzf で複数選択 (status\tname\trepo\tpath\tlatest)。表示は status + name の2列のみ。
+  # --nth は付けず status 列も検索対象にするため, "update" 等で絞り込んでから ctrl-u を
+  # 押せば更新対象だけを一括選択できる。
+  local -a selected_lines
+  selected_lines=(${(f)"$(
+    printf '%s\n' "${(o)candidates[@]}" | fzf \
+      --ansi \
+      --multi \
+      --delimiter=$'\t' \
+      --with-nth=1,2 \
+      --bind='ctrl-u:select-all' \
+      --header='ctrl-u: 表示中を全選択 (update 等で絞ってから押すと一括選択) | Tab 複数選択, Enter で更新, Esc で中止' \
+      --preview="$preview_cmd" \
+      --preview-window='right:60%:wrap'
+  )"})
+
+  if (( ${#selected_lines[@]} == 0 )); then
+    echo "No skill selected. Nothing to do."
+    return 0
+  fi
+
+  # 選択行から (name, repo, path, latest) を取り出す。
+  # 更新不能な状態 ([no-metadata] / [api-error]) は repo/path が空なので skip する。
+  local -a upd_names upd_repos upd_paths upd_refs
+  local sel_line s_status s_name s_repo s_path s_ref
+  local skipped=0
+  for sel_line in "${selected_lines[@]}"; do
+    IFS=$'\t' read -r s_status s_name s_repo s_path s_ref <<< "$sel_line"
+    if [[ -z "$s_repo" || -z "$s_path" ]]; then
+      echo "skip (not updatable): $s_name" >&2
+      skipped=1
+      continue
+    fi
+    upd_names+=("$s_name")
+    upd_repos+=("$s_repo")
+    upd_paths+=("$s_path")
+    upd_refs+=("$s_ref")
+  done
+
+  if (( ${#upd_names[@]} == 0 )); then
+    echo "No updatable skill selected. Nothing to do."
+    (( skipped )) && return 1
+    return 0
+  fi
+
+  # leaf 名衝突を検証する (複数リポジトリ由来で同名 leaf があり得る)。
+  # gh skill install は leaf 名で install 先を決めるため, 同名を同時更新すると
+  # 同じ install 先へ --force で上書きし合い, 一方が黙って失われる。これを防ぐ。
+  local -A leaf_seen
+  local conflict=0 leaf i
+  for i in {1..${#upd_names[@]}}; do
+    leaf="${upd_paths[$i]:t}"
+    if [[ -n "${leaf_seen[$leaf]:-}" ]]; then
+      echo "Error: skill name conflict on '$leaf': '${leaf_seen[$leaf]}' と '${upd_repos[$i]}/${upd_paths[$i]}'." >&2
+      echo "  両者は同じ install 先 (.claude/skills/$leaf, .agents/skills/$leaf) を共有するため同時に更新できません。" >&2
+      conflict=1
+    else
+      leaf_seen[$leaf]="${upd_repos[$i]}/${upd_paths[$i]}"
+    fi
+  done
+  if (( conflict )); then
+    echo "  片方ずつ選び直して再実行してください。" >&2
+    return 1
+  fi
+
+  # 更新実行 (各 skill を .claude/skills と .agents/skills 両方へ, 最新タグに pin して再インストール)。
+  # skill 単位で並行ジョブを起動し, 出力混在を避けるため各ジョブのログは一時ファイルへ。
+  # add と違い skill ごとに (repo, path, ref) が異なるため, ジョブ内で個別に渡す。
+  local tmpdir
+  tmpdir=$(mktemp -d) || { echo "Error: failed to create temp dir." >&2; return 1; }
+
+  local -a pids=() jobs=()
+  # 注意1: zsh では小文字 'path' が $PATH に連動する特殊配列のため変数名に使えない。
+  #   skill のパスは sk_path で保持する (path を使うと PATH が壊れ cat/rm/gh が失われる)。
+  # 注意2: 'repo' は候補生成ループで宣言済みのローカルなので, ここで再宣言しない。
+  #   既存ローカルを値なしで local 再宣言すると zsh は 'repo=値' を stdout に出力する。
+  local sk_path ref
+  for i in {1..${#upd_names[@]}}; do
+    repo="${upd_repos[$i]}"
+    sk_path="${upd_paths[$i]}"
+    ref="${upd_refs[$i]}"
+    local -a pin_args=()
+    [[ -n "$ref" ]] && pin_args=(--pin "$ref")
+    echo "update: ${upd_names[$i]} (${ref:-HEAD}) <- $repo/$sk_path"
+    if (( global_mode )); then
+      {
+        gh skill install "$repo" "$sk_path" --agent claude-code --scope user --force "${pin_args[@]}" &&
+        gh skill install "$repo" "$sk_path" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}"
+      } >"$tmpdir/$i.log" 2>&1 &
+    else
+      {
+        gh skill install "$repo" "$sk_path" --agent claude-code   --scope project --force "${pin_args[@]}" &&
+        gh skill install "$repo" "$sk_path" --agent github-copilot --scope project --force "${pin_args[@]}"
+      } >"$tmpdir/$i.log" 2>&1 &
+    fi
+    pids+=($!)
+    jobs+=("${upd_names[$i]}")
+  done
+
+  # 各ジョブを回収して成否を集計 (zsh 配列は 1-indexed)
+  local fail=0
+  for i in {1..${#pids[@]}}; do
+    if wait "$pids[$i]"; then
+      echo "ok: $jobs[$i]"
+    else
+      echo "FAILED: $jobs[$i]" >&2
+      cat "$tmpdir/$i.log" >&2
+      fail=1
+    fi
+  done
+
+  rm -rf "$tmpdir"
+
+  if (( fail )); then
+    echo "Error: some skills failed to update." >&2
+    return 1
+  fi
+
+  echo "Done: ${#upd_names[@]} skill(s) updated."
+}
+
 # remove サブコマンド本体
 _ymt_skill_remove() {
   # ヘルプ / 引数チェック
@@ -519,6 +872,11 @@ case "$subcmd" in
   add)
     shift
     _ymt_skill_add "$@"
+    return $?
+    ;;
+  update)
+    shift
+    _ymt_skill_update "$@"
     return $?
     ;;
   remove)
