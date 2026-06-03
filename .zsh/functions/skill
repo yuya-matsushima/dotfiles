@@ -139,6 +139,20 @@ Dependencies:
   bat  (任意: あれば SKILL.md プレビューを syntax highlight)'
 }
 
+# gh skill install は GitHub API 経由でファイルを取得するため exec bit を保持しない。
+# インストール後に shebang (#!) を持つファイルへ実行権限を復元するヘルパー。
+# 引数はインストール先 skill ディレクトリ (存在しない場合は何もしない)。
+_ymt_skill_restore_exec() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    local f first
+    find "$dir" -type f -print0 2>/dev/null | while IFS= read -r -d '' f; do
+        IFS= read -r first < "$f" 2>/dev/null || continue
+        [[ "$first" == '#!'* ]] && chmod u+x "$f"
+    done
+    return 0
+}
+
 # add サブコマンド本体
 _ymt_skill_add() {
   # ヘルプ / 引数チェック (外部コマンド不要なので依存チェックより先に処理する。
@@ -339,16 +353,21 @@ _ymt_skill_add() {
   local -a pids=() jobs=()
   local skill i=1
   for skill in "${selected[@]}"; do
+    local _leaf="${skill:t}"
     echo "install: $skill (${skill_ref:-$ref}) -> $base_dir/.claude/skills, $base_dir/.agents/skills"
     if (( global_mode )); then
       {
         gh skill install "$repo_slug" "$skill" --agent claude-code --scope user --force "${pin_args[@]}" &&
-        gh skill install "$repo_slug" "$skill" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}"
+        gh skill install "$repo_slug" "$skill" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}" &&
+        _ymt_skill_restore_exec "$base_dir/.claude/skills/$_leaf" &&
+        _ymt_skill_restore_exec "$base_dir/.agents/skills/$_leaf"
       } >"$tmpdir/$i.log" 2>&1 &
     else
       {
         gh skill install "$repo_slug" "$skill" --agent claude-code   --scope project --force "${pin_args[@]}" &&
-        gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}"
+        gh skill install "$repo_slug" "$skill" --agent github-copilot --scope project --force "${pin_args[@]}" &&
+        _ymt_skill_restore_exec "$base_dir/.claude/skills/$_leaf" &&
+        _ymt_skill_restore_exec "$base_dir/.agents/skills/$_leaf"
       } >"$tmpdir/$i.log" 2>&1 &
     fi
     pids+=($!)
@@ -648,18 +667,23 @@ _ymt_skill_update() {
     repo="${upd_repos[$i]}"
     sk_path="${upd_paths[$i]}"
     ref="${upd_refs[$i]}"
+    leaf="${sk_path:t}"
     local -a pin_args=()
     [[ -n "$ref" ]] && pin_args=(--pin "$ref")
     echo "update: ${upd_names[$i]} (${ref:-HEAD}) <- $repo/$sk_path"
     if (( global_mode )); then
       {
         gh skill install "$repo" "$sk_path" --agent claude-code --scope user --force "${pin_args[@]}" &&
-        gh skill install "$repo" "$sk_path" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}"
+        gh skill install "$repo" "$sk_path" --dir "$HOME/.agents/skills" --agent github-copilot --force "${pin_args[@]}" &&
+        _ymt_skill_restore_exec "$base_dir/.claude/skills/$leaf" &&
+        _ymt_skill_restore_exec "$base_dir/.agents/skills/$leaf"
       } >"$tmpdir/$i.log" 2>&1 &
     else
       {
         gh skill install "$repo" "$sk_path" --agent claude-code   --scope project --force "${pin_args[@]}" &&
-        gh skill install "$repo" "$sk_path" --agent github-copilot --scope project --force "${pin_args[@]}"
+        gh skill install "$repo" "$sk_path" --agent github-copilot --scope project --force "${pin_args[@]}" &&
+        _ymt_skill_restore_exec "$base_dir/.claude/skills/$leaf" &&
+        _ymt_skill_restore_exec "$base_dir/.agents/skills/$leaf"
       } >"$tmpdir/$i.log" 2>&1 &
     fi
     pids+=($!)
