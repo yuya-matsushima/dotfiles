@@ -140,16 +140,12 @@ Dependencies:
 }
 
 # gh skill install は GitHub API 経由でファイルを取得するため exec bit を保持しない。
-# インストール後に shebang (#!) を持つファイルへ実行権限を復元するヘルパー。
+# インストール後に *.sh ファイルへ実行権限を復元するヘルパー。
 # 引数はインストール先 skill ディレクトリ (存在しない場合は何もしない)。
 _ymt_skill_restore_exec() {
     local dir="$1"
     [[ -d "$dir" ]] || return 0
-    local f first
-    find "$dir" -type f -print0 2>/dev/null | while IFS= read -r -d '' f; do
-        IFS= read -r first < "$f" 2>/dev/null || continue
-        [[ "$first" == '#!'* ]] && chmod u+x "$f"
-    done
+    find "$dir" -type f -name '*.sh' -exec chmod u+x {} + 2>/dev/null
     return 0
 }
 
