@@ -279,13 +279,14 @@ _ymt_bl_render() {
     C_RESET=""
   fi
 
-  # dueDate(YYYY-MM-DD or "未設定"), issueKey, assigneeDisp, summary, url の 5 列を TSV で吐き,
+  # dueDate(YYYY-MM-DD or "未設定"), issueKey, status, assigneeDisp, summary, url の 6 列を TSV で吐き,
   # awk で余裕のある固定幅にパディング (CJK 表示幅は厳密には合わせない)
   printf '%s' "$json" \
     | jq -r --arg me "$BACKLOG_USER_ID" --arg space "$BACKLOG_SPACE" '
         .[] | [
           ((.dueDate // "未設定") | split("T")[0]),
           .issueKey,
+          (.status.name | gsub("[\t\n\r]"; " ")),
           (if .assignee == null then "-"
            elif (.assignee.id|tostring) == $me then "@me"
            else "@" + .assignee.name end),
@@ -302,7 +303,7 @@ _ymt_bl_render() {
           return s sprintf("%*s", deficit, "")
         }
         {
-          due = $1; key = $2; assignee = $3; title = $4; url = $5
+          due = $1; key = $2; status = $3; assignee = $4; title = $5; url = $6
           raw_due = due
           # CJK "未設定" は 6 表示幅。"YYYY-MM-DD" (10 cols) と揃えるため 4 空白を足す
           if (due == "未設定") due = "未設定    "
@@ -313,8 +314,9 @@ _ymt_bl_render() {
             else if (raw_due == today) color = cyel
           }
 
-          # 余裕のある固定幅
-          key_padded = pad(key, 14)
+          # 余裕のある固定幅 (CJK バイト数で詰める)
+          key_padded    = pad(key, 14)
+          status_padded = pad(status, 14)
           if (assignee == "-") {
             adisp = cgray "-" creset pad("", 14)
           } else {
@@ -322,9 +324,9 @@ _ymt_bl_render() {
           }
 
           if (color != "") {
-            printf "%s%s  %s  %s  %s  %s%s\n", color, due, key_padded, adisp, title, url, creset
+            printf "%s%s  %s  %s  %s  %s  %s%s\n", color, due, key_padded, status_padded, adisp, title, url, creset
           } else {
-            printf "%s  %s  %s  %s  %s\n", due, key_padded, adisp, title, url
+            printf "%s  %s  %s  %s  %s  %s\n", due, key_padded, status_padded, adisp, title, url
           }
         }'
   echo
