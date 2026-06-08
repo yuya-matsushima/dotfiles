@@ -419,9 +419,21 @@ _ymt_bl_tasks_cmd() {
 
   if [[ "$bucket" == "all" ]]; then
     local b
-    for b in today week month nodue; do
-      _ymt_bl_one_bucket "$b" "$opt_all" "$opt_json" "$pids" || return $?
-    done
+    if (( opt_json )); then
+      # 4 bucket を 1 つの JSON 配列に統合して機械処理可能にする
+      local combined="" part rc
+      for b in today week month nodue; do
+        part=$(_ymt_bl_one_bucket "$b" "$opt_all" 1 "$pids")
+        rc=$?
+        (( rc != 0 )) && return $rc
+        combined+="$part"$'\n'
+      done
+      printf '%s' "$combined" | jq -s '.'
+    else
+      for b in today week month nodue; do
+        _ymt_bl_one_bucket "$b" "$opt_all" "$opt_json" "$pids" || return $?
+      done
+    fi
   else
     _ymt_bl_one_bucket "$bucket" "$opt_all" "$opt_json" "$pids"
   fi
@@ -437,15 +449,24 @@ for _ymt_bl_arg in "$@"; do
 done
 unset _ymt_bl_arg
 
-# first non-flag arg = subcommand
+# first non-flag arg = subcommand (--project KEY の KEY を誤って拾わないよう
+# 値を取る分離形式オプションの次の引数はスキップする)
 _ymt_bl_sub=""
+_ymt_bl_skip_next=0
 for _ymt_bl_arg in "$@"; do
+  if (( _ymt_bl_skip_next )); then
+    _ymt_bl_skip_next=0
+    continue
+  fi
+  case "$_ymt_bl_arg" in
+    --project) _ymt_bl_skip_next=1; continue ;;
+  esac
   if [[ "$_ymt_bl_arg" != -* ]]; then
     _ymt_bl_sub="$_ymt_bl_arg"
     break
   fi
 done
-unset _ymt_bl_arg
+unset _ymt_bl_arg _ymt_bl_skip_next
 : ${_ymt_bl_sub:=all}
 
 _ymt_bl_check_env || { unset _ymt_bl_sub; return 1; }
