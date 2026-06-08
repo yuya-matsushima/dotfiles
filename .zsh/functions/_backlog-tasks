@@ -1,0 +1,67 @@
+#compdef backlog-tasks
+
+# backlog-tasks の補完定義
+# 第1引数でサブコマンド (today/week/month/nodue/projects) を補完し,
+# その後サブコマンド固有のオプション/引数を補完する。
+# --project の値補完は cache (~/.cache/backlog-tasks/projects.tsv) を読み, KEY を提示する。
+
+_ymt_bl_completion_projects() {
+  local cache="${XDG_CACHE_HOME:-$HOME/.cache}/backlog-tasks/projects.tsv"
+  local -a entries
+  if [[ -r "$cache" ]]; then
+    local line key name
+    while IFS=$'\t' read -r key name; do
+      [[ -n "$key" ]] && entries+=("${key}:${name}")
+    done < "$cache"
+  fi
+  if (( ${#entries[@]} > 0 )); then
+    _values -s ',' 'project key' "${entries[@]}"
+  else
+    _message 'project key (cache empty; run: backlog-tasks projects)'
+  fi
+}
+
+_backlog-tasks() {
+  local curcontext="$curcontext" state line
+  local -a subcommands
+  subcommands=(
+    'today:dueDate <= today (overdue 含む)'
+    'week:今週中 (today < dueDate <= today+7)'
+    'month:30 日以内 (today < dueDate <= today+30)'
+    'nodue:期限未設定'
+    'projects:プロジェクト一覧を表示'
+  )
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '--all[担当者フィルタを外し, スペース全体を対象]' \
+    '--json[JSON 出力]' \
+    '--project=[指定プロジェクトに絞る]:project keys (comma-separated):_ymt_bl_completion_projects' \
+    '1: :->subcmd' \
+    '*:: :->args'
+
+  case "$state" in
+    subcmd)
+      _describe -t commands 'backlog-tasks subcommand' subcommands
+      ;;
+    args)
+      case "$line[1]" in
+        projects)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--json[JSON 出力]' \
+            '--refresh[キャッシュを強制更新]'
+          ;;
+        today|week|month|nodue)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--all[担当者フィルタを外し, スペース全体を対象]' \
+            '--json[JSON 出力]' \
+            '--project=[指定プロジェクトに絞る]:project keys (comma-separated):_ymt_bl_completion_projects'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_backlog-tasks "$@"

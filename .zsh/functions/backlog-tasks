@@ -1,0 +1,439 @@
+#!/bin/zsh
+
+# Check dependencies
+for _ymt_bl_cmd in curl jq date awk; do
+  if ! command -v "$_ymt_bl_cmd" >/dev/null 2>&1; then
+    echo "Error: $_ymt_bl_cmd command not found. Please install $_ymt_bl_cmd." >&2
+    return 1
+  fi
+done
+unset _ymt_bl_cmd
+
+_ymt_bl_usage() {
+  cat <<'EOF'
+backlog-tasks shows Backlog issues to be handled, grouped by due date.
+
+Usage:
+  backlog-tasks                          show all 4 buckets (today, week, month, nodue)
+  backlog-tasks today                    dueDate <= today (overdue 含む)
+  backlog-tasks week                     today < dueDate <= today+7
+  backlog-tasks month                    today < dueDate <= today+30
+  backlog-tasks nodue                    dueDate 未設定
+  backlog-tasks projects [--refresh]     プロジェクト一覧 (TSV: KEY<TAB>Name)
+  backlog-tasks -h | --help              print help
+
+Options:
+  --all                                  担当者フィルタを外し, スペース全体を対象 (デフォルトは自分担当 OR 未アサイン)
+  --json                                 JSON 出力
+  --project KEY[,KEY2,...]               指定プロジェクトに絞る
+  --refresh                              projects のキャッシュを強制更新
+
+Environment:
+  BACKLOG_SPACE     Backlog space host (e.g. example.backlog.com)
+  BACKLOG_API_KEY   API key (issued at https://<space>/EditApiSettings.action)
+  BACKLOG_USER_ID   Your numeric userId
+
+Dependencies:
+  curl
+  jq
+  date
+  awk
+EOF
+}
+
+_ymt_bl_check_env() {
+  local -a missing
+  [[ -z "$BACKLOG_SPACE" ]]   && missing+=(BACKLOG_SPACE)
+  [[ -z "$BACKLOG_API_KEY" ]] && missing+=(BACKLOG_API_KEY)
+  [[ -z "$BACKLOG_USER_ID" ]] && missing+=(BACKLOG_USER_ID)
+  if (( ${#missing[@]} > 0 )); then
+    echo "Error: required environment variable(s) not set: ${(j:, :)missing}" >&2
+    cat >&2 <<'EOF'
+
+Set the following in ~/.zsh/credentials.zsh (or any sourced zsh file):
+
+  export BACKLOG_SPACE="example.backlog.com"
+  export BACKLOG_API_KEY="xxxxxxxx"
+  export BACKLOG_USER_ID="123456"
+EOF
+    return 1
+  fi
+}
+
+_ymt_bl_cache_dir() {
+  local dir="${XDG_CACHE_HOME:-$HOME/.cache}/backlog-tasks"
+  [[ -d "$dir" ]] || mkdir -p "$dir"
+  printf '%s' "$dir"
+}
+
+# ---------- projects ----------
+
+_ymt_bl_projects_fetch() {
+  local url="https://${BACKLOG_SPACE}/api/v2/projects?apiKey=${BACKLOG_API_KEY}&archived=false"
+  local response http_status body
+  if ! response=$(curl -sS -m 15 -w '\n%{http_code}' "$url"); then
+    echo "Error: failed to call Backlog API (projects)" >&2
+    return 1
+  fi
+  http_status="${response##*$'\n'}"
+  body="${response%$'\n'*}"
+  if [[ "$http_status" != "200" ]]; then
+    echo "Error: Backlog API returned HTTP $http_status (projects)" >&2
+    echo "$body" >&2
+    return 1
+  fi
+  printf '%s' "$body"
+}
+
+# $1: ttl_seconds (0 = always refresh)
+_ymt_bl_projects_cached() {
+  local ttl="${1:-3600}"
+  local dir json_cache tsv_cache
+  dir="$(_ymt_bl_cache_dir)" || return 1
+  json_cache="$dir/projects.json"
+  tsv_cache="$dir/projects.tsv"
+
+  if (( ttl > 0 )) && [[ -f "$json_cache" ]]; then
+    local mtime now age
+    mtime=$(stat -f %m "$json_cache" 2>/dev/null) || mtime=0
+    now=$(date +%s)
+    age=$(( now - mtime ))
+    if (( age < ttl )); then
+      cat "$json_cache"
+      return 0
+    fi
+  fi
+
+  local body
+  if ! body=$(_ymt_bl_projects_fetch); then
+    if [[ -f "$json_cache" ]]; then
+      echo "Warning: failed to refresh projects, using stale cache" >&2
+      cat "$json_cache"
+      return 0
+    fi
+    return 1
+  fi
+  printf '%s' "$body" > "$json_cache"
+  # TSV cache for fast completion lookup
+  printf '%s' "$body" | jq -r '.[] | "\(.projectKey)\t\(.name)"' > "$tsv_cache"
+  printf '%s' "$body"
+}
+
+_ymt_bl_projects_cmd() {
+  # skip leading "projects" token if present
+  [[ "$1" == "projects" ]] && shift
+  local format="tsv" refresh=0
+  while (( $# > 0 )); do
+    case "$1" in
+      --json)    format="json" ;;
+      --refresh) refresh=1 ;;
+      -h|--help) _ymt_bl_usage; return 0 ;;
+      *) echo "Error: unknown option '$1' for projects" >&2; return 1 ;;
+    esac
+    shift
+  done
+
+  local ttl=3600
+  (( refresh )) && ttl=0
+
+  local body
+  body=$(_ymt_bl_projects_cached "$ttl") || return $?
+
+  case "$format" in
+    json) printf '%s' "$body" | jq . ;;
+    tsv)  printf '%s' "$body" | jq -r '.[] | "\(.projectKey)\t\(.name)"' ;;
+  esac
+}
+
+# Resolve "KEY1,KEY2" → "id1,id2" via cached project list
+_ymt_bl_resolve_project_ids() {
+  local keys="$1"
+  local body
+  body=$(_ymt_bl_projects_cached 3600) || return 1
+  local -a ids
+  local key id
+  for key in ${(s:,:)keys}; do
+    id=$(printf '%s' "$body" | jq -r --arg k "$key" 'map(select(.projectKey == $k)) | .[0].id // empty')
+    if [[ -z "$id" ]]; then
+      echo "Error: project key '$key' not found. Try: backlog-tasks projects --refresh" >&2
+      return 1
+    fi
+    ids+=("$id")
+  done
+  printf '%s' "${(j:,:)ids}"
+}
+
+# "1,2,3" → "projectId%5B%5D=1&projectId%5B%5D=2&projectId%5B%5D=3"
+_ymt_bl_proj_query() {
+  local ids="$1"
+  [[ -z "$ids" ]] && return 0
+  local id
+  local -a parts
+  for id in ${(s:,:)ids}; do
+    parts+=("projectId%5B%5D=${id}")
+  done
+  printf '%s' "${(j:&:)parts}"
+}
+
+# ---------- issues fetch ----------
+
+# $1: extra query string (no leading &)
+# Outputs merged JSON array across all pages
+_ymt_bl_fetch() {
+  local extra="$1"
+  local base="https://${BACKLOG_SPACE}/api/v2/issues"
+  local count=100 offset=0
+  local all="[]"
+  local response http_status body page_count
+  while :; do
+    local url="${base}?apiKey=${BACKLOG_API_KEY}&count=${count}&offset=${offset}&sort=dueDate&order=asc&statusId%5B%5D=1&statusId%5B%5D=2&statusId%5B%5D=3"
+    [[ -n "$extra" ]] && url="${url}&${extra}"
+    if ! response=$(curl -sS -m 30 -w '\n%{http_code}' "$url"); then
+      echo "Error: failed to call Backlog API (issues)" >&2
+      return 1
+    fi
+    http_status="${response##*$'\n'}"
+    body="${response%$'\n'*}"
+    if [[ "$http_status" != "200" ]]; then
+      echo "Error: Backlog API returned HTTP $http_status (issues)" >&2
+      echo "$body" >&2
+      return 1
+    fi
+    page_count=$(printf '%s' "$body" | jq 'length')
+    all=$(jq -s '.[0] + .[1]' <(printf '%s' "$all") <(printf '%s' "$body"))
+    if (( page_count < count )); then
+      break
+    fi
+    offset=$(( offset + count ))
+  done
+  printf '%s' "$all"
+}
+
+_ymt_bl_filter_mine() {
+  local json="$1"
+  printf '%s' "$json" | jq --argjson me "$BACKLOG_USER_ID" '[.[] | select(.assignee == null or .assignee.id == $me)]'
+}
+
+# nodue default-mode fetch: assignee=me + unassigned, merged, then filter dueDate==null
+# $1: extra query (project filter only; no dueDate)
+_ymt_bl_fetch_nodue_default() {
+  local extra="$1"
+  local mine others q_mine
+
+  q_mine="assigneeId%5B%5D=${BACKLOG_USER_ID}"
+  [[ -n "$extra" ]] && q_mine="${q_mine}&${extra}"
+  mine=$(_ymt_bl_fetch "$q_mine") || return 1
+
+  others=$(_ymt_bl_fetch "$extra") || return 1
+  others=$(printf '%s' "$others" | jq '[.[] | select(.assignee == null)]')
+
+  jq -s '(.[0] + .[1]) | unique_by(.id) | [.[] | select(.dueDate == null)]' \
+    <(printf '%s' "$mine") <(printf '%s' "$others")
+}
+
+# ---------- rendering ----------
+
+_ymt_bl_bucket_title() {
+  case "$1" in
+    today) printf '今日中 (期限 <= %s)' "$(date +%Y-%m-%d)" ;;
+    week)  printf '今週中 (~ %s)' "$(date -v+7d +%Y-%m-%d)" ;;
+    month) printf '30 日以内 (~ %s)' "$(date -v+30d +%Y-%m-%d)" ;;
+    nodue) printf '期限未設定' ;;
+  esac
+}
+
+_ymt_bl_render() {
+  local title="$1" json="$2"
+  local count today_date
+  count=$(printf '%s' "$json" | jq 'length')
+  today_date=$(date +%Y-%m-%d)
+
+  echo "## ${title} — ${count} 件"
+  if (( count == 0 )); then
+    echo "  (該当なし)"
+    echo
+    return 0
+  fi
+
+  local C_RED C_YELLOW C_GRAY C_RESET
+  if [[ -t 1 ]]; then
+    C_RED=$'\033[31m'
+    C_YELLOW=$'\033[33m'
+    C_GRAY=$'\033[90m'
+    C_RESET=$'\033[0m'
+  else
+    C_RED=""
+    C_YELLOW=""
+    C_GRAY=""
+    C_RESET=""
+  fi
+
+  # dueDate(or "未設定"), issueKey, assigneeDisp, summary, url の 5 列を TSV で吐く
+  printf '%s' "$json" \
+    | jq -r --arg me "$BACKLOG_USER_ID" --arg space "$BACKLOG_SPACE" '
+        .[] | [
+          (.dueDate // "未設定"),
+          .issueKey,
+          (if .assignee == null then "-"
+           elif (.assignee.id|tostring) == $me then "@me"
+           else "@" + .assignee.name end),
+          (.summary | gsub("[\t\n\r]"; " ")),
+          ("https://" + $space + "/view/" + .issueKey)
+        ] | @tsv' \
+    | awk -F'\t' \
+          -v today="$today_date" \
+          -v cred="$C_RED" -v cyel="$C_YELLOW" \
+          -v cgray="$C_GRAY" -v creset="$C_RESET" '
+        {
+          due = $1; key = $2; assignee = $3; title = $4; url = $5
+          color = ""
+          if (due != "未設定") {
+            if (due < today) color = cred
+            else if (due == today) color = cyel
+          }
+          adisp = assignee
+          if (assignee == "-") adisp = cgray "-" creset
+          if (color != "") {
+            printf "%s%s  %s  %s  %s  %s%s\n", color, due, key, adisp, title, url, creset
+          } else {
+            printf "%s  %s  %s  %s  %s\n", due, key, adisp, title, url
+          }
+        }'
+  echo
+}
+
+_ymt_bl_render_json() {
+  local title="$1" json="$2"
+  jq -n --arg title "$title" --argjson items "$json" \
+    '{title: $title, count: ($items | length), items: $items}'
+}
+
+# ---------- bucket runner ----------
+
+# $1: bucket (today/week/month/nodue), $2: all_flag, $3: json_flag, $4: pids csv
+_ymt_bl_one_bucket() {
+  local bucket="$1" all_flag="$2" json_flag="$3" pids="$4"
+  local extra="" title json
+  local today tomorrow week_to month_to
+  today=$(date +%Y-%m-%d)
+  tomorrow=$(date -v+1d +%Y-%m-%d)
+  week_to=$(date -v+7d +%Y-%m-%d)
+  month_to=$(date -v+30d +%Y-%m-%d)
+
+  local proj_q=""
+  [[ -n "$pids" ]] && proj_q=$(_ymt_bl_proj_query "$pids")
+
+  title=$(_ymt_bl_bucket_title "$bucket")
+
+  case "$bucket" in
+    today) extra="dueDateUntil=${today}" ;;
+    week)  extra="dueDateSince=${tomorrow}&dueDateUntil=${week_to}" ;;
+    month) extra="dueDateSince=${tomorrow}&dueDateUntil=${month_to}" ;;
+    nodue) extra="" ;;
+  esac
+  if [[ -n "$proj_q" ]]; then
+    extra="${extra:+$extra&}${proj_q}"
+  fi
+
+  if [[ "$bucket" == "nodue" ]]; then
+    if (( all_flag )); then
+      json=$(_ymt_bl_fetch "$extra") || return $?
+      json=$(printf '%s' "$json" | jq '[.[] | select(.dueDate == null)]')
+    else
+      json=$(_ymt_bl_fetch_nodue_default "$extra") || return $?
+    fi
+  else
+    json=$(_ymt_bl_fetch "$extra") || return $?
+    if (( ! all_flag )); then
+      json=$(_ymt_bl_filter_mine "$json")
+    fi
+  fi
+
+  if (( json_flag )); then
+    _ymt_bl_render_json "$title" "$json"
+  else
+    _ymt_bl_render "$title" "$json"
+  fi
+}
+
+_ymt_bl_tasks_cmd() {
+  local bucket="$1"; shift
+  local opt_all=0 opt_json=0 opt_project=""
+  local saw_sub=0
+  while (( $# > 0 )); do
+    case "$1" in
+      all|today|week|month|nodue)
+        if (( ! saw_sub )); then
+          saw_sub=1
+        else
+          echo "Error: unexpected '$1'" >&2; return 1
+        fi ;;
+      --all)  opt_all=1 ;;
+      --json) opt_json=1 ;;
+      --project)
+        if [[ -z "$2" ]]; then
+          echo "Error: --project requires an argument" >&2; return 1
+        fi
+        opt_project="$2"; shift ;;
+      --project=*) opt_project="${1#--project=}" ;;
+      -h|--help) _ymt_bl_usage; return 0 ;;
+      *) echo "Error: unknown argument '$1'" >&2; return 1 ;;
+    esac
+    shift
+  done
+
+  local pids=""
+  if [[ -n "$opt_project" ]]; then
+    pids=$(_ymt_bl_resolve_project_ids "$opt_project") || return 1
+  fi
+
+  if [[ "$bucket" == "all" ]]; then
+    local b
+    for b in today week month nodue; do
+      _ymt_bl_one_bucket "$b" "$opt_all" "$opt_json" "$pids" || return $?
+    done
+  else
+    _ymt_bl_one_bucket "$bucket" "$opt_all" "$opt_json" "$pids"
+  fi
+}
+
+# ---------- main dispatch ----------
+
+# detect -h/--help anywhere
+for _ymt_bl_arg in "$@"; do
+  case "$_ymt_bl_arg" in
+    -h|--help) _ymt_bl_usage; unset _ymt_bl_arg; return 0 ;;
+  esac
+done
+unset _ymt_bl_arg
+
+# first non-flag arg = subcommand
+_ymt_bl_sub=""
+for _ymt_bl_arg in "$@"; do
+  if [[ "$_ymt_bl_arg" != -* ]]; then
+    _ymt_bl_sub="$_ymt_bl_arg"
+    break
+  fi
+done
+unset _ymt_bl_arg
+: ${_ymt_bl_sub:=all}
+
+_ymt_bl_check_env || { unset _ymt_bl_sub; return 1; }
+
+case "$_ymt_bl_sub" in
+  projects)
+    _ymt_bl_projects_cmd "$@"
+    _ymt_bl_rc=$?
+    unset _ymt_bl_sub
+    return $_ymt_bl_rc ;;
+  all|today|week|month|nodue)
+    _ymt_bl_tasks_cmd "$_ymt_bl_sub" "$@"
+    _ymt_bl_rc=$?
+    unset _ymt_bl_sub
+    return $_ymt_bl_rc ;;
+  *)
+    echo "Error: unknown subcommand '$_ymt_bl_sub'" >&2
+    _ymt_bl_usage
+    unset _ymt_bl_sub
+    return 1 ;;
+esac
