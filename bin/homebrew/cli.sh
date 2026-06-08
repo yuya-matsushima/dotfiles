@@ -34,6 +34,7 @@ brew install \
           jnv \
           lazygit \
           libpq \
+          opencode \
           make \
           mysql-client \
           ncurses \
