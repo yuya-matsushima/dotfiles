@@ -175,6 +175,10 @@ if (( $+commands[go] )); then
   export ASDF_GOLANG_MOD_VERSION_ENABLED=true
   export PATH="${GOBIN}:${PATH}"
 fi
+if (( $+commands[pnpm] )); then
+  export PNPM_HOME="$HOME/.local/share/pnpm"
+  export PATH="$PNPM_HOME:$PATH"
+fi
 (( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
