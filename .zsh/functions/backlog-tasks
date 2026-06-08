@@ -58,6 +58,17 @@ Set the following in ~/.zsh/credentials.zsh (or any sourced zsh file):
 EOF
     return 1
   fi
+  if [[ "$BACKLOG_USER_ID" != <-> ]]; then
+    cat >&2 <<EOF
+Error: BACKLOG_USER_ID must be numeric (got: "$BACKLOG_USER_ID")
+
+数値の内部 ID (.id) を指定してください。.userId (ログイン文字列) ではありません。
+以下のコマンドで数値 ID を確認できます:
+
+  curl -s "https://\${BACKLOG_SPACE}/api/v2/users/myself?apiKey=\${BACKLOG_API_KEY}" | jq '.id'
+EOF
+    return 1
+  fi
 }
 
 _ymt_bl_cache_dir() {
@@ -211,7 +222,7 @@ _ymt_bl_fetch() {
 
 _ymt_bl_filter_mine() {
   local json="$1"
-  printf '%s' "$json" | jq --argjson me "$BACKLOG_USER_ID" '[.[] | select(.assignee == null or .assignee.id == $me)]'
+  printf '%s' "$json" | jq --arg me "$BACKLOG_USER_ID" '[.[] | select(.assignee == null or (.assignee.id|tostring) == $me)]'
 }
 
 # nodue default-mode fetch: assignee=me + unassigned, merged, then filter dueDate==null
