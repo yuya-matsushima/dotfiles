@@ -279,11 +279,12 @@ _ymt_bl_render() {
     C_RESET=""
   fi
 
-  # dueDate(or "未設定"), issueKey, assigneeDisp, summary, url の 5 列を TSV で吐く
+  # dueDate(YYYY-MM-DD or "未設定"), issueKey, assigneeDisp, summary, url の 5 列を TSV で吐き,
+  # awk で余裕のある固定幅にパディング (CJK 表示幅は厳密には合わせない)
   printf '%s' "$json" \
     | jq -r --arg me "$BACKLOG_USER_ID" --arg space "$BACKLOG_SPACE" '
         .[] | [
-          (.dueDate // "未設定"),
+          ((.dueDate // "未設定") | split("T")[0]),
           .issueKey,
           (if .assignee == null then "-"
            elif (.assignee.id|tostring) == $me then "@me"
@@ -295,19 +296,35 @@ _ymt_bl_render() {
           -v today="$today_date" \
           -v cred="$C_RED" -v cyel="$C_YELLOW" \
           -v cgray="$C_GRAY" -v creset="$C_RESET" '
+        function pad(s, n,    deficit) {
+          deficit = n - length(s)
+          if (deficit <= 0) return s
+          return s sprintf("%*s", deficit, "")
+        }
         {
           due = $1; key = $2; assignee = $3; title = $4; url = $5
+          raw_due = due
+          # CJK "未設定" は 6 表示幅。"YYYY-MM-DD" (10 cols) と揃えるため 4 空白を足す
+          if (due == "未設定") due = "未設定    "
+
           color = ""
-          if (due != "未設定") {
-            if (due < today) color = cred
-            else if (due == today) color = cyel
+          if (raw_due != "未設定") {
+            if      (raw_due < today) color = cred
+            else if (raw_due == today) color = cyel
           }
-          adisp = assignee
-          if (assignee == "-") adisp = cgray "-" creset
-          if (color != "") {
-            printf "%s%s  %s  %s  %s  %s%s\n", color, due, key, adisp, title, url, creset
+
+          # 余裕のある固定幅
+          key_padded = pad(key, 14)
+          if (assignee == "-") {
+            adisp = cgray "-" creset pad("", 14)
           } else {
-            printf "%s  %s  %s  %s  %s\n", due, key, adisp, title, url
+            adisp = pad(assignee, 15)
+          }
+
+          if (color != "") {
+            printf "%s%s  %s  %s  %s  %s%s\n", color, due, key_padded, adisp, title, url, creset
+          } else {
+            printf "%s  %s  %s  %s  %s\n", due, key_padded, adisp, title, url
           }
         }'
   echo
