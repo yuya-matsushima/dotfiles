@@ -72,6 +72,27 @@ return {
         window_overlap_clear_enabled = false,
         window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', '' },
       })
+
+      local image = require('image')
+      vim.api.nvim_create_user_command('ImageDisable', function()
+        image.disable()
+        vim.g.image_disabled = true
+      end, { desc = 'Disable image.nvim rendering' })
+      vim.api.nvim_create_user_command('ImageEnable', function()
+        image.enable()
+        vim.g.image_disabled = false
+      end, { desc = 'Enable image.nvim rendering' })
+      vim.api.nvim_create_user_command('ImageToggle', function()
+        if vim.g.image_disabled then
+          image.enable()
+          vim.g.image_disabled = false
+          vim.notify('image.nvim: enabled')
+        else
+          image.disable()
+          vim.g.image_disabled = true
+          vim.notify('image.nvim: disabled')
+        end
+      end, { desc = 'Toggle image.nvim rendering' })
     end,
   },
 
