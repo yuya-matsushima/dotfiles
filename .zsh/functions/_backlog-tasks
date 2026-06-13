@@ -65,7 +65,7 @@ _backlog-tasks() {
             '(-h --help)'{-h,--help}'[print help]' \
             '--json[JSON 出力]' \
             '--project=[指定プロジェクトに絞る]:project keys (comma-separated):_ymt_bl_completion_projects' \
-            '1:bucket:(today week month nodue all)'
+            '2:bucket:(today week month nodue all)'
           ;;
       esac
       ;;
