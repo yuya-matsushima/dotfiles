@@ -14,19 +14,28 @@ _ymt_bl_usage() {
 backlog-tasks shows Backlog issues to be handled, grouped by due date.
 
 Usage:
-  backlog-tasks                          show all 4 buckets (today, week, month, nodue)
+  backlog-tasks                          show all 4 buckets (today, week, month, nodue) — 自分担当のみ
   backlog-tasks today                    dueDate <= today (overdue 含む)
-  backlog-tasks week                     today < dueDate <= today+7
-  backlog-tasks month                    today < dueDate <= today+30
+  backlog-tasks week                     7 日以内 (today < dueDate <= today+7)
+  backlog-tasks month                    30 日以内 (today < dueDate <= today+30)
+                                         無指定 (= all) のときだけ week と重複しないよう today+7 以降に絞る
   backlog-tasks nodue                    dueDate 未設定
+  backlog-tasks unassigned [today|week|month|nodue|all]
+                                         未アサインタスクのみ (バケット未指定で全 4 バケット)
   backlog-tasks projects [--refresh]     プロジェクト一覧 (TSV: KEY<TAB>Name)
   backlog-tasks -h | --help              print help
 
 Options:
-  --all                                  担当者フィルタを外し, スペース全体を対象 (デフォルトは自分担当 OR 未アサイン)
+  --all                                  担当者フィルタを外し, スペース全体を対象 (デフォルトは自分担当のみ)
   --json                                 JSON 出力
   --project KEY[,KEY2,...]               指定プロジェクトに絞る
   --refresh                              projects のキャッシュを強制更新
+
+色凡例 (TTY 出力時):
+  赤      過去期限 (overdue)
+  橙      当日 (今日が期限)
+  黄      1〜3 日以内
+  cyan    4〜7 日以内
 
 Environment:
   BACKLOG_SPACE     Backlog space host (e.g. example.backlog.com)
@@ -220,44 +229,40 @@ _ymt_bl_fetch() {
   printf '%s' "$all"
 }
 
-_ymt_bl_filter_mine() {
-  local json="$1"
-  printf '%s' "$json" | jq --arg me "$BACKLOG_USER_ID" '[.[] | select(.assignee == null or (.assignee.id|tostring) == $me)]'
-}
-
-# nodue default-mode fetch: assignee=me + unassigned, merged, then filter dueDate==null
-# $1: extra query (project filter only; no dueDate)
-_ymt_bl_fetch_nodue_default() {
-  local extra="$1"
-  local mine others q_mine
-
-  q_mine="assigneeId%5B%5D=${BACKLOG_USER_ID}"
-  [[ -n "$extra" ]] && q_mine="${q_mine}&${extra}"
-  mine=$(_ymt_bl_fetch "$q_mine") || return 1
-
-  others=$(_ymt_bl_fetch "$extra") || return 1
-  others=$(printf '%s' "$others" | jq '[.[] | select(.assignee == null)]')
-
-  jq -s '(.[0] + .[1]) | unique_by(.id) | [.[] | select(.dueDate == null)]' \
-    <(printf '%s' "$mine") <(printf '%s' "$others")
+# $1: json, $2: mode (mine|all|unassigned)
+_ymt_bl_filter_assignee() {
+  local json="$1" mode="$2"
+  case "$mode" in
+    all)        printf '%s' "$json" ;;
+    mine)       printf '%s' "$json" | jq --arg me "$BACKLOG_USER_ID" '[.[] | select(.assignee != null and (.assignee.id|tostring) == $me)]' ;;
+    unassigned) printf '%s' "$json" | jq '[.[] | select(.assignee == null)]' ;;
+  esac
 }
 
 # ---------- rendering ----------
 
 _ymt_bl_bucket_title() {
+  local exclude_week="${2:-0}"
   case "$1" in
     today) printf '今日中 (期限 <= %s)' "$(date +%Y-%m-%d)" ;;
-    week)  printf '今週中 (~ %s)' "$(date -v+7d +%Y-%m-%d)" ;;
-    month) printf '30 日以内 (~ %s)' "$(date -v+30d +%Y-%m-%d)" ;;
+    week)  printf '7 日以内 (~ %s)' "$(date -v+7d +%Y-%m-%d)" ;;
+    month)
+      if (( exclude_week )); then
+        printf '30 日以内 (%s 〜 %s)' "$(date -v+8d +%Y-%m-%d)" "$(date -v+30d +%Y-%m-%d)"
+      else
+        printf '30 日以内 (~ %s)' "$(date -v+30d +%Y-%m-%d)"
+      fi ;;
     nodue) printf '期限未設定' ;;
   esac
 }
 
 _ymt_bl_render() {
   local title="$1" json="$2"
-  local count today_date
+  local count today_date d3_date d7_date
   count=$(printf '%s' "$json" | jq 'length')
   today_date=$(date +%Y-%m-%d)
+  d3_date=$(date -v+3d +%Y-%m-%d)
+  d7_date=$(date -v+7d +%Y-%m-%d)
 
   echo "## ${title} — ${count} 件"
   if (( count == 0 )); then
@@ -266,15 +271,19 @@ _ymt_bl_render() {
     return 0
   fi
 
-  local C_RED C_YELLOW C_GRAY C_RESET
+  local C_RED C_ORANGE C_YELLOW C_CYAN C_GRAY C_RESET
   if [[ -t 1 ]]; then
     C_RED=$'\033[31m'
+    C_ORANGE=$'\033[38;5;208m'
     C_YELLOW=$'\033[33m'
+    C_CYAN=$'\033[36m'
     C_GRAY=$'\033[90m'
     C_RESET=$'\033[0m'
   else
     C_RED=""
+    C_ORANGE=""
     C_YELLOW=""
+    C_CYAN=""
     C_GRAY=""
     C_RESET=""
   fi
@@ -294,8 +303,8 @@ _ymt_bl_render() {
           ("https://" + $space + "/view/" + .issueKey)
         ] | @tsv' \
     | awk -F'\t' \
-          -v today="$today_date" \
-          -v cred="$C_RED" -v cyel="$C_YELLOW" \
+          -v today="$today_date" -v d3="$d3_date" -v d7="$d7_date" \
+          -v cred="$C_RED" -v corange="$C_ORANGE" -v cyel="$C_YELLOW" -v ccyan="$C_CYAN" \
           -v cgray="$C_GRAY" -v creset="$C_RESET" '
         function pad(s, n,    deficit) {
           deficit = n - length(s)
@@ -310,8 +319,10 @@ _ymt_bl_render() {
 
           color = ""
           if (raw_due != "未設定") {
-            if      (raw_due < today) color = cred
-            else if (raw_due == today) color = cyel
+            if      (raw_due <  today) color = cred
+            else if (raw_due == today) color = corange
+            else if (raw_due <= d3)    color = cyel
+            else if (raw_due <= d7)    color = ccyan
           }
 
           # 余裕のある固定幅 (CJK バイト数で詰める)
@@ -340,44 +351,46 @@ _ymt_bl_render_json() {
 
 # ---------- bucket runner ----------
 
-# $1: bucket (today/week/month/nodue), $2: all_flag, $3: json_flag, $4: pids csv
+# $1: bucket (today/week/month/nodue), $2: mode (mine|all|unassigned), $3: json_flag, $4: pids csv,
+# $5: exclude_week_from_month (0|1) — 1 のとき month の since を today+8 にずらして week と重複させない
 _ymt_bl_one_bucket() {
-  local bucket="$1" all_flag="$2" json_flag="$3" pids="$4"
+  local bucket="$1" mode="$2" json_flag="$3" pids="$4" exclude_week="${5:-0}"
   local extra="" title json
-  local today tomorrow week_to month_to
+  local today tomorrow week_to month_from month_to
   today=$(date +%Y-%m-%d)
   tomorrow=$(date -v+1d +%Y-%m-%d)
   week_to=$(date -v+7d +%Y-%m-%d)
+  month_from=$(date -v+8d +%Y-%m-%d)
   month_to=$(date -v+30d +%Y-%m-%d)
 
   local proj_q=""
   [[ -n "$pids" ]] && proj_q=$(_ymt_bl_proj_query "$pids")
 
-  title=$(_ymt_bl_bucket_title "$bucket")
+  title=$(_ymt_bl_bucket_title "$bucket" "$exclude_week")
+
+  local month_since="$tomorrow"
+  (( exclude_week )) && month_since="$month_from"
 
   case "$bucket" in
     today) extra="dueDateUntil=${today}" ;;
     week)  extra="dueDateSince=${tomorrow}&dueDateUntil=${week_to}" ;;
-    month) extra="dueDateSince=${tomorrow}&dueDateUntil=${month_to}" ;;
+    month) extra="dueDateSince=${month_since}&dueDateUntil=${month_to}" ;;
     nodue) extra="" ;;
   esac
   if [[ -n "$proj_q" ]]; then
     extra="${extra:+$extra&}${proj_q}"
   fi
-
-  if [[ "$bucket" == "nodue" ]]; then
-    if (( all_flag )); then
-      json=$(_ymt_bl_fetch "$extra") || return $?
-      json=$(printf '%s' "$json" | jq '[.[] | select(.dueDate == null)]')
-    else
-      json=$(_ymt_bl_fetch_nodue_default "$extra") || return $?
-    fi
-  else
-    json=$(_ymt_bl_fetch "$extra") || return $?
-    if (( ! all_flag )); then
-      json=$(_ymt_bl_filter_mine "$json")
-    fi
+  # mine モードは API クエリで担当を絞り、取得量を抑える
+  if [[ "$mode" == "mine" ]]; then
+    extra="${extra:+$extra&}assigneeId%5B%5D=${BACKLOG_USER_ID}"
   fi
+
+  json=$(_ymt_bl_fetch "$extra") || return $?
+  # nodue バケットは dueDate==null のみ残す (API 側で絞れないため)
+  if [[ "$bucket" == "nodue" ]]; then
+    json=$(printf '%s' "$json" | jq '[.[] | select(.dueDate == null)]')
+  fi
+  json=$(_ymt_bl_filter_assignee "$json" "$mode")
 
   if (( json_flag )); then
     _ymt_bl_render_json "$title" "$json"
@@ -386,19 +399,42 @@ _ymt_bl_one_bucket() {
   fi
 }
 
+# $1: dispatch_kind: "bucket" (sub は all/today/week/month/nodue) or "unassigned"
+# $2..: 残り引数
 _ymt_bl_tasks_cmd() {
-  local bucket="$1"; shift
-  local opt_all=0 opt_json=0 opt_project=""
+  local kind="$1"; shift
+  local bucket="" opt_mode="mine" opt_json=0 opt_project=""
   local saw_sub=0
+
+  if [[ "$kind" == "unassigned" ]]; then
+    opt_mode="unassigned"
+  else
+    bucket="$kind"
+  fi
+
   while (( $# > 0 )); do
     case "$1" in
       all|today|week|month|nodue)
         if (( ! saw_sub )); then
           saw_sub=1
+          # unassigned のときは引数列のバケット指定を受け入れる
+          if [[ "$opt_mode" == "unassigned" ]]; then
+            bucket="$1"
+          fi
         else
           echo "Error: unexpected '$1'" >&2; return 1
         fi ;;
-      --all)  opt_all=1 ;;
+      unassigned)
+        # dispatch 由来の subcommand トークンを消費するだけ。
+        # 通常 dispatch で _ymt_bl_sub="unassigned" として opt_mode は既に設定済み。
+        if [[ "$opt_mode" != "unassigned" ]]; then
+          echo "Error: unexpected '$1'" >&2; return 1
+        fi ;;
+      --all)
+        if [[ "$opt_mode" == "unassigned" ]]; then
+          echo "Error: --all cannot be combined with 'unassigned'" >&2; return 1
+        fi
+        opt_mode="all" ;;
       --json) opt_json=1 ;;
       --project)
         if [[ -z "$2" ]]; then
@@ -412,18 +448,22 @@ _ymt_bl_tasks_cmd() {
     shift
   done
 
+  [[ -z "$bucket" ]] && bucket="all"
+
   local pids=""
   if [[ -n "$opt_project" ]]; then
     pids=$(_ymt_bl_resolve_project_ids "$opt_project") || return 1
   fi
 
   if [[ "$bucket" == "all" ]]; then
+    # 4 バケットを並べるときだけ month の since を week_to+1 (today+8) にずらし、
+    # week と month の重複表示を避ける。
     local b
     if (( opt_json )); then
       # 4 bucket を 1 つの JSON 配列に統合して機械処理可能にする
       local combined="" part rc
       for b in today week month nodue; do
-        part=$(_ymt_bl_one_bucket "$b" "$opt_all" 1 "$pids")
+        part=$(_ymt_bl_one_bucket "$b" "$opt_mode" 1 "$pids" 1)
         rc=$?
         (( rc != 0 )) && return $rc
         combined+="$part"$'\n'
@@ -431,11 +471,11 @@ _ymt_bl_tasks_cmd() {
       printf '%s' "$combined" | jq -s '.'
     else
       for b in today week month nodue; do
-        _ymt_bl_one_bucket "$b" "$opt_all" "$opt_json" "$pids" || return $?
+        _ymt_bl_one_bucket "$b" "$opt_mode" "$opt_json" "$pids" 1 || return $?
       done
     fi
   else
-    _ymt_bl_one_bucket "$bucket" "$opt_all" "$opt_json" "$pids"
+    _ymt_bl_one_bucket "$bucket" "$opt_mode" "$opt_json" "$pids" 0
   fi
 }
 
@@ -474,6 +514,11 @@ _ymt_bl_check_env || { unset _ymt_bl_sub; return 1; }
 case "$_ymt_bl_sub" in
   projects)
     _ymt_bl_projects_cmd "$@"
+    _ymt_bl_rc=$?
+    unset _ymt_bl_sub
+    return $_ymt_bl_rc ;;
+  unassigned)
+    _ymt_bl_tasks_cmd "unassigned" "$@"
     _ymt_bl_rc=$?
     unset _ymt_bl_sub
     return $_ymt_bl_rc ;;
