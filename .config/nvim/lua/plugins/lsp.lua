@@ -190,6 +190,8 @@ return {
   },
 
   -- mason-lspconfig: Bridge between Mason and lspconfig
+  -- v2 (Neovim 0.11+ native LSP) では handlers / automatic_installation が廃止され、
+  -- vim.lsp.config() で設定し automatic_enable(既定 true) が vim.lsp.enable を実行する。
   {
     'williamboman/mason-lspconfig.nvim',
     lazy = false,
@@ -199,24 +201,21 @@ return {
       'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
-      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      -- 全サーバ共通の capabilities (nvim-cmp) をグローバル '*' にマージ
+      vim.lsp.config('*', {
+        capabilities = require('cmp_nvim_lsp').default_capabilities(),
+      })
 
-      -- Configure LSP servers
-      local function setup_server(server_name)
-        local config = vim.tbl_deep_extend('force', {
-          capabilities = capabilities,
-        }, servers[server_name] or {})
-
-        vim.lsp.config(server_name, config)
-        vim.lsp.enable(server_name)
+      -- サーバ個別設定 (settings 等を持つものだけ)
+      for name, cfg in pairs(servers) do
+        if next(cfg) ~= nil then
+          vim.lsp.config(name, cfg)
+        end
       end
 
+      -- ensure_installed で導入。automatic_enable が installed なサーバを自動有効化する。
       require('mason-lspconfig').setup({
         ensure_installed = vim.tbl_keys(servers),
-        automatic_installation = true,
-        handlers = {
-          setup_server,
-        },
       })
     end,
   },
