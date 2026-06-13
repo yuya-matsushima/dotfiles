@@ -29,6 +29,7 @@ _backlog-tasks() {
     'week:今週中 (today < dueDate <= today+7)'
     'month:30 日以内 (today < dueDate <= today+30)'
     'nodue:期限未設定'
+    'unassigned:未アサインタスク (バケット指定可)'
     'projects:プロジェクト一覧を表示'
   )
 
@@ -58,6 +59,13 @@ _backlog-tasks() {
             '--all[担当者フィルタを外し, スペース全体を対象]' \
             '--json[JSON 出力]' \
             '--project=[指定プロジェクトに絞る]:project keys (comma-separated):_ymt_bl_completion_projects'
+          ;;
+        unassigned)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--json[JSON 出力]' \
+            '--project=[指定プロジェクトに絞る]:project keys (comma-separated):_ymt_bl_completion_projects' \
+            '1:bucket:(today week month nodue all)'
           ;;
       esac
       ;;
