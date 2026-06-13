@@ -82,6 +82,12 @@ local servers = {
       },
     },
   },
+  -- vscode-langservers-extracted 由来 (mason: html-lsp / css-lsp / json-lsp)
+  html = {},
+  cssls = {},
+  jsonls = {},
+  -- yaml-language-server
+  yamlls = {},
 }
 
 return {
@@ -142,54 +148,14 @@ return {
         end,
       })
 
-      -- Python: 保存時に自動フォーマット（ruff 経由）
-      vim.api.nvim_create_autocmd('BufWritePre', {
-        group = vim.api.nvim_create_augroup('LspFormat', { clear = true }),
-        pattern = '*.py',
-        callback = function()
-          vim.lsp.buf.format({ async = false })
-        end,
-      })
-
-      -- Go: 保存時に goimports 相当 (organizeImports) + gofmt 相当 (format)
-      -- code_action({ apply = true }) は非同期なので BufWritePre では import 反映前に
-      -- 保存が走る。buf_request_sync で workspace edit を直接適用する。
-      vim.api.nvim_create_autocmd('BufWritePre', {
-        group = vim.api.nvim_create_augroup('LspFormatGo', { clear = true }),
-        pattern = '*.go',
-        callback = function()
-          local bufnr = vim.api.nvim_get_current_buf()
-          local params = vim.lsp.util.make_range_params(0, 'utf-16')
-          params.context = { only = { 'source.organizeImports' }, diagnostics = {} }
-          local results = vim.lsp.buf_request_sync(bufnr, 'textDocument/codeAction', params, 3000)
-          for cid, res in pairs(results or {}) do
-            local client = vim.lsp.get_client_by_id(cid)
-            local enc = (client and client.offset_encoding) or 'utf-16'
-            for _, action in ipairs(res.result or {}) do
-              if action.edit then
-                vim.lsp.util.apply_workspace_edit(action.edit, enc)
-              end
-              if type(action.command) == 'table' then
-                vim.lsp.buf.execute_command(action.command)
-              end
-            end
-          end
-          vim.lsp.buf.format({ async = false })
-        end,
-      })
-
-      -- Rust: 保存時に rustfmt 相当 (rust-analyzer の format)
-      vim.api.nvim_create_autocmd('BufWritePre', {
-        group = vim.api.nvim_create_augroup('LspFormatRust', { clear = true }),
-        pattern = '*.rs',
-        callback = function()
-          vim.lsp.buf.format({ async = false })
-        end,
-      })
+      -- 保存時フォーマットは conform.nvim (plugins/conform.lua) に集約。
+      -- formatters_by_ft + lsp_format = 'fallback' で言語別に宣言的に管理する。
     end,
   },
 
   -- mason-lspconfig: Bridge between Mason and lspconfig
+  -- v2 (Neovim 0.11+ native LSP) では handlers / automatic_installation が廃止され、
+  -- vim.lsp.config() で設定し automatic_enable(既定 true) が vim.lsp.enable を実行する。
   {
     'williamboman/mason-lspconfig.nvim',
     lazy = false,
@@ -199,24 +165,21 @@ return {
       'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
-      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      -- 全サーバ共通の capabilities (nvim-cmp) をグローバル '*' にマージ
+      vim.lsp.config('*', {
+        capabilities = require('cmp_nvim_lsp').default_capabilities(),
+      })
 
-      -- Configure LSP servers
-      local function setup_server(server_name)
-        local config = vim.tbl_deep_extend('force', {
-          capabilities = capabilities,
-        }, servers[server_name] or {})
-
-        vim.lsp.config(server_name, config)
-        vim.lsp.enable(server_name)
+      -- サーバ個別設定 (settings 等を持つものだけ)
+      for name, cfg in pairs(servers) do
+        if next(cfg) ~= nil then
+          vim.lsp.config(name, cfg)
+        end
       end
 
+      -- ensure_installed で導入。automatic_enable が installed なサーバを自動有効化する。
       require('mason-lspconfig').setup({
         ensure_installed = vim.tbl_keys(servers),
-        automatic_installation = true,
-        handlers = {
-          setup_server,
-        },
       })
     end,
   },
