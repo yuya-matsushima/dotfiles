@@ -26,8 +26,8 @@ _backlog-tasks() {
   local -a subcommands
   subcommands=(
     'today:dueDate <= today (overdue 含む)'
-    'week:今週中 (today < dueDate <= today+7)'
-    'month:30 日以内 (today < dueDate <= today+30)'
+    'week:7 日以内 (today < dueDate <= today+7)'
+    'month:30 日以内 (today < dueDate <= today+30, all 実行時のみ week 分を除外)'
     'nodue:期限未設定'
     'unassigned:未アサインタスク (バケット指定可)'
     'projects:プロジェクト一覧を表示'
