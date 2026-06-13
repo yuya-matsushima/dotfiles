@@ -13,7 +13,7 @@ return {
     {
       '<leader>cf',
       function()
-        require('conform').format({ async = false, lsp_format = 'fallback' })
+        require('conform').format({ async = true, lsp_format = 'fallback' })
       end,
       mode = { 'n', 'v' },
       desc = 'Format buffer/range',
@@ -29,7 +29,7 @@ return {
     },
     formatters_by_ft = {
       python = { 'ruff_format', 'ruff_organize_imports' },
-      go = { 'goimports', 'gofmt' },
+      go = { 'goimports' },
       rust = { 'rustfmt' },
       lua = { 'stylua' },
       javascript = { 'prettierd', 'prettier', stop_after_first = true },
