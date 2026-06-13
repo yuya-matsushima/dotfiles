@@ -82,6 +82,12 @@ local servers = {
       },
     },
   },
+  -- vscode-langservers-extracted 由来 (mason: html-lsp / css-lsp / json-lsp)
+  html = {},
+  cssls = {},
+  jsonls = {},
+  -- yaml-language-server
+  yamlls = {},
 }
 
 return {
