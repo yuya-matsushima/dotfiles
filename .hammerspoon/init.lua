@@ -3,135 +3,153 @@ local spaces = require("hs.spaces")
 
 -- App をショートカットで開閉
 local toggleApp = function(appName)
-  local app = application.get(appName)
+	local app = application.get(appName)
 
-  if app == nil then
-    application.launchOrFocus(appName)
-    -- アプリがインストールされていない場合何もしない
-  elseif app:isFrontmost() then
-    app:hide()
-  else
-    local active_space = spaces.focusedSpace()
-    local win = app:focusedWindow()
-    spaces.moveWindowToSpace(win, active_space)
-    app:setFrontmost()
-  end
+	if app == nil then
+		application.launchOrFocus(appName)
+	-- アプリがインストールされていない場合何もしない
+	elseif app:isFrontmost() then
+		app:hide()
+	else
+		local active_space = spaces.focusedSpace()
+		local win = app:focusedWindow()
+		spaces.moveWindowToSpace(win, active_space)
+		app:setFrontmost()
+	end
 end
 
 -- Determine Terminal App (Ghostty or Alacritty)
 local terminalApp = "Alacritty"
 if hs.application.infoForBundleID("com.mitchellh.ghostty") ~= nil then
-  terminalApp = "Ghostty"
+	terminalApp = "Ghostty"
 end
 
 -- US MacBook Pro
-hs.hotkey.bind({ "ctrl" }, "delete", function() toggleApp(terminalApp) end)
-hs.hotkey.bind({ "ctrl" }, "=", function() toggleApp("Obsidian") end)
+hs.hotkey.bind({ "ctrl" }, "delete", function()
+	toggleApp(terminalApp)
+end)
+hs.hotkey.bind({ "ctrl" }, "=", function()
+	toggleApp("Obsidian")
+end)
 
 -- IME の英字/ひらがなを cmd 単体押しで切り替え
 local simpleCmd = false
 local cmdPressTime = 0
 local lastToggleTime = 0
-local COOLDOWN_MS = 200  -- 連続トグル防止の冷却期間 (ms)
-local MIN_HOLD_MS = 50   -- バウンス除外の最小保持時間 (ms)
+local COOLDOWN_MS = 200 -- 連続トグル防止の冷却期間 (ms)
+local MIN_HOLD_MS = 50 -- バウンス除外の最小保持時間 (ms)
 local map = hs.keycodes.map
 
 -- 利用可能なIMEメソッドから動的に判定
 local function detectIMEMethods()
-  local methods = hs.keycodes.methods()
-  local hasGoogleIME = false
+	local methods = hs.keycodes.methods()
+	local hasGoogleIME = false
 
-  -- methods は配列形式 {1: "Hiragana", 2: "Romaji", ...} なので値を検索
-  for _, method in pairs(methods) do
-    if method == 'Hiragana (Google)' then
-      hasGoogleIME = true
-      break
-    end
-  end
+	-- methods は配列形式 {1: "Hiragana", 2: "Romaji", ...} なので値を検索
+	for _, method in pairs(methods) do
+		if method == "Hiragana (Google)" then
+			hasGoogleIME = true
+			break
+		end
+	end
 
-  -- Google Japanese IME が利用可能かチェック
-  -- NOTE: Mac の設定 > キーボード > 入力ソースを `ひらがな（Google）`, `英数（Google)` に設定してください。
-  if hasGoogleIME then
-    return 'Hiragana (Google)', 'Alphanumeric (Google)'
-  else
-    -- ことえり（Mac標準IME）にフォールバック
-    return 'Hiragana', 'Romaji'
-  end
+	-- Google Japanese IME が利用可能かチェック
+	-- NOTE: Mac の設定 > キーボード > 入力ソースを `ひらがな（Google）`, `英数（Google)` に設定してください。
+	if hasGoogleIME then
+		return "Hiragana (Google)", "Alphanumeric (Google)"
+	else
+		-- ことえり（Mac標準IME）にフォールバック
+		return "Hiragana", "Romaji"
+	end
 end
 
 local hiraganaMode, romajiMode = detectIMEMethods()
 
 local function toggleIMESwitch(event)
-  local t = event:getType()
-  local f = event:getFlags()
-  local c = event:getKeyCode()
+	local t = event:getType()
+	local f = event:getFlags()
+	local c = event:getKeyCode()
 
-  if t == hs.eventtap.event.types.flagsChanged then
-    -- cmdが押された瞬間、他の修飾キーがなければsimpleCmdをtrue
-    if f['cmd'] and not f['shift'] and not f['alt'] and not f['ctrl'] then
-      simpleCmd = true
-      cmdPressTime = hs.timer.absoluteTime() / 1000000
-    -- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
-    elseif not f['cmd'] and simpleCmd then
-      local now = hs.timer.absoluteTime() / 1000000
-      local holdDuration = now - cmdPressTime
-      if holdDuration >= MIN_HOLD_MS and (now - lastToggleTime) > COOLDOWN_MS then
-        if hs.keycodes.currentMethod() == romajiMode then
-          hs.keycodes.setMethod(hiraganaMode)
-        else
-          hs.keycodes.setMethod(romajiMode)
-        end
-        lastToggleTime = now
-      end
-      simpleCmd = false
-    else
-      simpleCmd = false
-    end
-  elseif t == hs.eventtap.event.types.keyDown then
-    -- cmd以外のキーが押されたらsimpleCmdをfalse
-    if simpleCmd and not (c == map['cmd'] or c == map['rightcmd']) then
-      simpleCmd = false
-    end
-  end
+	if t == hs.eventtap.event.types.flagsChanged then
+		-- cmdが押された瞬間、他の修飾キーがなければsimpleCmdをtrue
+		if f["cmd"] and not f["shift"] and not f["alt"] and not f["ctrl"] then
+			simpleCmd = true
+			cmdPressTime = hs.timer.absoluteTime() / 1000000
+		-- cmdが離された瞬間、simpleCmdがtrueならIME切り替え
+		elseif not f["cmd"] and simpleCmd then
+			local now = hs.timer.absoluteTime() / 1000000
+			local holdDuration = now - cmdPressTime
+			if holdDuration >= MIN_HOLD_MS and (now - lastToggleTime) > COOLDOWN_MS then
+				if hs.keycodes.currentMethod() == romajiMode then
+					hs.keycodes.setMethod(hiraganaMode)
+				else
+					hs.keycodes.setMethod(romajiMode)
+				end
+				lastToggleTime = now
+			end
+			simpleCmd = false
+		else
+			simpleCmd = false
+		end
+	elseif t == hs.eventtap.event.types.keyDown then
+		-- cmd以外のキーが押されたらsimpleCmdをfalse
+		if simpleCmd and not (c == map["cmd"] or c == map["rightcmd"]) then
+			simpleCmd = false
+		end
+	end
 end
 
-toggleIMESwitcher = hs.eventtap.new(
-  {hs.eventtap.event.types.keyDown, hs.eventtap.event.types.flagsChanged},
-  toggleIMESwitch
-)
+toggleIMESwitcher =
+	hs.eventtap.new({ hs.eventtap.event.types.keyDown, hs.eventtap.event.types.flagsChanged }, toggleIMESwitch)
 toggleIMESwitcher:start()
 
 -- Ctrl+J で改行を挿入 (特定アプリ限定)
 local ctrlJTargetApps = {
-  ["Brave"] = true,
-  ["ChatGPT"] = true,
-  ["Claude"] = true,
-  ["Firefox"] = true,
-  ["Gemini"] = true,
-  ["Google Chrome"] = true,
-  ["Obsidian"] = true,
-  ["Safari"] = true,
-  ["Slack"] = true,
+	["Affinity"] = true,
+	["1Password"] = true,
+	["Brave"] = true,
+	["Canva"] = true,
+	["ChatGPT"] = true,
+	["Code"] = true,
+	["Codex"] = true,
+	["Claude"] = true,
+	["Discord"] = true,
+	["Excel"] = true,
+	["Firefox"] = true,
+	["Gemini"] = true,
+	["Google Chrome"] = true,
+	["Google Chrome Canary"] = true,
+	["Google Chrome Beta"] = true,
+	["Microsoft Edge"] = true,
+	["Microsoft Teams"] = true,
+	["OBS"] = true,
+	["Obsidian"] = true,
+	["Safari"] = true,
+	["Slack"] = true,
+	["Siri"] = true,
+	["Word"] = true,
+	["Xcode"] = true,
+	["Zoom"] = true,
 }
 
 local ctrlJHotkey = hs.hotkey.new({ "ctrl" }, "j", function()
-  hs.eventtap.keyStroke({ "shift" }, "return", 0)
+	hs.eventtap.keyStroke({ "shift" }, "return", 0)
 end)
 
 -- 対象アプリがアクティブな時だけ有効化
 ctrlJAppWatcher = hs.application.watcher.new(function(appName, eventType, app)
-  if eventType == hs.application.watcher.activated then
-    if ctrlJTargetApps[appName] then
-      ctrlJHotkey:enable()
-    else
-      ctrlJHotkey:disable()
-    end
-  end
+	if eventType == hs.application.watcher.activated then
+		if ctrlJTargetApps[appName] then
+			ctrlJHotkey:enable()
+		else
+			ctrlJHotkey:disable()
+		end
+	end
 end)
 ctrlJAppWatcher:start()
 
 -- 起動時に現在のアプリをチェック
 local frontApp = hs.application.frontmostApplication()
 if frontApp and ctrlJTargetApps[frontApp:name()] then
-  ctrlJHotkey:enable()
+	ctrlJHotkey:enable()
 end
