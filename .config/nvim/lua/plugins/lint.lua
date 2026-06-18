@@ -18,12 +18,20 @@ return {
       markdown = { 'markdownlint' },
     }
 
+    local function available_linters()
+      local ft = vim.bo.filetype
+      local names = lint.linters_by_ft[ft] or {}
+      return vim.tbl_filter(function(name)
+        local cmd = lint.linters[name] and lint.linters[name].cmd
+        return cmd and vim.fn.executable(cmd) == 1
+      end, names)
+    end
+
     local group = vim.api.nvim_create_augroup('NvimLint', { clear = true })
     vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost', 'InsertLeave' }, {
       group = group,
       callback = function()
-        -- 保存していないバッファ等で linter が無いケースは try_lint が握りつぶす
-        lint.try_lint()
+        lint.try_lint(available_linters())
       end,
     })
   end,
