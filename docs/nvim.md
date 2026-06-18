@@ -103,18 +103,6 @@ Insert モードで動作します。`<Tab>` は Copilot → スニペット →
 
 > **Note:** サジェストの受け入れは `Tab` (Smart Tab) で行います。
 
-### Copilot Chat
-
-| キー操作 | モード | 動作 | 設定元 |
-|---|---|---|---|
-| `<leader>cc` | Normal | Copilot Chat の表示/非表示 | `plugins/copilot.lua` |
-| `<leader>ce` | Normal, Visual | コードの説明 | `plugins/copilot.lua` |
-| `<leader>cr` | Normal, Visual | コードレビュー | `plugins/copilot.lua` |
-| `<leader>cf` | Normal, Visual | バグ修正 | `plugins/copilot.lua` |
-| `<leader>co` | Normal, Visual | コード最適化 | `plugins/copilot.lua` |
-| `<leader>cd` | Normal, Visual | ドキュメント生成 | `plugins/copilot.lua` |
-| `<leader>ct` | Normal, Visual | テスト生成 | `plugins/copilot.lua` |
-
 ## Treesitter (選択範囲)
 
 Operator-pending / Visual モードで動作します。

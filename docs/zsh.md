@@ -49,9 +49,9 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 | `lg` | `lazygit` | `.zshrc` |
 | `ni` | `nvim` | `.zshrc` |
 | `tinyvim` | 最小構成 (`.vimrc.minimal`) で Vim を起動 | `.zshrc` |
-| `tinyprompt` | 画面収録用にプロンプトを簡素化 (`$ ` のみ等) | `.zshrc` |
-| `normalprompt` | プロンプトを通常の状態に戻す | `.zshrc` |
 | `qr` | `qrencode -t UTF8` (QRコード生成) | `.zshrc` |
+| `prompt left off` | 画面収録用にプロンプトを簡素化 (`$ ` のみ等) | `.zsh/functions/prompt` |
+| `prompt left on` | プロンプトを通常の状態に戻す | `.zsh/functions/prompt` |
 
 ---
 

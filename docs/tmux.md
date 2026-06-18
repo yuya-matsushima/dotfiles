@@ -39,8 +39,8 @@
 
 | キー操作 | 動作 | 設定元 |
 |---|---|---|
-| `Prefix` + `y` | コピーモード開始 (デフォルトの `[` も使用可能) | `.tmux.conf` |
-| `Prefix` + `p` | バッファの内容をペースト (デフォルトの `]` も使用可能) | `.tmux.conf` |
+| `Prefix` + `y` | コピーモード開始 | `.tmux.conf` |
+| `Prefix` + `p` | バッファの内容をペースト | `.tmux.conf` |
 | `v` | 選択開始 (Visual selection) | `.tmux.conf` |
 | `C-v` | 短形選択 (Rectangle toggle) | `.tmux.conf` |
 | `y` | 選択範囲をコピー (システムクリップボードへ `pbcopy`) | `.tmux.conf` |
