@@ -38,6 +38,7 @@ TARGETS=( \
          ".config/yazi" \
          ".config/lazygit" \
          ".hammerspoon" \
+         ".markdownlint.yml" \
        )
 
 for TARGET in ${TARGETS[@]}

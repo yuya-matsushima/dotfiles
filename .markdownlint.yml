@@ -1,0 +1,23 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+# MD013 - Line length
+# 日本語は 1 文字あたりバイト幅が大きく、行長制限と相性が悪いため無効化
+MD013: false
+
+# MD024 - Multiple headings with the same content
+# CHANGELOG などで同名見出しが繰り返されるケースを許容
+MD024:
+  siblings_only: true
+
+# MD033 - Inline HTML
+# GitHub 向け details/summary や br タグを許容
+MD033: false
+
+# MD034 - Bare URL used
+# リンクテキスト不要な URL をそのまま貼るケースが多いため許容
+MD034: false
+
+# MD041 - First line in a file should be a top-level heading
+# frontmatter 付きファイルや README 以外のドキュメントで不要
+MD041: false
