@@ -23,23 +23,27 @@ return {
     default_format_opts = {
       lsp_format = 'fallback',
     },
-    format_on_save = {
-      timeout_ms = 1000,
-      lsp_format = 'fallback',
-    },
+    format_on_save = function(bufnr)
+      local dominated_by_project = {
+        javascript = true,
+        javascriptreact = true,
+        typescript = true,
+        typescriptreact = true,
+        json = true,
+        jsonc = true,
+        css = true,
+        html = true,
+      }
+      if dominated_by_project[vim.bo[bufnr].filetype] then
+        return false
+      end
+      return { timeout_ms = 1000, lsp_format = 'fallback' }
+    end,
     formatters_by_ft = {
       python = { 'ruff_format', 'ruff_organize_imports' },
       go = { 'goimports' },
       rust = { 'rustfmt' },
       lua = { 'stylua' },
-      javascript = { 'prettierd', 'prettier', stop_after_first = true },
-      javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-      typescript = { 'prettierd', 'prettier', stop_after_first = true },
-      typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-      json = { 'prettierd', 'prettier', stop_after_first = true },
-      jsonc = { 'prettierd', 'prettier', stop_after_first = true },
-      css = { 'prettierd', 'prettier', stop_after_first = true },
-      html = { 'prettierd', 'prettier', stop_after_first = true },
       yaml = { 'prettierd', 'prettier', stop_after_first = true },
       markdown = { 'prettierd', 'prettier', stop_after_first = true },
     },
