@@ -23,10 +23,12 @@ return {
     default_format_opts = {
       lsp_format = 'fallback',
     },
-    format_on_save = {
-      timeout_ms = 1000,
-      lsp_format = 'fallback',
-    },
+    format_on_save = function(bufnr)
+      if vim.bo[bufnr].filetype == 'html' then
+        return false
+      end
+      return { timeout_ms = 1000, lsp_format = 'fallback' }
+    end,
     formatters_by_ft = {
       python = { 'ruff_format', 'ruff_organize_imports' },
       go = { 'goimports' },
