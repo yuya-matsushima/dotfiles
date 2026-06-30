@@ -33,6 +33,7 @@ return {
         jsonc = true,
         css = true,
         html = true,
+        markdown = true,
       }
       if dominated_by_project[vim.bo[bufnr].filetype] then
         return false
