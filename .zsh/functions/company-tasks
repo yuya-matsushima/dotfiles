@@ -312,9 +312,9 @@ _ymt_ct_render() {
           ref_padded    = pad(ref, 16)
           status_padded = pad(substr(status, 1, 7), 7)
           if (assignee == "-") {
-            adisp = cgray "-" creset pad("", 3)
+            adisp = cgray "-" creset pad("", 6)
           } else {
-            adisp = pad(assignee, 4)
+            adisp = pad(substr(assignee, 1, 7), 7)
           }
 
           if (color != "") {
