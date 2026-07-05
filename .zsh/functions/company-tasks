@@ -144,7 +144,10 @@ _ymt_ct_fetch_all() {
   rm -f "$stderr_file"
   printf '%s' "$raw" | jq '
     .items
-    | map(select(.content.type == "Issue" and (.status // "") != "Done"))
+    | map(select(
+        .content.type == "Issue"
+        and (.status == "Backlog" or .status == "Ready" or .status == "In Progress" or .status == "Review")
+      ))
     | map({
         id, status, priority,
         title:     .content.title,
@@ -312,11 +315,10 @@ _ymt_ct_render_json() {
 # ---------- whoami ----------
 
 _ymt_ct_whoami_cmd() {
-  # skip leading "whoami" token if present
-  [[ "$1" == "whoami" ]] && shift
   local proj_raw="" refresh=0
   while (( $# > 0 )); do
     case "$1" in
+      whoami) ;;
       --project)
         if [[ -z "$2" ]]; then
           echo "Error: --project requires an argument" >&2; return 1
