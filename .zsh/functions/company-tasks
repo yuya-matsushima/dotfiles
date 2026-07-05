@@ -274,8 +274,8 @@ _ymt_ct_render() {
     C_RESET=""
   fi
 
-  # due(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title, url を TSV で吐き
-  # awk で余裕のある固定幅にパディング
+  # due(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title を TSV で吐き
+  # awk で最小限の固定幅にパディング (assignee=4 は @me 想定, 長い名前はオーバーフロー許容)
   printf '%s' "$json" \
     | jq -r --arg me "$me" '
         .[] | [
@@ -285,8 +285,7 @@ _ymt_ct_render() {
           (if (.assignees | length) == 0 then "-"
            elif (.assignees | index($me)) then "@me"
            else "@" + .assignees[0] end),
-          (.title | gsub("[\t\n\r]"; " ")),
-          .url
+          (.title | gsub("[\t\n\r]"; " "))
         ] | @tsv' \
     | awk -F'\t' \
           -v today="$today_date" -v d3="$d3_date" -v d7="$d7_date" \
@@ -298,7 +297,7 @@ _ymt_ct_render() {
           return s sprintf("%*s", deficit, "")
         }
         {
-          due = $1; ref = $2; status = $3; assignee = $4; title = $5; url = $6
+          due = $1; ref = $2; status = $3; assignee = $4; title = $5
           raw_due = due
           if (due == "未設定") due = "未設定    "
 
@@ -310,18 +309,18 @@ _ymt_ct_render() {
             else if (raw_due <= d7)    color = ccyan
           }
 
-          ref_padded    = pad(ref, 18)
-          status_padded = pad(status, 14)
+          ref_padded    = pad(ref, 16)
+          status_padded = pad(status, 12)
           if (assignee == "-") {
-            adisp = cgray "-" creset pad("", 14)
+            adisp = cgray "-" creset pad("", 3)
           } else {
-            adisp = pad(assignee, 15)
+            adisp = pad(assignee, 4)
           }
 
           if (color != "") {
-            printf "%s%s  %s  %s  %s  %s  %s%s\n", color, due, ref_padded, status_padded, adisp, title, url, creset
+            printf "%s%s  %s  %s  %s  %s%s\n", color, due, ref_padded, status_padded, adisp, title, creset
           } else {
-            printf "%s  %s  %s  %s  %s  %s\n", due, ref_padded, status_padded, adisp, title, url
+            printf "%s  %s  %s  %s  %s\n", due, ref_padded, status_padded, adisp, title
           }
         }'
   echo
