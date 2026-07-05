@@ -131,12 +131,17 @@ _ymt_ct_parse_project() {
 # $1: owner, $2: number. Outputs normalized JSON array.
 _ymt_ct_fetch_all() {
   local owner="$1" number="$2"
-  local raw
-  if ! raw=$(gh project item-list "$number" --owner "$owner" --format json --limit 500 2>&1); then
+  local raw stderr_file rc
+  stderr_file=$(mktemp -t company-tasks-gh-stderr) || return 1
+  raw=$(gh project item-list "$number" --owner "$owner" --format json --limit 500 2>"$stderr_file")
+  rc=$?
+  if (( rc != 0 )); then
     echo "Error: failed to fetch project items (owner=$owner number=$number)" >&2
-    echo "$raw" >&2
+    cat "$stderr_file" >&2
+    rm -f "$stderr_file"
     return 1
   fi
+  rm -f "$stderr_file"
   printf '%s' "$raw" | jq '
     .items
     | map(select(.content.type == "Issue" and (.status // "") != "Done"))
@@ -189,7 +194,7 @@ _ymt_ct_bucket_split() {
         '[.[] | select(.due != null and .due > $t and .due <= $d7)]' ;;
     month)
       printf '%s' "$json" | jq --arg s "$since" --arg d30 "$month_to" \
-        '[.[] | select(.due != null and .due > $s and .due <= $d30)]' ;;
+        '[.[] | select(.due != null and .due >= $s and .due <= $d30)]' ;;
     nodue)
       printf '%s' "$json" | jq '[.[] | select(.due == null)]' ;;
   esac
