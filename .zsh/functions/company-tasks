@@ -1,0 +1,483 @@
+#!/bin/zsh
+
+# Check dependencies
+for _ymt_ct_cmd in gh jq date awk; do
+  if ! command -v "$_ymt_ct_cmd" >/dev/null 2>&1; then
+    echo "Error: $_ymt_ct_cmd command not found. Please install $_ymt_ct_cmd." >&2
+    return 1
+  fi
+done
+unset _ymt_ct_cmd
+
+_ymt_ct_usage() {
+  cat <<'EOF'
+company-tasks shows GitHub Projects V2 issues to be handled, grouped by due date.
+
+Usage:
+  company-tasks                          show all 4 buckets (today, week, month, nodue) — 自分担当のみ
+  company-tasks today                    Due Date <= today (overdue 含む)
+  company-tasks week                     7 日以内 (today < Due Date <= today+7)
+  company-tasks month                    30 日以内 (today < Due Date <= today+30)
+                                         無指定 (= all) のときだけ week と重複しないよう today+7 以降に絞る
+  company-tasks nodue                    Due Date 未設定
+  company-tasks unassigned [today|week|month|nodue|all]
+                                         未アサインタスクのみ (バケット未指定で全 4 バケット)
+  company-tasks whoami                   resolved owner/number/login を表示
+  company-tasks -h | --help              print help
+
+Options:
+  --all                                  担当者フィルタを外し, project 全体を対象 (デフォルトは自分担当のみ)
+  --json                                 JSON 出力
+  --project owner/number                 対象プロジェクトを上書き (env 未設定時のデフォルトを差し替え)
+  --refresh-me                           me キャッシュを強制更新
+
+色凡例 (TTY 出力時):
+  赤      過去期限 (overdue)
+  橙      当日 (今日が期限)
+  黄      1〜3 日以内
+  cyan    4〜7 日以内
+
+Environment:
+  COMPANY_TASKS_OWNER      GitHub Projects V2 owner (default: fillin-inc)
+  COMPANY_TASKS_PROJECT    Project number          (default: 6)
+
+Dependencies:
+  gh (with 'project' scope)
+  jq
+  date
+  awk
+
+status フィルタ: Backlog / Ready / In Progress / Review を対象。Done は除外。
+content.type は Issue のみ (DraftIssue / PullRequest は除外)。
+EOF
+}
+
+_ymt_ct_cache_dir() {
+  local dir="${XDG_CACHE_HOME:-$HOME/.cache}/company-tasks"
+  [[ -d "$dir" ]] || mkdir -p "$dir"
+  printf '%s' "$dir"
+}
+
+# ---------- me (gh login) ----------
+
+# $1: refresh flag (0|1). TTL: 24h
+_ymt_ct_me() {
+  local refresh="${1:-0}"
+  local dir cache mtime now age login
+  dir="$(_ymt_ct_cache_dir)" || return 1
+  cache="$dir/me"
+
+  if (( ! refresh )) && [[ -f "$cache" ]]; then
+    mtime=$(stat -f %m "$cache" 2>/dev/null) || mtime=0
+    now=$(date +%s)
+    age=$(( now - mtime ))
+    if (( age < 86400 )); then
+      login=$(<"$cache")
+      if [[ -n "$login" ]]; then
+        printf '%s' "$login"
+        return 0
+      fi
+    fi
+  fi
+
+  if login=$(gh api user -q .login 2>/dev/null) && [[ -n "$login" ]]; then
+    printf '%s' "$login" > "$cache"
+    printf '%s' "$login"
+    return 0
+  fi
+
+  if [[ -f "$cache" ]]; then
+    login=$(<"$cache")
+    if [[ -n "$login" ]]; then
+      echo "Warning: failed to refresh gh login, using stale cache" >&2
+      printf '%s' "$login"
+      return 0
+    fi
+  fi
+
+  echo "Error: failed to resolve GitHub login via 'gh api user'. Run 'gh auth login' first." >&2
+  return 1
+}
+
+# ---------- project resolve ----------
+
+# $1: raw arg (may be empty). Outputs "owner\tnumber".
+_ymt_ct_parse_project() {
+  local raw="$1" owner number
+  if [[ -z "$raw" ]]; then
+    owner="${COMPANY_TASKS_OWNER:-fillin-inc}"
+    number="${COMPANY_TASKS_PROJECT:-6}"
+  else
+    if [[ "$raw" != */* ]]; then
+      echo "Error: --project must be 'owner/number' (got: '$raw')" >&2
+      return 1
+    fi
+    owner="${raw%%/*}"
+    number="${raw##*/}"
+  fi
+  if [[ -z "$owner" || -z "$number" ]]; then
+    echo "Error: --project must be 'owner/number' (got: '$raw')" >&2
+    return 1
+  fi
+  if [[ "$number" != <-> ]]; then
+    echo "Error: project number must be numeric (got: '$number')" >&2
+    return 1
+  fi
+  printf '%s\t%s' "$owner" "$number"
+}
+
+# ---------- fetch ----------
+
+# $1: owner, $2: number. Outputs normalized JSON array.
+_ymt_ct_fetch_all() {
+  local owner="$1" number="$2"
+  local raw
+  if ! raw=$(gh project item-list "$number" --owner "$owner" --format json --limit 500 2>&1); then
+    echo "Error: failed to fetch project items (owner=$owner number=$number)" >&2
+    echo "$raw" >&2
+    return 1
+  fi
+  printf '%s' "$raw" | jq '
+    .items
+    | map(select(.content.type == "Issue" and (.status // "") != "Done"))
+    | map({
+        id, status, priority,
+        title:     .content.title,
+        number:    .content.number,
+        repo:      .content.repository,
+        url:       .content.url,
+        assignees: (.assignees // []),
+        labels:    (.labels // []),
+        due:       (."due Date" // null)
+      })
+    | sort_by(.due // "9999-12-31", .number)
+  '
+}
+
+# ---------- filter ----------
+
+# $1: json, $2: mode (mine|all|unassigned), $3: me
+_ymt_ct_filter_assignee() {
+  local json="$1" mode="$2" me="$3"
+  case "$mode" in
+    all)        printf '%s' "$json" ;;
+    mine)       printf '%s' "$json" | jq --arg me "$me" '[.[] | select((.assignees // []) | index($me))]' ;;
+    unassigned) printf '%s' "$json" | jq '[.[] | select((.assignees // []) | length == 0)]' ;;
+  esac
+}
+
+# ---------- bucket ----------
+
+# $1: json, $2: bucket, $3: exclude_week (0|1)
+_ymt_ct_bucket_split() {
+  local json="$1" bucket="$2" exclude_week="${3:-0}"
+  local today tomorrow week_to month_from month_to since
+  today=$(date +%Y-%m-%d)
+  tomorrow=$(date -v+1d +%Y-%m-%d)
+  week_to=$(date -v+7d +%Y-%m-%d)
+  month_from=$(date -v+8d +%Y-%m-%d)
+  month_to=$(date -v+30d +%Y-%m-%d)
+  since="$tomorrow"
+  (( exclude_week )) && since="$month_from"
+
+  case "$bucket" in
+    today)
+      printf '%s' "$json" | jq --arg t "$today" \
+        '[.[] | select(.due != null and .due <= $t)]' ;;
+    week)
+      printf '%s' "$json" | jq --arg t "$today" --arg d7 "$week_to" \
+        '[.[] | select(.due != null and .due > $t and .due <= $d7)]' ;;
+    month)
+      printf '%s' "$json" | jq --arg s "$since" --arg d30 "$month_to" \
+        '[.[] | select(.due != null and .due > $s and .due <= $d30)]' ;;
+    nodue)
+      printf '%s' "$json" | jq '[.[] | select(.due == null)]' ;;
+  esac
+}
+
+_ymt_ct_bucket_title() {
+  local bucket="$1" exclude_week="${2:-0}"
+  case "$bucket" in
+    today) printf '今日中 (期限 <= %s)' "$(date +%Y-%m-%d)" ;;
+    week)  printf '7 日以内 (~ %s)' "$(date -v+7d +%Y-%m-%d)" ;;
+    month)
+      if (( exclude_week )); then
+        printf '30 日以内 (%s 〜 %s)' "$(date -v+8d +%Y-%m-%d)" "$(date -v+30d +%Y-%m-%d)"
+      else
+        printf '30 日以内 (~ %s)' "$(date -v+30d +%Y-%m-%d)"
+      fi ;;
+    nodue) printf '期限未設定' ;;
+  esac
+}
+
+# ---------- rendering ----------
+
+# $1: title, $2: json, $3: me
+_ymt_ct_render() {
+  local title="$1" json="$2" me="$3"
+  local count today_date d3_date d7_date
+  count=$(printf '%s' "$json" | jq 'length')
+  today_date=$(date +%Y-%m-%d)
+  d3_date=$(date -v+3d +%Y-%m-%d)
+  d7_date=$(date -v+7d +%Y-%m-%d)
+
+  echo "## ${title} — ${count} 件"
+  if (( count == 0 )); then
+    echo "  (該当なし)"
+    echo
+    return 0
+  fi
+
+  local C_RED C_ORANGE C_YELLOW C_CYAN C_GRAY C_RESET
+  if [[ -t 1 ]]; then
+    C_RED=$'\033[31m'
+    C_ORANGE=$'\033[38;5;208m'
+    C_YELLOW=$'\033[33m'
+    C_CYAN=$'\033[36m'
+    C_GRAY=$'\033[90m'
+    C_RESET=$'\033[0m'
+  else
+    C_RED=""
+    C_ORANGE=""
+    C_YELLOW=""
+    C_CYAN=""
+    C_GRAY=""
+    C_RESET=""
+  fi
+
+  # due(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title, url を TSV で吐き
+  # awk で余裕のある固定幅にパディング
+  printf '%s' "$json" \
+    | jq -r --arg me "$me" '
+        .[] | [
+          (.due // "未設定"),
+          ((.repo | split("/") | last) + "#" + (.number | tostring)),
+          (.status // "" | gsub("[\t\n\r]"; " ")),
+          (if (.assignees | length) == 0 then "-"
+           elif (.assignees | index($me)) then "@me"
+           else "@" + .assignees[0] end),
+          (.title | gsub("[\t\n\r]"; " ")),
+          .url
+        ] | @tsv' \
+    | awk -F'\t' \
+          -v today="$today_date" -v d3="$d3_date" -v d7="$d7_date" \
+          -v cred="$C_RED" -v corange="$C_ORANGE" -v cyel="$C_YELLOW" -v ccyan="$C_CYAN" \
+          -v cgray="$C_GRAY" -v creset="$C_RESET" '
+        function pad(s, n,    deficit) {
+          deficit = n - length(s)
+          if (deficit <= 0) return s
+          return s sprintf("%*s", deficit, "")
+        }
+        {
+          due = $1; ref = $2; status = $3; assignee = $4; title = $5; url = $6
+          raw_due = due
+          if (due == "未設定") due = "未設定    "
+
+          color = ""
+          if (raw_due != "未設定") {
+            if      (raw_due <  today) color = cred
+            else if (raw_due == today) color = corange
+            else if (raw_due <= d3)    color = cyel
+            else if (raw_due <= d7)    color = ccyan
+          }
+
+          ref_padded    = pad(ref, 18)
+          status_padded = pad(status, 14)
+          if (assignee == "-") {
+            adisp = cgray "-" creset pad("", 14)
+          } else {
+            adisp = pad(assignee, 15)
+          }
+
+          if (color != "") {
+            printf "%s%s  %s  %s  %s  %s  %s%s\n", color, due, ref_padded, status_padded, adisp, title, url, creset
+          } else {
+            printf "%s  %s  %s  %s  %s  %s\n", due, ref_padded, status_padded, adisp, title, url
+          }
+        }'
+  echo
+}
+
+_ymt_ct_render_json() {
+  local title="$1" json="$2"
+  jq -n --arg title "$title" --argjson items "$json" \
+    '{title: $title, count: ($items | length), items: $items}'
+}
+
+# ---------- whoami ----------
+
+_ymt_ct_whoami_cmd() {
+  # skip leading "whoami" token if present
+  [[ "$1" == "whoami" ]] && shift
+  local proj_raw="" refresh=0
+  while (( $# > 0 )); do
+    case "$1" in
+      --project)
+        if [[ -z "$2" ]]; then
+          echo "Error: --project requires an argument" >&2; return 1
+        fi
+        proj_raw="$2"; shift ;;
+      --project=*) proj_raw="${1#--project=}" ;;
+      --refresh-me) refresh=1 ;;
+      -h|--help) _ymt_ct_usage; return 0 ;;
+      *) echo "Error: unknown option '$1' for whoami" >&2; return 1 ;;
+    esac
+    shift
+  done
+
+  local resolved owner number me
+  resolved=$(_ymt_ct_parse_project "$proj_raw") || return $?
+  owner="${resolved%%$'\t'*}"
+  number="${resolved##*$'\t'}"
+  me=$(_ymt_ct_me "$refresh") || return $?
+  printf 'owner:   %s\n' "$owner"
+  printf 'number:  %s\n' "$number"
+  printf 'login:   %s\n' "$me"
+}
+
+# ---------- bucket runner ----------
+
+# $1: dispatch_kind: "bucket" sub (all/today/week/month/nodue) or "unassigned"
+# $2..: remaining args
+_ymt_ct_tasks_cmd() {
+  local kind="$1"; shift
+  local bucket="" opt_mode="mine" opt_json=0 opt_project="" opt_refresh_me=0
+  local saw_sub=0
+
+  if [[ "$kind" == "unassigned" ]]; then
+    opt_mode="unassigned"
+  else
+    bucket="$kind"
+  fi
+
+  while (( $# > 0 )); do
+    case "$1" in
+      all|today|week|month|nodue)
+        if (( ! saw_sub )); then
+          saw_sub=1
+          if [[ "$opt_mode" == "unassigned" ]]; then
+            bucket="$1"
+          fi
+        else
+          echo "Error: unexpected '$1'" >&2; return 1
+        fi ;;
+      unassigned)
+        if [[ "$opt_mode" != "unassigned" ]]; then
+          echo "Error: unexpected '$1'" >&2; return 1
+        fi ;;
+      --all)
+        if [[ "$opt_mode" == "unassigned" ]]; then
+          echo "Error: --all cannot be combined with 'unassigned'" >&2; return 1
+        fi
+        opt_mode="all" ;;
+      --json) opt_json=1 ;;
+      --project)
+        if [[ -z "$2" ]]; then
+          echo "Error: --project requires an argument" >&2; return 1
+        fi
+        opt_project="$2"; shift ;;
+      --project=*) opt_project="${1#--project=}" ;;
+      --refresh-me) opt_refresh_me=1 ;;
+      -h|--help) _ymt_ct_usage; return 0 ;;
+      *) echo "Error: unknown argument '$1'" >&2; return 1 ;;
+    esac
+    shift
+  done
+
+  [[ -z "$bucket" ]] && bucket="all"
+
+  local resolved owner number
+  resolved=$(_ymt_ct_parse_project "$opt_project") || return $?
+  owner="${resolved%%$'\t'*}"
+  number="${resolved##*$'\t'}"
+
+  local me
+  me=$(_ymt_ct_me "$opt_refresh_me") || return $?
+
+  local json_all json_scoped
+  json_all=$(_ymt_ct_fetch_all "$owner" "$number") || return $?
+  json_scoped=$(_ymt_ct_filter_assignee "$json_all" "$opt_mode" "$me")
+
+  local b json_b title exclude_week combined part rc
+  if [[ "$bucket" == "all" ]]; then
+    exclude_week=1
+    if (( opt_json )); then
+      combined=""
+      for b in today week month nodue; do
+        json_b=$(_ymt_ct_bucket_split "$json_scoped" "$b" "$exclude_week")
+        title=$(_ymt_ct_bucket_title "$b" "$exclude_week")
+        part=$(_ymt_ct_render_json "$title" "$json_b")
+        rc=$?
+        (( rc != 0 )) && return $rc
+        combined+="$part"$'\n'
+      done
+      printf '%s' "$combined" | jq -s '.'
+    else
+      for b in today week month nodue; do
+        json_b=$(_ymt_ct_bucket_split "$json_scoped" "$b" "$exclude_week")
+        title=$(_ymt_ct_bucket_title "$b" "$exclude_week")
+        _ymt_ct_render "$title" "$json_b" "$me" || return $?
+      done
+    fi
+  else
+    json_b=$(_ymt_ct_bucket_split "$json_scoped" "$bucket" 0)
+    title=$(_ymt_ct_bucket_title "$bucket" 0)
+    if (( opt_json )); then
+      _ymt_ct_render_json "$title" "$json_b"
+    else
+      _ymt_ct_render "$title" "$json_b" "$me"
+    fi
+  fi
+}
+
+# ---------- main dispatch ----------
+
+# detect -h/--help anywhere
+for _ymt_ct_arg in "$@"; do
+  case "$_ymt_ct_arg" in
+    -h|--help) _ymt_ct_usage; unset _ymt_ct_arg; return 0 ;;
+  esac
+done
+unset _ymt_ct_arg
+
+# first non-flag arg = subcommand (skip value of --project when given as separated form)
+_ymt_ct_sub=""
+_ymt_ct_skip_next=0
+for _ymt_ct_arg in "$@"; do
+  if (( _ymt_ct_skip_next )); then
+    _ymt_ct_skip_next=0
+    continue
+  fi
+  case "$_ymt_ct_arg" in
+    --project) _ymt_ct_skip_next=1; continue ;;
+  esac
+  if [[ "$_ymt_ct_arg" != -* ]]; then
+    _ymt_ct_sub="$_ymt_ct_arg"
+    break
+  fi
+done
+unset _ymt_ct_arg _ymt_ct_skip_next
+: ${_ymt_ct_sub:=all}
+
+case "$_ymt_ct_sub" in
+  whoami)
+    _ymt_ct_whoami_cmd "$@"
+    _ymt_ct_rc=$?
+    unset _ymt_ct_sub
+    return $_ymt_ct_rc ;;
+  unassigned)
+    _ymt_ct_tasks_cmd "unassigned" "$@"
+    _ymt_ct_rc=$?
+    unset _ymt_ct_sub
+    return $_ymt_ct_rc ;;
+  all|today|week|month|nodue)
+    _ymt_ct_tasks_cmd "$_ymt_ct_sub" "$@"
+    _ymt_ct_rc=$?
+    unset _ymt_ct_sub
+    return $_ymt_ct_rc ;;
+  *)
+    echo "Error: unknown subcommand '$_ymt_ct_sub'" >&2
+    _ymt_ct_usage
+    unset _ymt_ct_sub
+    return 1 ;;
+esac
