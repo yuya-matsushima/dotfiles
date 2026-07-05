@@ -310,7 +310,7 @@ _ymt_ct_render() {
           }
 
           ref_padded    = pad(ref, 16)
-          status_padded = pad(status, 12)
+          status_padded = pad(substr(status, 1, 7), 7)
           if (assignee == "-") {
             adisp = cgray "-" creset pad("", 3)
           } else {
