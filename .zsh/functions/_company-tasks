@@ -1,0 +1,61 @@
+#compdef company-tasks
+
+# company-tasks の補完定義
+# 第1引数でサブコマンド (today/week/month/nodue/unassigned/whoami) を補完し,
+# その後サブコマンド固有のオプション/引数を補完する。
+
+_company-tasks() {
+  local curcontext="$curcontext" state line
+  local -a subcommands
+  subcommands=(
+    'today:期限 <= today (overdue 含む)'
+    'week:7 日以内 (today < Due Date <= today+7)'
+    'month:30 日以内 (today < Due Date <= today+30, all 実行時のみ week 分を除外)'
+    'nodue:期限未設定'
+    'unassigned:未アサインタスク (バケット指定可)'
+    'whoami:resolved owner/number/login を表示'
+  )
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '--all[担当者フィルタを外し, project 全体を対象]' \
+    '--json[JSON 出力]' \
+    '--project=[owner/number で対象プロジェクトを上書き]:owner/number:' \
+    '--refresh-me[me キャッシュを強制更新]' \
+    '1: :->subcmd' \
+    '*:: :->args'
+
+  case "$state" in
+    subcmd)
+      _describe -t commands 'company-tasks subcommand' subcommands
+      ;;
+    args)
+      case "$line[1]" in
+        whoami)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--project=[owner/number]:owner/number:' \
+            '--refresh-me[me キャッシュを強制更新]'
+          ;;
+        today|week|month|nodue)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--all[担当者フィルタを外し, project 全体を対象]' \
+            '--json[JSON 出力]' \
+            '--project=[owner/number]:owner/number:' \
+            '--refresh-me[me キャッシュを強制更新]'
+          ;;
+        unassigned)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--json[JSON 出力]' \
+            '--project=[owner/number]:owner/number:' \
+            '--refresh-me[me キャッシュを強制更新]' \
+            '2:bucket:(today week month nodue all)'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_company-tasks "$@"
