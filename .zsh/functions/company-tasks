@@ -40,6 +40,7 @@ Options:
 Environment:
   COMPANY_TASKS_OWNER      GitHub Projects V2 owner (default: fillin-inc)
   COMPANY_TASKS_PROJECT    Project number          (default: 6)
+  COMPANY_TASKS_LIMIT      1 回の取得上限        (default: 500)
 
 Dependencies:
   gh (with 'project' scope)
@@ -131,9 +132,10 @@ _ymt_ct_parse_project() {
 # $1: owner, $2: number. Outputs normalized JSON array.
 _ymt_ct_fetch_all() {
   local owner="$1" number="$2"
-  local raw stderr_file rc
+  local raw stderr_file rc limit fetched
+  limit="${COMPANY_TASKS_LIMIT:-500}"
   stderr_file=$(mktemp -t company-tasks-gh-stderr) || return 1
-  raw=$(gh project item-list "$number" --owner "$owner" --format json --limit 500 2>"$stderr_file")
+  raw=$(gh project item-list "$number" --owner "$owner" --format json --limit "$limit" 2>"$stderr_file")
   rc=$?
   if (( rc != 0 )); then
     echo "Error: failed to fetch project items (owner=$owner number=$number)" >&2
@@ -142,6 +144,10 @@ _ymt_ct_fetch_all() {
     return 1
   fi
   rm -f "$stderr_file"
+  fetched=$(printf '%s' "$raw" | jq '.items | length')
+  if [[ "$fetched" == <-> ]] && (( fetched >= limit )); then
+    echo "Warning: fetched $fetched project items (limit=$limit). May be truncated — bump COMPANY_TASKS_LIMIT if you see missing entries." >&2
+  fi
   printf '%s' "$raw" | jq '
     .items
     | map(select(
