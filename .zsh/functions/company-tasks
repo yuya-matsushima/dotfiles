@@ -37,16 +37,24 @@ Options:
   黄      1〜3 日以内
   cyan    4〜7 日以内
 
+親子情報 (行末注記):
+  ↑repo#N   親 issue への参照 (親を持つ場合)
+  ↓N        子 issue の件数 (子を持つ場合)
+
 Environment (--project 未指定時は必須):
-  COMPANY_TASKS_OWNER      GitHub Projects V2 owner (例: fillin-inc)
-  COMPANY_TASKS_PROJECT    Project number          (例: 6)
-  COMPANY_TASKS_LIMIT      1 回の取得上限         (default: 500)
+  COMPANY_TASKS_OWNER          GitHub Projects V2 owner (例: fillin-inc)
+  COMPANY_TASKS_PROJECT        Project number          (例: 6)
+  COMPANY_TASKS_LIMIT          1 回の取得上限         (default: 500)
+  COMPANY_TASKS_TARGET_FIELD   Issue Custom Field 名   (default: "Target date")
 
 Dependencies:
-  gh (with 'project' scope)
+  gh (with 'project' scope, and read access to issue custom fields)
   jq
   date
   awk
+
+Target Date は Issue Custom Field (2025 GA) から GraphQL で取得する。
+Project field 側にも同名の field があれば fallback として採用。
 
 status フィルタ: Backlog / Ready / In Progress / Review を対象。Done は除外。
 content.type は Issue のみ (DraftIssue / PullRequest は除外)。
@@ -183,6 +191,81 @@ _ymt_ct_fetch_all() {
   '
 }
 
+# ---------- enrich (target date / parent / sub-issues) ----------
+
+# $1: json array. Adds .target (string|null, overriding), .parent_ref (string|null), .sub_count (int).
+# Fetches Issue Custom Field "Target Date" (name customizable via COMPANY_TASKS_TARGET_FIELD) via GraphQL.
+# Silent fallback: on GraphQL error, prints original json unchanged with a warning.
+_ymt_ct_enrich_relations() {
+  local json="$1"
+  local count target_field
+  target_field="${COMPANY_TASKS_TARGET_FIELD:-Target date}"
+  count=$(printf '%s' "$json" | jq 'length')
+  if [[ "$count" == "0" ]]; then
+    printf '%s' "$json"
+    return 0
+  fi
+
+  local query_body query stderr_file out rc lookup
+  query_body=$(printf '%s' "$json" | jq -r '
+    to_entries | map(
+      "a\(.key): repository(owner: \"\(.value.repo | split("/") | .[0])\", name: \"\(.value.repo | split("/") | .[1])\") { issue(number: \(.value.number)) { number repository { nameWithOwner } parent { number repository { nameWithOwner } } subIssues { totalCount } issueFieldValues(first: 100) { nodes { __typename ... on IssueFieldDateValue { value field { ... on IssueFieldDate { name } } } } } } }"
+    ) | join("\n")
+  ')
+  query="query {
+$query_body
+}"
+
+  stderr_file=$(mktemp -t company-tasks-graphql-stderr) || { printf '%s' "$json"; return 0; }
+  out=$(gh api graphql -f query="$query" 2>"$stderr_file")
+  rc=$?
+  if (( rc != 0 )); then
+    echo "Warning: failed to fetch issue custom fields / parent / sub-issue relations, showing entries without them" >&2
+    cat "$stderr_file" >&2
+    rm -f "$stderr_file"
+    printf '%s' "$json"
+    return 0
+  fi
+  rm -f "$stderr_file"
+
+  # GraphQL は rc=0 でも errors 配列で一部失敗を返すことがある (権限なし等)。
+  # data がある場合は残りを処理し, errors だけを warning に出す。
+  local errors_summary
+  errors_summary=$(printf '%s' "$out" | jq -r '.errors // [] | map("- " + (.message // "unknown")) | join("\n")')
+  if [[ -n "$errors_summary" ]]; then
+    echo "Warning: GraphQL returned partial errors (some issues may lack parent / sub-count / target):" >&2
+    printf '%s\n' "$errors_summary" >&2
+  fi
+
+  lookup=$(printf '%s' "$out" | jq --arg tf "$target_field" '
+    (.data // {}) | [.[] | .issue | select(. != null)] | map({
+      key: (.repository.nameWithOwner + "#" + (.number | tostring)),
+      value: {
+        parent_ref: (if .parent then ((.parent.repository.nameWithOwner | split("/") | last) + "#" + (.parent.number | tostring)) else null end),
+        sub_count: (.subIssues.totalCount // 0),
+        target: (
+          ((.issueFieldValues.nodes // [])
+           | map(select(.__typename == "IssueFieldDateValue" and .field.name == $tf))
+           | .[0].value) // null
+        )
+      }
+    }) | from_entries
+  ' 2>/dev/null) || { printf '%s' "$json"; return 0; }
+
+  printf '%s' "$json" | jq --argjson lookup "$lookup" '
+    map(
+      . as $it |
+      ($it.repo + "#" + ($it.number | tostring)) as $key |
+      $it + {
+        parent_ref: ($lookup[$key].parent_ref // null),
+        sub_count:  ($lookup[$key].sub_count  // 0),
+        target:     ($lookup[$key].target // $it.target)
+      }
+    )
+    | sort_by(.target // "9999-12-31", .number)
+  '
+}
+
 # ---------- filter ----------
 
 # $1: json, $2: mode (mine|all|unassigned), $3: me
@@ -274,7 +357,7 @@ _ymt_ct_render() {
     C_RESET=""
   fi
 
-  # target(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title を TSV で吐き
+  # target(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title, parent_ref, sub_count を TSV で吐き
   # awk で最小限の固定幅にパディング (assignee=4 は @me 想定, 長い名前はオーバーフロー許容)
   printf '%s' "$json" \
     | jq -r --arg me "$me" '
@@ -285,12 +368,15 @@ _ymt_ct_render() {
           (if (.assignees | length) == 0 then "-"
            elif (.assignees | index($me)) then "@me"
            else "@" + .assignees[0] end),
-          (.title | gsub("[\t\n\r]"; " "))
+          (.title | gsub("[\t\n\r]"; " ")),
+          (.parent_ref // ""),
+          ((.sub_count // 0) | tostring)
         ] | @tsv' \
     | awk -F'\t' \
           -v today="$today_date" -v d3="$d3_date" -v d7="$d7_date" \
           -v cred="$C_RED" -v corange="$C_ORANGE" -v cyel="$C_YELLOW" -v ccyan="$C_CYAN" \
-          -v cgray="$C_GRAY" -v creset="$C_RESET" '
+          -v cgray="$C_GRAY" -v creset="$C_RESET" \
+          -v up_arrow="↑" -v down_arrow="↓" '
         function pad(s, n,    deficit) {
           deficit = n - length(s)
           if (deficit <= 0) return s
@@ -298,6 +384,7 @@ _ymt_ct_render() {
         }
         {
           target = $1; ref = $2; status = $3; assignee = $4; title = $5
+          parent_ref = $6; sub_count = $7 + 0
           raw_target = target
           if (target == "未設定") target = "未設定    "
 
@@ -317,10 +404,14 @@ _ymt_ct_render() {
             adisp = pad(substr(assignee, 1, 7), 7)
           }
 
+          note = ""
+          if (parent_ref != "") note = note "  " cgray up_arrow parent_ref creset
+          if (sub_count > 0)    note = note "  " cgray down_arrow sub_count creset
+
           if (color != "") {
-            printf "%s%s  %s  %s  %s  %s%s\n", color, target, ref_padded, status_padded, adisp, title, creset
+            printf "%s%s  %s  %s  %s  %s%s%s\n", color, target, ref_padded, status_padded, adisp, title, creset, note
           } else {
-            printf "%s  %s  %s  %s  %s\n", target, ref_padded, status_padded, adisp, title
+            printf "%s  %s  %s  %s  %s%s\n", target, ref_padded, status_padded, adisp, title, note
           }
         }'
   echo
@@ -424,6 +515,7 @@ _ymt_ct_tasks_cmd() {
   local json_all json_scoped
   json_all=$(_ymt_ct_fetch_all "$owner" "$number") || return $?
   json_scoped=$(_ymt_ct_filter_assignee "$json_all" "$opt_mode" "$me")
+  json_scoped=$(_ymt_ct_enrich_relations "$json_scoped")
 
   local b json_b title exclude_week combined part rc
   if [[ "$bucket" == "all" ]]; then
