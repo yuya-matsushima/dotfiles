@@ -9,9 +9,9 @@ _company-tasks() {
   local -a subcommands
   subcommands=(
     'today:期限 <= today (overdue 含む)'
-    'week:7 日以内 (today < Due Date <= today+7)'
-    'month:30 日以内 (today < Due Date <= today+30, all 実行時のみ week 分を除外)'
-    'nodue:期限未設定'
+    'week:7 日以内 (today < Target Date <= today+7)'
+    'month:30 日以内 (today < Target Date <= today+30, all 実行時のみ week 分を除外)'
+    'nodue:Target Date 未設定'
     'unassigned:未アサインタスク (バケット指定可)'
     'whoami:resolved owner/number/login を表示'
   )

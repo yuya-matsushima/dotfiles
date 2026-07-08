@@ -11,15 +11,15 @@ unset _ymt_ct_cmd
 
 _ymt_ct_usage() {
   cat <<'EOF'
-company-tasks shows GitHub Projects V2 issues to be handled, grouped by due date.
+company-tasks shows GitHub Projects V2 issues to be handled, grouped by target date.
 
 Usage:
   company-tasks                          show all 4 buckets (today, week, month, nodue) — 自分担当のみ
-  company-tasks today                    Due Date <= today (overdue 含む)
-  company-tasks week                     7 日以内 (today < Due Date <= today+7)
-  company-tasks month                    30 日以内 (today < Due Date <= today+30)
+  company-tasks today                    Target Date <= today (overdue 含む)
+  company-tasks week                     7 日以内 (today < Target Date <= today+7)
+  company-tasks month                    30 日以内 (today < Target Date <= today+30)
                                          無指定 (= all) のときだけ week と重複しないよう today+7 以降に絞る
-  company-tasks nodue                    Due Date 未設定
+  company-tasks nodue                    Target Date 未設定
   company-tasks unassigned [today|week|month|nodue|all]
                                          未アサインタスクのみ (バケット未指定で全 4 バケット)
   company-tasks whoami                   resolved owner/number/login を表示
@@ -177,9 +177,9 @@ _ymt_ct_fetch_all() {
         url:       .content.url,
         assignees: (.assignees // []),
         labels:    (.labels // []),
-        due:       (."due Date" // null)
+        target:    (."target Date" // null)
       })
-    | sort_by(.due // "9999-12-31", .number)
+    | sort_by(.target // "9999-12-31", .number)
   '
 }
 
@@ -212,15 +212,15 @@ _ymt_ct_bucket_split() {
   case "$bucket" in
     today)
       printf '%s' "$json" | jq --arg t "$today" \
-        '[.[] | select(.due != null and .due <= $t)]' ;;
+        '[.[] | select(.target != null and .target <= $t)]' ;;
     week)
       printf '%s' "$json" | jq --arg t "$today" --arg d7 "$week_to" \
-        '[.[] | select(.due != null and .due > $t and .due <= $d7)]' ;;
+        '[.[] | select(.target != null and .target > $t and .target <= $d7)]' ;;
     month)
       printf '%s' "$json" | jq --arg s "$since" --arg d30 "$month_to" \
-        '[.[] | select(.due != null and .due >= $s and .due <= $d30)]' ;;
+        '[.[] | select(.target != null and .target >= $s and .target <= $d30)]' ;;
     nodue)
-      printf '%s' "$json" | jq '[.[] | select(.due == null)]' ;;
+      printf '%s' "$json" | jq '[.[] | select(.target == null)]' ;;
   esac
 }
 
@@ -274,12 +274,12 @@ _ymt_ct_render() {
     C_RESET=""
   fi
 
-  # due(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title を TSV で吐き
+  # target(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title を TSV で吐き
   # awk で最小限の固定幅にパディング (assignee=4 は @me 想定, 長い名前はオーバーフロー許容)
   printf '%s' "$json" \
     | jq -r --arg me "$me" '
         .[] | [
-          (.due // "未設定"),
+          (.target // "未設定"),
           ((.repo | split("/") | last) + "#" + (.number | tostring)),
           (.status // "" | gsub("[\t\n\r]"; " ")),
           (if (.assignees | length) == 0 then "-"
@@ -297,16 +297,16 @@ _ymt_ct_render() {
           return s sprintf("%*s", deficit, "")
         }
         {
-          due = $1; ref = $2; status = $3; assignee = $4; title = $5
-          raw_due = due
-          if (due == "未設定") due = "未設定    "
+          target = $1; ref = $2; status = $3; assignee = $4; title = $5
+          raw_target = target
+          if (target == "未設定") target = "未設定    "
 
           color = ""
-          if (raw_due != "未設定") {
-            if      (raw_due <  today) color = cred
-            else if (raw_due == today) color = corange
-            else if (raw_due <= d3)    color = cyel
-            else if (raw_due <= d7)    color = ccyan
+          if (raw_target != "未設定") {
+            if      (raw_target <  today) color = cred
+            else if (raw_target == today) color = corange
+            else if (raw_target <= d3)    color = cyel
+            else if (raw_target <= d7)    color = ccyan
           }
 
           ref_padded    = pad(ref, 16)
@@ -318,9 +318,9 @@ _ymt_ct_render() {
           }
 
           if (color != "") {
-            printf "%s%s  %s  %s  %s  %s%s\n", color, due, ref_padded, status_padded, adisp, title, creset
+            printf "%s%s  %s  %s  %s  %s%s\n", color, target, ref_padded, status_padded, adisp, title, creset
           } else {
-            printf "%s  %s  %s  %s  %s\n", due, ref_padded, status_padded, adisp, title
+            printf "%s  %s  %s  %s  %s\n", target, ref_padded, status_padded, adisp, title
           }
         }'
   echo
