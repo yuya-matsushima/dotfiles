@@ -209,7 +209,7 @@ _ymt_ct_enrich_relations() {
   local query_body query stderr_file out rc lookup
   query_body=$(printf '%s' "$json" | jq -r '
     to_entries | map(
-      "a\(.key): repository(owner: \"\(.value.repo | split("/") | .[0])\", name: \"\(.value.repo | split("/") | .[1])\") { issue(number: \(.value.number)) { number repository { nameWithOwner } parent { number repository { nameWithOwner } } subIssues { totalCount } issueFieldValues(first: 30) { nodes { __typename ... on IssueFieldDateValue { value field { ... on IssueFieldDate { name } } } } } } }"
+      "a\(.key): repository(owner: \"\(.value.repo | split("/") | .[0])\", name: \"\(.value.repo | split("/") | .[1])\") { issue(number: \(.value.number)) { number repository { nameWithOwner } parent { number repository { nameWithOwner } } subIssues { totalCount } issueFieldValues(first: 100) { nodes { __typename ... on IssueFieldDateValue { value field { ... on IssueFieldDate { name } } } } } } }"
     ) | join("\n")
   ')
   query="query {
@@ -227,6 +227,15 @@ $query_body
     return 0
   fi
   rm -f "$stderr_file"
+
+  # GraphQL は rc=0 でも errors 配列で一部失敗を返すことがある (権限なし等)。
+  # data がある場合は残りを処理し, errors だけを warning に出す。
+  local errors_summary
+  errors_summary=$(printf '%s' "$out" | jq -r '.errors // [] | map("- " + (.message // "unknown")) | join("\n")')
+  if [[ -n "$errors_summary" ]]; then
+    echo "Warning: GraphQL returned partial errors (some issues may lack parent / sub-count / target):" >&2
+    printf '%s\n' "$errors_summary" >&2
+  fi
 
   lookup=$(printf '%s' "$out" | jq --arg tf "$target_field" '
     (.data // {}) | [.[] | .issue | select(. != null)] | map({
