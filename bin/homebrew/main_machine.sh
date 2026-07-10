@@ -13,4 +13,5 @@ brew install --cask \
           google-gemini \
           ghostty \
           keycastr \
-          zoom
+          zoom \
+          steipete/tap/codexbar
