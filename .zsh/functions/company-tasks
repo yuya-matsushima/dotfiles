@@ -35,10 +35,9 @@ Options:
   --refresh-me                           me キャッシュを強制更新
 
 色凡例 (TTY 出力時):
-  赤      過去期限 (overdue)
-  橙      当日 (今日が期限)
-  黄      1〜3 日以内
-  cyan    4〜7 日以内
+  赤 (bold)      過去期限 (overdue)
+  褐色 (bold)    当日 (今日が期限)
+  青             1〜7 日以内
 
 親子情報 (行末注記):
   ↑repo#N   親 issue への参照 (親を持つ場合)
@@ -422,10 +421,9 @@ _ymt_ct_iteration_bucket_title() {
 # $1: title, $2: json, $3: me
 _ymt_ct_render() {
   local title="$1" json="$2" me="$3"
-  local count today_date d3_date d7_date
+  local count today_date d7_date
   count=$(printf '%s' "$json" | jq 'length')
   today_date=$(date +%Y-%m-%d)
-  d3_date=$(date -v+3d +%Y-%m-%d)
   d7_date=$(date -v+7d +%Y-%m-%d)
 
   echo "## ${title} — ${count} 件"
@@ -435,19 +433,21 @@ _ymt_ct_render() {
     return 0
   fi
 
-  local C_RED C_ORANGE C_YELLOW C_CYAN C_GRAY C_RESET
+  # Chrome extension (github-project-support) の COLOR_PALETTE と対応:
+  #   overdue   #cf222e ≒ ANSI 256 #160 (#d70000) + bold
+  #   today     #9a6700 ≒ ANSI 256 #94  (#875f00) + bold
+  #   1〜7 日   #1f6feb ≒ ANSI 256 #33  (#0087ff)
+  local C_OVERDUE C_TODAY C_WEEK C_GRAY C_RESET
   if [[ -t 1 ]]; then
-    C_RED=$'\033[31m'
-    C_ORANGE=$'\033[38;5;208m'
-    C_YELLOW=$'\033[33m'
-    C_CYAN=$'\033[36m'
+    C_OVERDUE=$'\033[1;38;5;160m'
+    C_TODAY=$'\033[1;38;5;94m'
+    C_WEEK=$'\033[38;5;33m'
     C_GRAY=$'\033[90m'
     C_RESET=$'\033[0m'
   else
-    C_RED=""
-    C_ORANGE=""
-    C_YELLOW=""
-    C_CYAN=""
+    C_OVERDUE=""
+    C_TODAY=""
+    C_WEEK=""
     C_GRAY=""
     C_RESET=""
   fi
@@ -469,8 +469,8 @@ _ymt_ct_render() {
           ((.sub_count // 0) | tostring)
         ] | @tsv' \
     | awk -F'\t' \
-          -v today="$today_date" -v d3="$d3_date" -v d7="$d7_date" \
-          -v cred="$C_RED" -v corange="$C_ORANGE" -v cyel="$C_YELLOW" -v ccyan="$C_CYAN" \
+          -v today="$today_date" -v d7="$d7_date" \
+          -v covd="$C_OVERDUE" -v ctoday="$C_TODAY" -v cweek="$C_WEEK" \
           -v cgray="$C_GRAY" -v creset="$C_RESET" \
           -v up_arrow="↑" -v down_arrow="↓" '
         function pad(s, n,    deficit) {
@@ -486,10 +486,9 @@ _ymt_ct_render() {
 
           color = ""
           if (raw_target != "未設定") {
-            if      (raw_target <  today) color = cred
-            else if (raw_target == today) color = corange
-            else if (raw_target <= d3)    color = cyel
-            else if (raw_target <= d7)    color = ccyan
+            if      (raw_target <  today) color = covd
+            else if (raw_target == today) color = ctoday
+            else if (raw_target <= d7)    color = cweek
           }
 
           if (iter == "") {
