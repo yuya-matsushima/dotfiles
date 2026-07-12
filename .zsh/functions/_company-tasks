@@ -1,7 +1,7 @@
 #compdef company-tasks
 
 # company-tasks の補完定義
-# 第1引数でサブコマンド (today/week/month/nodue/unassigned/whoami) を補完し,
+# 第1引数でサブコマンド (today/week/month/nodue/unassigned/iteration/whoami) を補完し,
 # その後サブコマンド固有のオプション/引数を補完する。
 
 _company-tasks() {
@@ -13,6 +13,7 @@ _company-tasks() {
     'month:30 日以内 (today < Target Date <= today+30, all 実行時のみ week 分を除外)'
     'nodue:Target Date 未設定'
     'unassigned:未アサインタスク (バケット指定可)'
+    'iteration:Iteration (sprint) 軸で表示 (サブバケット指定可)'
     'whoami:resolved owner/number/login を表示'
   )
 
@@ -52,6 +53,15 @@ _company-tasks() {
             '--project=[owner/number]:owner/number:' \
             '--refresh-me[me キャッシュを強制更新]' \
             '2:bucket:(today week month nodue all)'
+          ;;
+        iteration)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '--all[担当者フィルタを外し, project 全体を対象]' \
+            '--json[JSON 出力]' \
+            '--project=[owner/number]:owner/number:' \
+            '--refresh-me[me キャッシュを強制更新]' \
+            '2:bucket:(current next previous none all)'
           ;;
       esac
       ;;
