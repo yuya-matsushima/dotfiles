@@ -1,7 +1,7 @@
 #compdef skill
 
 # skill の補完定義
-# 第1引数でサブコマンド (add/update/remove) を補完し, その後サブコマンド固有の
+# 第1引数でサブコマンド (add/update/remove/list) を補完し, その後サブコマンド固有の
 # オプション/引数を補完する。skill 選択自体は fzf が担うため, 補完は
 # サブコマンド名・オプション・add の repository (owner/repo) のみ。
 
@@ -12,6 +12,7 @@ _skill() {
     'add:install skills from a GitHub repository'
     'update:update installed skills to their latest version'
     'remove:remove installed skills'
+    'list:list installed skills as columnar plain text'
   )
 
   _arguments -C \
@@ -43,6 +44,12 @@ _skill() {
             '(-h --help)'{-h,--help}'[print help]' \
             '(-g --global -u --user)'{-g,--global}'[remove from global (user) scope ($HOME)]' \
             '(-g --global -u --user)'{-u,--user}'[remove from global (user) scope ($HOME)]'
+          ;;
+        list)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '(-g --global -u --user)'{-g,--global}'[list global (user) scope skills ($HOME)]' \
+            '(-g --global -u --user)'{-u,--user}'[list global (user) scope skills ($HOME)]'
           ;;
       esac
       ;;
