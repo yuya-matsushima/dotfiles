@@ -914,7 +914,7 @@ _ymt_skill_remove() {
 }
 
 # list サブコマンド本体
-# インストール済み skill を STATUS / NAME / REPO / PIN の 4 列で plain text 出力する。
+# インストール済み skill を NAME / REPO / PIN / STATUS の 4 列で plain text 出力する。
 # fzf は使わない (パイプ・grep 用途を優先)。
 #
 # 注意: base_dir 決定 / skill_union 収集 / frontmatter パースは _ymt_skill_remove /
