@@ -22,6 +22,9 @@ Usage:
   company-tasks nodue                    Target Date 未設定
   company-tasks unassigned [today|week|month|nodue|all]
                                          未アサインタスクのみ (バケット未指定で全 4 バケット)
+  company-tasks iteration [current|next|previous|none|all]
+                                         Iteration (sprint) 軸で表示 (無指定で current)
+                                         all は previous / current / next / none の 4 バケット
   company-tasks whoami                   resolved owner/number/login を表示
   company-tasks -h | --help              print help
 
@@ -41,11 +44,16 @@ Options:
   ↑repo#N   親 issue への参照 (親を持つ場合)
   ↓N        子 issue の件数 (子を持つ場合)
 
+列:
+  <target>  <iteration>  <ref>  <status>  <assignee>  <title>  [<note>]
+  iteration は 12 文字で truncate, 未設定は "-" (灰)
+
 Environment (--project 未指定時は必須):
-  COMPANY_TASKS_OWNER          GitHub Projects V2 owner (例: fillin-inc)
-  COMPANY_TASKS_PROJECT        Project number          (例: 6)
-  COMPANY_TASKS_LIMIT          1 回の取得上限         (default: 500)
-  COMPANY_TASKS_TARGET_FIELD   Issue Custom Field 名   (default: "Target date")
+  COMPANY_TASKS_OWNER            GitHub Projects V2 owner (例: fillin-inc)
+  COMPANY_TASKS_PROJECT          Project number          (例: 6)
+  COMPANY_TASKS_LIMIT            1 回の取得上限         (default: 500)
+  COMPANY_TASKS_TARGET_FIELD     Issue Custom Field 名   (default: "Target date")
+  COMPANY_TASKS_ITERATION_FIELD  Project Iteration field 名 (default: "Iteration")
 
 Dependencies:
   gh (with 'project' scope, and read access to issue custom fields)
@@ -155,8 +163,11 @@ EOF
 # $1: owner, $2: number. Outputs normalized JSON array.
 _ymt_ct_fetch_all() {
   local owner="$1" number="$2"
-  local raw stderr_file rc limit fetched
+  local raw stderr_file rc limit fetched iter_field iter_key
   limit="${COMPANY_TASKS_LIMIT:-500}"
+  iter_field="${COMPANY_TASKS_ITERATION_FIELD:-Iteration}"
+  # gh project item-list は field 名を camelCase (先頭 1 文字だけ lowercase) 化した key で返す
+  iter_key="$(printf '%s' "${iter_field:0:1}" | tr '[:upper:]' '[:lower:]')${iter_field:1}"
   stderr_file=$(mktemp -t company-tasks-gh-stderr) || return 1
   raw=$(gh project item-list "$number" --owner "$owner" --format json --limit "$limit" 2>"$stderr_file")
   rc=$?
@@ -171,7 +182,7 @@ _ymt_ct_fetch_all() {
   if [[ "$fetched" == <-> ]] && (( fetched >= limit )); then
     echo "Warning: fetched $fetched project items (limit=$limit). May be truncated — bump COMPANY_TASKS_LIMIT if you see missing entries." >&2
   fi
-  printf '%s' "$raw" | jq '
+  printf '%s' "$raw" | jq --arg iter_key "$iter_key" '
     .items
     | map(select(
         .content.type == "Issue"
@@ -185,7 +196,15 @@ _ymt_ct_fetch_all() {
         url:       .content.url,
         assignees: (.assignees // []),
         labels:    (.labels // []),
-        target:    (."target Date" // null)
+        target:    (."target Date" // null),
+        iteration: (
+          (.[$iter_key] // null)
+          | if type == "object" and (.title // null) != null then
+              { title: .title, startDate: (.startDate // null), duration: (.duration // 0) }
+            elif type == "string" then
+              { title: ., startDate: null, duration: 0 }
+            else null end
+        )
       })
     | sort_by(.target // "9999-12-31", .number)
   '
@@ -322,6 +341,82 @@ _ymt_ct_bucket_title() {
   esac
 }
 
+# ---------- iteration bucket ----------
+
+# $1: json, $2: sub (current|next|previous|none|all), $3: today (YYYY-MM-DD)
+_ymt_ct_bucket_split_iteration() {
+  local json="$1" sub="$2" today="$3"
+  case "$sub" in
+    current)
+      printf '%s' "$json" | jq --arg today "$today" '
+        [.[] | . as $it | select(
+          $it.iteration != null
+          and ($it.iteration.startDate // null) != null
+          and $it.iteration.startDate <= $today
+          and (
+            ($it.iteration.startDate | strptime("%Y-%m-%d") | mktime + (($it.iteration.duration // 0) * 86400) | strftime("%Y-%m-%d"))
+            > $today
+          )
+        )]
+      ' ;;
+    next)
+      local next_start
+      next_start=$(printf '%s' "$json" | jq -r --arg today "$today" '
+        [.[] | .iteration | select(. != null and (.startDate // null) != null and .startDate > $today)]
+        | sort_by(.startDate)
+        | .[0].startDate // ""
+      ')
+      if [[ -z "$next_start" ]]; then
+        echo '[]'
+      else
+        printf '%s' "$json" | jq --arg s "$next_start" '
+          [.[] | select(.iteration != null and .iteration.startDate == $s)]
+        '
+      fi ;;
+    previous)
+      local prev_start
+      prev_start=$(printf '%s' "$json" | jq -r --arg today "$today" '
+        [.[] | .iteration | select(. != null and (.startDate // null) != null)
+         | . as $iter
+         | $iter + { endDate: ($iter.startDate | strptime("%Y-%m-%d") | mktime + (($iter.duration // 0) * 86400) | strftime("%Y-%m-%d")) }
+         | select(.endDate <= $today)]
+        | sort_by(.startDate) | reverse
+        | .[0].startDate // ""
+      ')
+      if [[ -z "$prev_start" ]]; then
+        echo '[]'
+      else
+        printf '%s' "$json" | jq --arg s "$prev_start" '
+          [.[] | select(.iteration != null and .iteration.startDate == $s)]
+        '
+      fi ;;
+    none)
+      printf '%s' "$json" | jq '[.[] | select(.iteration == null)]' ;;
+    all)
+      printf '%s' "$json" | jq '[.[] | select(.iteration != null)]' ;;
+  esac
+}
+
+# $1: sub, $2: bucket json (may be empty array)
+_ymt_ct_iteration_bucket_title() {
+  local sub="$1" json="$2"
+  local iter_title
+  iter_title=$(printf '%s' "$json" | jq -r 'first(.[]?.iteration.title // empty) // ""')
+  case "$sub" in
+    current)
+      if [[ -n "$iter_title" ]]; then printf 'current sprint (%s)' "$iter_title"
+      else printf 'current sprint'; fi ;;
+    next)
+      if [[ -n "$iter_title" ]]; then printf 'next sprint (%s)' "$iter_title"
+      else printf 'next sprint'; fi ;;
+    previous)
+      if [[ -n "$iter_title" ]]; then printf 'previous sprint (%s)' "$iter_title"
+      else printf 'previous sprint'; fi ;;
+    none) printf 'sprint 未割当' ;;
+    all)  printf '全 sprint' ;;
+  esac
+}
+
 # ---------- rendering ----------
 
 # $1: title, $2: json, $3: me
@@ -357,12 +452,13 @@ _ymt_ct_render() {
     C_RESET=""
   fi
 
-  # target(YYYY-MM-DD or "未設定"), ref(<repo-short>#<num>), status, assignee, title, parent_ref, sub_count を TSV で吐き
+  # target, iter(iteration.title), ref, status, assignee, title, parent_ref, sub_count を TSV で吐き
   # awk で最小限の固定幅にパディング (assignee=4 は @me 想定, 長い名前はオーバーフロー許容)
   printf '%s' "$json" \
     | jq -r --arg me "$me" '
         .[] | [
           (.target // "未設定"),
+          (.iteration.title // "" | gsub("[\t\n\r]"; " ")),
           ((.repo | split("/") | last) + "#" + (.number | tostring)),
           (.status // "" | gsub("[\t\n\r]"; " ")),
           (if (.assignees | length) == 0 then "-"
@@ -383,8 +479,8 @@ _ymt_ct_render() {
           return s sprintf("%*s", deficit, "")
         }
         {
-          target = $1; ref = $2; status = $3; assignee = $4; title = $5
-          parent_ref = $6; sub_count = $7 + 0
+          target = $1; iter = $2; ref = $3; status = $4; assignee = $5; title = $6
+          parent_ref = $7; sub_count = $8 + 0
           raw_target = target
           if (target == "未設定") target = "未設定    "
 
@@ -396,10 +492,15 @@ _ymt_ct_render() {
             else if (raw_target <= d7)    color = ccyan
           }
 
+          if (iter == "") {
+            iter_disp = (color == "" ? cgray "-" creset : "-") pad("", 11)
+          } else {
+            iter_disp = pad(substr(iter, 1, 12), 12)
+          }
           ref_padded    = pad(ref, 16)
           status_padded = pad(substr(status, 1, 7), 7)
           if (assignee == "-") {
-            adisp = cgray "-" creset pad("", 6)
+            adisp = (color == "" ? cgray "-" creset : "-") pad("", 6)
           } else {
             adisp = pad(substr(assignee, 1, 7), 7)
           }
@@ -409,9 +510,9 @@ _ymt_ct_render() {
           if (sub_count > 0)    note = note "  " cgray down_arrow sub_count creset
 
           if (color != "") {
-            printf "%s%s  %s  %s  %s  %s%s%s\n", color, target, ref_padded, status_padded, adisp, title, creset, note
+            printf "%s%s  %s  %s  %s  %s  %s%s%s\n", color, target, iter_disp, ref_padded, status_padded, adisp, title, creset, note
           } else {
-            printf "%s  %s  %s  %s  %s%s\n", target, ref_padded, status_padded, adisp, title, note
+            printf "%s  %s  %s  %s  %s  %s%s\n", target, iter_disp, ref_padded, status_padded, adisp, title, note
           }
         }'
   echo
@@ -549,6 +650,87 @@ _ymt_ct_tasks_cmd() {
   fi
 }
 
+# ---------- iteration runner ----------
+
+_ymt_ct_iteration_cmd() {
+  local sub="" opt_mode="mine" opt_json=0 opt_project="" opt_refresh_me=0
+  local saw_sub=0
+
+  while (( $# > 0 )); do
+    case "$1" in
+      iteration) ;;
+      current|next|previous|none|all)
+        if (( saw_sub )); then
+          echo "Error: unexpected '$1'" >&2; return 1
+        fi
+        saw_sub=1
+        sub="$1" ;;
+      --all)
+        opt_mode="all" ;;
+      --json) opt_json=1 ;;
+      --project)
+        if [[ -z "$2" ]]; then
+          echo "Error: --project requires an argument" >&2; return 1
+        fi
+        opt_project="$2"; shift ;;
+      --project=*) opt_project="${1#--project=}" ;;
+      --refresh-me) opt_refresh_me=1 ;;
+      -h|--help) _ymt_ct_usage; return 0 ;;
+      *) echo "Error: unknown argument '$1' for iteration" >&2; return 1 ;;
+    esac
+    shift
+  done
+
+  [[ -z "$sub" ]] && sub="current"
+
+  local resolved owner number
+  resolved=$(_ymt_ct_parse_project "$opt_project") || return $?
+  owner="${resolved%%$'\t'*}"
+  number="${resolved##*$'\t'}"
+
+  local me today
+  me=$(_ymt_ct_me "$opt_refresh_me") || return $?
+  today=$(date +%Y-%m-%d)
+
+  local json_all json_scoped
+  json_all=$(_ymt_ct_fetch_all "$owner" "$number") || return $?
+  json_scoped=$(_ymt_ct_filter_assignee "$json_all" "$opt_mode" "$me")
+  json_scoped=$(_ymt_ct_enrich_relations "$json_scoped")
+
+  local -a subs
+  if [[ "$sub" == "all" ]]; then
+    subs=(previous current next none)
+  else
+    subs=("$sub")
+  fi
+
+  local s json_s title combined part rc
+  if (( opt_json )); then
+    if [[ "$sub" == "all" ]]; then
+      combined=""
+      for s in "${subs[@]}"; do
+        json_s=$(_ymt_ct_bucket_split_iteration "$json_scoped" "$s" "$today")
+        title=$(_ymt_ct_iteration_bucket_title "$s" "$json_s")
+        part=$(_ymt_ct_render_json "$title" "$json_s")
+        rc=$?
+        (( rc != 0 )) && return $rc
+        combined+="$part"$'\n'
+      done
+      printf '%s' "$combined" | jq -s '.'
+    else
+      json_s=$(_ymt_ct_bucket_split_iteration "$json_scoped" "$sub" "$today")
+      title=$(_ymt_ct_iteration_bucket_title "$sub" "$json_s")
+      _ymt_ct_render_json "$title" "$json_s"
+    fi
+  else
+    for s in "${subs[@]}"; do
+      json_s=$(_ymt_ct_bucket_split_iteration "$json_scoped" "$s" "$today")
+      title=$(_ymt_ct_iteration_bucket_title "$s" "$json_s")
+      _ymt_ct_render "$title" "$json_s" "$me" || return $?
+    done
+  fi
+}
+
 # ---------- main dispatch ----------
 
 # detect -h/--help anywhere
@@ -586,6 +768,11 @@ case "$_ymt_ct_sub" in
     return $_ymt_ct_rc ;;
   unassigned)
     _ymt_ct_tasks_cmd "unassigned" "$@"
+    _ymt_ct_rc=$?
+    unset _ymt_ct_sub
+    return $_ymt_ct_rc ;;
+  iteration)
+    _ymt_ct_iteration_cmd "$@"
     _ymt_ct_rc=$?
     unset _ymt_ct_sub
     return $_ymt_ct_rc ;;
