@@ -37,6 +37,8 @@ TARGETS=( \
          ".config/nvim" \
          ".config/yazi" \
          ".config/lazygit" \
+         ".config/herdr/config.toml" \
+         ".config/hunk/config.toml" \
          ".hammerspoon" \
          ".markdownlint.yml" \
        )
@@ -54,6 +56,9 @@ do
     if [ -L $DEST ]; then
       echo "exist: $DEST"
     else
+      # herdr や hunk はランタイム状態を config ディレクトリに書き込むため
+      # ディレクトリごとではなく設定ファイル単体をリンクする (親ディレクトリを事前作成)
+      mkdir -p "$(dirname "$DEST")"
       echo "link: $DEST"
       ln -s $SOURCE $DEST
     fi

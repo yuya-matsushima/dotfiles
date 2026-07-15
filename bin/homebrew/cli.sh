@@ -27,7 +27,9 @@ brew install \
           grep \
           font-symbols-only-nerd-font \
           fzf \
+          herdr \
           htop \
+          hunk \
           imagemagick \
           pngpaste \
           jq \

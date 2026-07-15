@@ -1,0 +1,31 @@
+# herdr configuration
+# https://herdr.dev/docs/configuration/
+# Keybindings are aligned with .tmux.conf (prefix: C-e)
+
+[keys]
+# tmux: set-option -g prefix C-e
+prefix = "ctrl+e"
+
+# tmux: bind \ split-window -h / bind - split-window -v
+split_vertical = "prefix+\\"
+split_horizontal = "prefix+minus"
+
+# tmux: bind z kill-pane (keep herdr default prefix+x too)
+close_pane = ["prefix+z", "prefix+x"]
+# zoom moves aside because prefix+z is taken by close_pane
+zoom = "prefix+shift+z"
+
+# tmux: bind C-n next-window (keep herdr default prefix+n too)
+next_tab = ["prefix+n", "prefix+ctrl+n"]
+
+# goto moves aside because prefix+g opens lazygit (prefix+shift+g is new_worktree)
+goto = "prefix+f"
+
+# tmux: bind g display-popup lazygit
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "lazygit"
+description = "run lazygit"
+width = "98%"
+height = "98%"

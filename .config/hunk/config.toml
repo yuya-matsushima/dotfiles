@@ -1,0 +1,9 @@
+# hunk configuration
+# https://github.com/modem-dev/hunk
+
+theme = "auto"     # follow terminal light/dark
+mode = "auto"      # split / stack auto-selection
+vcs = "git"
+watch = false
+line_numbers = true
+agent_notes = true # show inline annotations from AI agents (Claude Code / Codex)
