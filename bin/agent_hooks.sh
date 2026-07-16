@@ -20,99 +20,92 @@ case "$MODE" in
         ;;
 esac
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required" >&2
+if ! command -v jq >/dev/null 2>&1; then
+    echo "jq is required (brew install jq)" >&2
     exit 1
 fi
 
-# agent-status.sh must be linked before hooks are registered, otherwise every
-# hook invocation fails silently. Warn early instead of registering broken hooks.
-if [ "$MODE" = "install" ] && [ ! -e "$HOME/.tmux/agent-status.sh" ]; then
-    echo "error: $HOME/.tmux/agent-status.sh not found. Run 'make link' first." >&2
+SCRIPT="$HOME/.tmux/agent-status.sh"
+
+if [ "$MODE" = "install" ] && [ ! -e "$SCRIPT" ]; then
+    echo "error: $SCRIPT not found. Run 'make link' first." >&2
     exit 1
 fi
 
-AGENT_HOOKS_MODE="$MODE" \
-AGENT_HOOKS_SCRIPT="$HOME/.tmux/agent-status.sh" \
-AGENT_HOOKS_CLAUDE="$HOME/.claude/settings.json" \
-AGENT_HOOKS_CODEX="$HOME/.codex/hooks.json" \
-python3 <<'PY'
-import json
-import os
-
-mode = os.environ["AGENT_HOOKS_MODE"]
-script = os.environ["AGENT_HOOKS_SCRIPT"]
-
-# state transitions per hook event
-CLAUDE_EVENTS = {
+# event -> state mapping. Codex has no SessionEnd and uses PermissionRequest
+# where Claude uses Notification.
+CLAUDE_EVENTS='{
     "SessionStart": "idle",
     "Stop": "idle",
     "UserPromptSubmit": "working",
     "PostToolUse": "working",
     "Notification": "blocked",
-    "SessionEnd": "clear",
-}
-# Codex has no SessionEnd; PermissionRequest instead of Notification
-CODEX_EVENTS = {
+    "SessionEnd": "clear"
+}'
+CODEX_EVENTS='{
     "SessionStart": "idle",
     "Stop": "idle",
     "UserPromptSubmit": "working",
     "PostToolUse": "working",
-    "PermissionRequest": "blocked",
+    "PermissionRequest": "blocked"
+}'
+
+# Build {event: full_command} from {event: state}. The script path is wrapped
+# in single quotes so the command remains a valid shell command in the hook.
+build_commands() {
+    echo "$1" | jq --arg script "$SCRIPT" '
+        ([39] | implode) as $q
+        | to_entries
+        | map({key: .key, value: ("sh " + $q + $script + $q + " " + .value)})
+        | from_entries
+    '
 }
 
+update() {
+    path="$1"
+    commands="$2"
+    mkdir -p "$(dirname "$path")"
+    [ -f "$path" ] || echo '{}' > "$path"
 
-def load(path):
-    if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
-    return {}
+    tmp=$(mktemp)
+    if [ "$MODE" = "install" ]; then
+        jq --argjson cmds "$commands" '
+            .hooks //= {}
+            | .hooks |= (
+                to_entries
+                | map(.value |= (
+                    map(.hooks |= map(select(.command | contains("agent-status.sh") | not)))
+                    | map(select(.hooks | length > 0))
+                ))
+                | map(select(.value | length > 0))
+                | from_entries
+            )
+            | reduce ($cmds | to_entries[]) as $e (.;
+                .hooks[$e.key] += [{
+                    hooks: [{type: "command", command: $e.value, timeout: 5}]
+                }]
+            )
+        ' "$path" > "$tmp"
+    else
+        jq '
+            .hooks //= {}
+            | .hooks |= (
+                to_entries
+                | map(.value |= (
+                    map(.hooks |= map(select(.command | contains("agent-status.sh") | not)))
+                    | map(select(.hooks | length > 0))
+                ))
+                | map(select(.value | length > 0))
+                | from_entries
+            )
+        ' "$path" > "$tmp"
+    fi
+    mv "$tmp" "$path"
+    echo "$path: $MODE done"
+}
 
-
-def strip_agent_entries(hooks):
-    for event in list(hooks.keys()):
-        groups = []
-        for group in hooks[event]:
-            commands = [
-                h for h in group.get("hooks", [])
-                if "agent-status.sh" not in h.get("command", "")
-            ]
-            if commands:
-                group["hooks"] = commands
-                groups.append(group)
-        if groups:
-            hooks[event] = groups
-        else:
-            del hooks[event]
-
-
-def add_entries(hooks, events):
-    for event, state in events.items():
-        hooks.setdefault(event, []).append({
-            "hooks": [{
-                "type": "command",
-                "command": "sh '%s' %s" % (script, state),
-                "timeout": 5,
-            }],
-        })
-
-
-def update(path, events):
-    data = load(path)
-    hooks = data.setdefault("hooks", {})
-    strip_agent_entries(hooks)
-    if mode == "install":
-        add_entries(hooks, events)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-    print("%s: %s done" % (path, mode))
-
-
-update(os.environ["AGENT_HOOKS_CLAUDE"], CLAUDE_EVENTS)
-update(os.environ["AGENT_HOOKS_CODEX"], CODEX_EVENTS)
-PY
+update "$HOME/.claude/settings.json" "$(build_commands "$CLAUDE_EVENTS")"
+update "$HOME/.codex/hooks.json" "$(build_commands "$CODEX_EVENTS")"
 
 if [ "$MODE" = "install" ]; then
     cat >&2 <<'MSG'
