@@ -13,7 +13,9 @@
 .hammerspoon/hs/libspaces*dylib.dSYM/*
 
 # Coding Agent
-.claude
+.claude/*
+!.claude/hooks/
+!.claude/statusline.sh
 .antigravitycli/
 
 # webdata-node dependencies

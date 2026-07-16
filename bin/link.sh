@@ -39,6 +39,8 @@ TARGETS=( \
          ".config/lazygit" \
          ".hammerspoon" \
          ".markdownlint.yml" \
+         ".claude/hooks" \
+         ".claude/statusline.sh" \
        )
 
 for TARGET in ${TARGETS[@]}
