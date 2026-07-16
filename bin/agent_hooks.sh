@@ -25,6 +25,13 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 1
 fi
 
+# agent-status.sh must be linked before hooks are registered, otherwise every
+# hook invocation fails silently. Warn early instead of registering broken hooks.
+if [ "$MODE" = "install" ] && [ ! -e "$HOME/.tmux/agent-status.sh" ]; then
+    echo "error: $HOME/.tmux/agent-status.sh not found. Run 'make link' first." >&2
+    exit 1
+fi
+
 AGENT_HOOKS_MODE="$MODE" \
 AGENT_HOOKS_SCRIPT="$HOME/.tmux/agent-status.sh" \
 AGENT_HOOKS_CLAUDE="$HOME/.claude/settings.json" \
@@ -106,3 +113,11 @@ def update(path, events):
 update(os.environ["AGENT_HOOKS_CLAUDE"], CLAUDE_EVENTS)
 update(os.environ["AGENT_HOOKS_CODEX"], CODEX_EVENTS)
 PY
+
+if [ "$MODE" = "install" ]; then
+    cat >&2 <<'MSG'
+
+Note: Codex will not run the new hooks until you trust them.
+      Run 'codex' and execute '/hooks' to review and trust the entries.
+MSG
+fi
