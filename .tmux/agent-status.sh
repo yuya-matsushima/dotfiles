@@ -34,4 +34,4 @@ case "${1:-}" in
         ;;
 esac
 
-tmux set-option -p -t "$TMUX_PANE" @agent_status " #[fg=${color}]●#[default]" 2>/dev/null || true
+tmux set-option -p -t "$TMUX_PANE" @agent_status "#[fg=${color}]●#[default]" 2>/dev/null || true
