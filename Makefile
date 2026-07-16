@@ -112,6 +112,14 @@ asdf: asdf_update asdf_langs asdf_infra ## Install All asdf
 mac: ## Apply Macbook Setting
 	sh ./bin/mac.sh
 
+.PHONY: agent_hooks
+agent_hooks: ## Install AI agent status hooks (Claude Code / Codex)
+	sh ./bin/agent_hooks.sh
+
+.PHONY: agent_hooks_uninstall
+agent_hooks_uninstall: ## Uninstall AI agent status hooks
+	sh ./bin/agent_hooks.sh uninstall
+
 .PHONY: setup_develop
 setup_develop: homebrew cli app link asdf_ruby asdf_python asdf_cloud mac ## *setup develop machine
 
