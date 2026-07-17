@@ -145,6 +145,24 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin +main; echo
 current_case="deny: 複数コマンドの後段に危険な push"
 assert_deny "$GUARD_BASH" '{"tool_input":{"command":"echo start && git push --force origin main"}}'
 
+current_case="deny: 改行区切りの後段に危険な push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"echo ok\ngit push --force origin main"}}'
+
+current_case="deny: 環境変数付き git push --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"GIT_SSH_COMMAND=ssh git push --force origin main"}}'
+
+current_case="deny: env コマンド経由の git push -f"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"env git push -f origin main"}}'
+
+current_case="deny: env + 環境変数付き git push --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"env FOO=bar git push --force origin main"}}'
+
+current_case="deny: 引用符付き --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push \"--force\" origin main"}}'
+
+current_case="deny: シングル引用符付き +refspec"
+assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"git push origin '+main'\"}}"
+
 current_case="allow: git push --force-with-lease"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
 

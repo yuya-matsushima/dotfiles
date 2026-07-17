@@ -63,10 +63,31 @@ emit_deny() {
 verdict=$(printf '%s' "$cmd" | awk '
     function ltrim(s) { sub(/^[[:space:]]+/, "", s); return s }
 
-    BEGIN { RS = "[;&|]+" }
+    # 先頭の環境変数代入 (FOO=bar) と env コマンド (env / env FOO=bar) を剥がす。
+    # 剥がした後で "^git" 判定に入るので、`GIT_SSH_COMMAND=... git push --force`
+    # や `env git push -f` も検査対象になる。env に flag が付く形式 (env -i 等)
+    # は対応外（そのケースは検査を素通り、defense-in-depth の限界として許容）。
+    function strip_env(s,   prev) {
+        prev = ""
+        while (s != prev) {
+            prev = s
+            if (match(s, /^[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+/)) {
+                s = substr(s, RLENGTH + 1)
+                continue
+            }
+            if (match(s, /^env[[:space:]]+/)) {
+                s = substr(s, RLENGTH + 1)
+                continue
+            }
+        }
+        return s
+    }
+
+    # 改行 (\n) も ; と同等のコマンド区切りとして扱う (Bash 準拠)。
+    BEGIN { RS = "[;&|\n]+" }
 
     {
-        line = ltrim($0)
+        line = strip_env(ltrim($0))
         # `git ...push ...` の形を持つサブコマンドだけ評価。
         # git と push の間には任意個の flag / value トークンを許容する。
         if (line !~ /^git([[:space:]]+[^[:space:]]+)*[[:space:]]+push([[:space:]]|$)/) next
@@ -75,6 +96,11 @@ verdict=$(printf '%s' "$cmd" | awk '
         args = line
         sub(/^git([[:space:]]+[^[:space:]]+)*[[:space:]]+push/, "", args)
         args = ltrim(args)
+        # シェルは実行時に quote を除去して git に argv を渡すため、引用符を
+        # 事前に取り除いてから判定する。`git push "--force"` / `git push origin
+        # "+main"` / `git push '\''--force-with-lease'\'' --force` 等の quote 混在も
+        # raw / plus / combined として拾えるようになる。
+        gsub(/["'\'']/, "", args)
         args_padded = " " args " "  # 前後 padding で境界マッチを簡潔化
 
         has_raw_force = 0
