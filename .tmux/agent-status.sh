@@ -22,7 +22,7 @@ case "${1:-}" in
         color="colour160"
         ;;
     idle)
-        color="colour34"
+        color="colour244"
         ;;
     clear)
         tmux set-option -p -t "$TMUX_PANE" -u @agent_status 2>/dev/null || true
@@ -34,4 +34,4 @@ case "${1:-}" in
         ;;
 esac
 
-tmux set-option -p -t "$TMUX_PANE" @agent_status "#[fg=${color}]●#[default]" 2>/dev/null || true
+tmux set-option -p -t "$TMUX_PANE" @agent_status "#[fg=${color}]▌#[default]" 2>/dev/null || true
