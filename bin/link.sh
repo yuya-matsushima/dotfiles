@@ -41,6 +41,8 @@ TARGETS=( \
          ".markdownlint.yml" \
          ".claude/hooks" \
          ".claude/statusline.sh" \
+         ".codex/hooks" \
+         ".agents/hooks" \
        )
 
 for TARGET in ${TARGETS[@]}
@@ -55,7 +57,16 @@ do
   if [[ $MODE == "link" ]]; then
     if [ -L $DEST ]; then
       echo "exist: $DEST"
+    elif [ -e $DEST ]; then
+      # 実ファイル / 実ディレクトリが既にある場合、そのまま `ln -s` すると
+      # `$DEST/<basename>` が作られてリンク構造が壊れる（例: 実ディレクトリの
+      # `~/.codex/hooks` 内に `hooks` symlink が生まれ、agent_hooks.sh の
+      # `-e` チェックが通らなくなる）。事故防止のため明示的に fail する。
+      echo "error: $DEST exists as a real file/directory. Move or delete it before running link." >&2
+      exit 1
     else
+      DEST_PARENT=$(dirname "$DEST")
+      [ -d "$DEST_PARENT" ] || mkdir -p "$DEST_PARENT"
       echo "link: $DEST"
       ln -s $SOURCE $DEST
     fi
