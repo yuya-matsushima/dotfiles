@@ -2,11 +2,12 @@
 # ============================================================================
 # notify-sound.sh
 #
-# Hook event : Notification
+# Hook event : Claude Code の Notification / Codex の PermissionRequest
 #
 # 目的:
-#   Claude Code が操作待ち（承認要求・エラー等）で止まったときに
+#   エージェントが操作待ち（承認要求・エラー等）で止まったときに
 #   macOS の afplay で短い効果音を鳴らし、席を外していても気付けるようにする。
+#   入力を参照しないため Claude Code と Codex で共用する。
 #
 # 備考:
 #   - preferredNotifChannel: 'ghostty' で ghostty 側のバナー通知も併用中。

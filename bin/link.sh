@@ -41,6 +41,8 @@ TARGETS=( \
          ".markdownlint.yml" \
          ".claude/hooks" \
          ".claude/statusline.sh" \
+         ".codex/hooks" \
+         ".agents/hooks" \
        )
 
 for TARGET in ${TARGETS[@]}
@@ -56,6 +58,8 @@ do
     if [ -L $DEST ]; then
       echo "exist: $DEST"
     else
+      DEST_PARENT=$(dirname "$DEST")
+      [ -d "$DEST_PARENT" ] || mkdir -p "$DEST_PARENT"
       echo "link: $DEST"
       ln -s $SOURCE $DEST
     fi
