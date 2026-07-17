@@ -164,16 +164,22 @@ verdict=$(printf '%s' "$cmd" | awk '
                 t == "{" || t == "}")
     }
 
-    function check_subcommand(line,   n, tok, i, pos, start, args, args_padded, has_raw_force, has_with_lease) {
+    function check_subcommand(line,   n, tok, i, j, t, pos, start, has_raw_force, has_with_lease, has_mirror, has_plus) {
         line = strip_env(ltrim(line))
         n = split(line, tok, /[[:space:]]+/)
         if (n == 0) return ""
-        # 先頭の shell control token (if / then / do / { など) を読み飛ばす。
-        # `if true; then git push -f ...; fi` のように制御構文で囲まれた
-        # 実コマンドも subcommand として検査対象にする。
+        # 先頭の shell control token (if / then / do / { など) と shell
+        # wrapper (command / exec / builtin) を読み飛ばす。
+        # `if true; then git push -f ...; fi` や `command git push --force`
+        # のようなケースも subcommand として検査対象にする。
         start = 1
-        while (start <= n && is_shell_control(tok[start])) start++
-        if (start > n || tok[start] != "git") return ""
+        while (start <= n && (is_shell_control(tok[start]) ||
+                              tok[start] == "command" || tok[start] == "exec" ||
+                              tok[start] == "builtin")) start++
+        if (start > n) return ""
+        # git 本体は "git" or "<path>/git" 形式で受け付ける
+        # (`/usr/bin/git push --force` などの絶対パス呼び出しに対応)。
+        if (tok[start] != "git" && tok[start] !~ /(^|\/)git$/) return ""
         # git の直後: グローバル option (-c VAL / -C dir / --git-dir DIR / --xxx / -x)
         # を読み飛ばし、最初に現れる bare token を git subcommand として扱う。
         # `git checkout push --force` のような別 subcommand の引数に "push" が
@@ -196,29 +202,36 @@ verdict=$(printf '%s' "$cmd" | awk '
         }
         if (pos == 0) return ""
 
-        # push 以降の tokens を args として結合し、quote を除去する。
-        args = ""
-        for (i = pos + 1; i <= n; i++) {
-            args = (args == "") ? tok[i] : args " " tok[i]
-        }
-        gsub(/["\047]/, "", args)
-        args_padded = " " args " "
-
+        # push 以降の tokens を 1 つずつ判定する。
+        # トークン単位の判定にすることで、`-ofoo` (push-option の値埋め込み) を
+        # `-f を含む短縮結合形` と誤認する false positive を避ける。
         has_raw_force = 0
         has_with_lease = 0
+        has_mirror = 0
+        has_plus = 0
+        for (j = pos + 1; j <= n; j++) {
+            t = tok[j]
+            gsub(/["\047]/, "", t)  # quote 除去
 
-        # --force / --force=<val>
-        if (args_padded ~ /[[:space:]]--force([[:space:]]|=)/) has_raw_force = 1
-        # 短縮結合形 -f / -uf / -fu / -abcf など (単ダッシュで f を含み等号なし)
-        if (args_padded ~ /[[:space:]]-[[:alnum:]]*f[[:alnum:]]*[[:space:]]/) has_raw_force = 1
-
-        # --force-with-lease
-        if (args_padded ~ /[[:space:]]--force-with-lease([[:space:]]|=)/) has_with_lease = 1
+            # --force / --force=<val>
+            if (t == "--force" || t ~ /^--force=/) { has_raw_force = 1; continue }
+            # 短縮結合形: 値を取らない git push short flag [f v q n u d] のみで
+            # 構成された cluster に f が 1 文字以上含まれる場合のみ raw force。
+            # 値を取る -o (push-option) は cluster に含めない: `-ofoo` は
+            # `--push-option=foo` の短縮であり `-f` の結合形ではない。
+            if (t ~ /^-[fvqnud]*f[fvqnud]*$/) { has_raw_force = 1; continue }
+            # --force-with-lease
+            if (t == "--force-with-lease" || t ~ /^--force-with-lease=/) { has_with_lease = 1; continue }
+            # --mirror
+            if (t == "--mirror") { has_mirror = 1; continue }
+            # +<refspec>
+            if (substr(t, 1, 1) == "+" && length(t) > 1) { has_plus = 1; continue }
+        }
 
         if (has_raw_force && has_with_lease) return "combined"
         if (has_raw_force) return "raw"
-        if (args_padded ~ /[[:space:]]--mirror[[:space:]]/) return "mirror"
-        if (args_padded ~ /[[:space:]]\+[^[:space:]]+[[:space:]]/) return "plus"
+        if (has_mirror) return "mirror"
+        if (has_plus) return "plus"
         return ""
     }
 

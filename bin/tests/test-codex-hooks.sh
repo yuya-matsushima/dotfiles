@@ -190,11 +190,26 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"if true; then git push -f o
 current_case="deny: { ... ; } 内の force push"
 assert_deny "$GUARD_BASH" '{"tool_input":{"command":"{ git push --force origin main; }"}}'
 
+current_case="deny: command wrapper 経由の git push --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"command git push --force origin main"}}'
+
+current_case="deny: exec wrapper 経由の git push -f"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"exec git push -f origin main"}}'
+
+current_case="deny: 絶対パス git 経由の force push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"/usr/bin/git push --force origin main"}}'
+
 current_case="allow: git checkout push --force (別 subcommand の arg が push)"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git checkout push --force"}}'
 
 current_case="allow: git --no-pager checkout push --force"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git --no-pager checkout push --force"}}'
+
+current_case="allow: git push -ofoo (push-option の値埋め込み、-f 結合形ではない)"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -ofoo origin main"}}'
+
+current_case="allow: git push -o key=value origin main"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -o key=value origin main"}}'
 
 current_case="allow: git push --force-with-lease"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
