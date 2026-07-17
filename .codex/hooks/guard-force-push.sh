@@ -73,22 +73,51 @@ emit_deny() {
 verdict=$(printf '%s' "$cmd" | awk '
     function ltrim(s) { sub(/^[[:space:]]+/, "", s); return s }
 
-    # 先頭の環境変数代入 (FOO=bar) と env コマンド (env / env FOO=bar) を剥がす。
-    # 剥がした後で "^git" 判定に入るので、`GIT_SSH_COMMAND=... git push --force`
-    # や `env git push -f` も検査対象になる。env に flag が付く形式 (env -i 等)
-    # は未対応（defense-in-depth の限界として document 済み）。
-    function strip_env(s,   prev) {
+    # 先頭の環境変数代入 (FOO=bar / FOO=<quoted-with-spaces>) と env コマンドを剥がす。
+    # 剥がした後で tok[1] == git 判定に入るので、
+    # `GIT_SSH_COMMAND=... git push --force` や `env git push -f`
+    # (値に quote 込み空白を含む形も含む) を検査対象にできる。
+    # env に flag が付く形式 (env -i 等) は未対応（defense-in-depth の限界）。
+    function strip_env(s,   prev, i, n, c, eq_len, in_q, q_char) {
         prev = ""
         while (s != prev) {
             prev = s
-            if (match(s, /^[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+/)) {
-                s = substr(s, RLENGTH + 1)
-                continue
-            }
             if (match(s, /^env[[:space:]]+/)) {
                 s = substr(s, RLENGTH + 1)
                 continue
             }
+            if (!match(s, /^[A-Za-z_][A-Za-z0-9_]*=/)) break
+            eq_len = RLENGTH
+            # 値部分を quote-aware に消費する: unquoted whitespace で終端。
+            i = eq_len + 1
+            n = length(s)
+            in_q = 0
+            q_char = ""
+            while (i <= n) {
+                c = substr(s, i, 1)
+                if (in_q) {
+                    if (c == q_char) { in_q = 0; q_char = "" }
+                    i++
+                    continue
+                }
+                if (c == "\047" || c == "\"") {
+                    in_q = 1
+                    q_char = c
+                    i++
+                    continue
+                }
+                if (c == " " || c == "\t") break
+                i++
+            }
+            # 末尾に達している = 後続の command がないので strip 対象外として抜ける
+            if (i > n) break
+            # 値終端後の連続空白を飛ばす
+            while (i <= n) {
+                c = substr(s, i, 1)
+                if (c == " " || c == "\t") { i++; continue }
+                break
+            }
+            s = substr(s, i)
         }
         return s
     }
@@ -117,11 +146,25 @@ verdict=$(printf '%s' "$cmd" | awk '
         line = strip_env(ltrim(line))
         n = split(line, tok, /[[:space:]]+/)
         if (n == 0 || tok[1] != "git") return ""
-        # git の直後で最初に現れる "push" token を subcommand 位置と扱う。
-        # tok[1] は "git" 固定なので i は 2 から探す。
+        # git の直後: グローバル option (-c VAL / -C dir / --xxx / -x) を読み飛ばし、
+        # 最初に現れる bare token を "git のサブコマンド" として扱う。それが
+        # "push" のときのみ検査対象。`git checkout push --force` のような
+        # 別サブコマンドの引数に "push" が現れても push subcommand と誤認しない。
+        i = 2
         pos = 0
-        for (i = 2; i <= n; i++) {
-            if (tok[i] == "push") { pos = i; break }
+        while (i <= n) {
+            if (substr(tok[i], 1, 1) == "-") {
+                # flag。-c と -C は次 token を値として消費する。
+                if (tok[i] == "-c" || tok[i] == "-C") {
+                    i += 2
+                } else {
+                    i += 1
+                }
+                continue
+            }
+            # 最初の bare token: これが subcommand。
+            if (tok[i] == "push") pos = i
+            break
         }
         if (pos == 0) return ""
 
@@ -157,6 +200,10 @@ verdict=$(printf '%s' "$cmd" | awk '
     { input = (NR == 1 ? $0 : input "\n" $0) }
 
     END {
+        # Bash の行継続 (backslash + newline) を単一空白に正規化してから
+        # subcommand 分割する。行継続はシェル上は 1 コマンド扱いなので、
+        # 分割対象の改行から除外する必要がある。
+        gsub(/\\\n/, " ", input)
         neutralized = neutralize_sq(input)
         n = split(neutralized, subs, /[;&|\n]+/)
         for (i = 1; i <= n; i++) {

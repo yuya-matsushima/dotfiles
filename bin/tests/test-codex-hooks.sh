@@ -169,6 +169,18 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force origin pus
 current_case="deny: refspec 名が push で -f"
 assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -f origin push"}}'
 
+current_case="deny: 行継続の後段に --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin main \\\n  --force"}}'
+
+current_case="deny: quote 込み空白の env var 後の force push"
+assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"GIT_SSH_COMMAND='ssh -i key' git push --force origin main\"}}"
+
+current_case="allow: git checkout push --force (別 subcommand の arg が push)"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git checkout push --force"}}'
+
+current_case="allow: git --no-pager checkout push --force"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git --no-pager checkout push --force"}}'
+
 current_case="allow: git push --force-with-lease"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
 
@@ -321,6 +333,19 @@ if [ ! -L "$LINK_HOME/.agents/hooks" ]; then pass; else fail "still a symlink"; 
 
 current_case="unlink: ~/.codex/hooks symlink is removed"
 if [ ! -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "still a symlink"; fi
+
+# 既存の実ディレクトリがある場合 link.sh は fail-fast する
+LINK_HOME_CONFLICT="$WORK/link_home_conflict"
+mkdir -p "$LINK_HOME_CONFLICT/.codex/hooks"
+current_case="link: 実ディレクトリが既にあると明示的に fail"
+if (cd "$REPO_ROOT" && HOME="$LINK_HOME_CONFLICT" sh "$LINK_SH" >/dev/null 2>&1); then
+    fail "expected non-zero exit"
+else
+    pass
+fi
+
+current_case="link: fail 後は既存ディレクトリ配下にネストした symlink を作らない"
+if [ ! -L "$LINK_HOME_CONFLICT/.codex/hooks/hooks" ]; then pass; else fail "nested symlink created"; fi
 
 # ------------------------------------------------------------------
 # 集計
