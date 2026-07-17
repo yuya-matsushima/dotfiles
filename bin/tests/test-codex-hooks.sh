@@ -133,6 +133,18 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --mirror origin"}}
 current_case="deny: +refspec"
 assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin +main"}}'
 
+current_case="deny: 短縮結合オプション -uf"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -uf origin main"}}'
+
+current_case="deny: 短縮結合オプション -fu"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -fu origin main"}}'
+
+current_case="deny: 複数コマンドの先頭が危険な +refspec"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin +main; echo push done"}}'
+
+current_case="deny: 複数コマンドの後段に危険な push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"echo start && git push --force origin main"}}'
+
 current_case="allow: git push --force-with-lease"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
 
@@ -144,6 +156,12 @@ assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-if-includ
 
 current_case="allow: git push (no force)"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push origin main"}}'
+
+current_case="allow: 安全な push の後段に --force を含む別コマンド"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main; echo --force done"}}'
+
+current_case="allow: git push -u (upstream, no force)"
+assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -u origin main"}}'
 
 current_case="allow: empty command"
 assert_allow "$GUARD_BASH" '{}'
