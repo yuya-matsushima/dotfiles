@@ -163,6 +163,12 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push \"--force\" origin
 current_case="deny: シングル引用符付き +refspec"
 assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"git push origin '+main'\"}}"
 
+current_case="deny: refspec 名が push で --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force origin push"}}'
+
+current_case="deny: refspec 名が push で -f"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -f origin push"}}'
+
 current_case="allow: git push --force-with-lease"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
 
@@ -180,6 +186,12 @@ assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-leas
 
 current_case="allow: git push -u (upstream, no force)"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -u origin main"}}'
+
+current_case="allow: シングルクォート内の separator は分割しない (echo doc)"
+assert_allow "$GUARD_BASH" "{\"tool_input\":{\"command\":\"echo 'x;git push --force origin main'\"}}"
+
+current_case="allow: シングルクォート内の force 記述文字列"
+assert_allow "$GUARD_BASH" "{\"tool_input\":{\"command\":\"echo 'do not run git push --force'\"}}"
 
 current_case="allow: empty command"
 assert_allow "$GUARD_BASH" '{}'

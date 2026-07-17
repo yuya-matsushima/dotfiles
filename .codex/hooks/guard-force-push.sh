@@ -15,7 +15,7 @@
 #   - -uf / -fu 等、短縮オプションの結合形に f を含むもの
 #   - --force-with-lease と raw force を併記したケース（意図が矛盾するため raw force 側を優先して拒否）
 #   - git push --mirror
-#   - +<refspec> による強制更新（例: git push origin +main）
+#   - +<refspec>: 引数中の + で始まる token（強制更新）
 #
 # 許可:
 #   - git push --force-with-lease [--force-if-includes]
@@ -30,12 +30,24 @@
 #   stdin に Codex の hook JSON。.tool_input.command を参照。
 #
 # 実装メモ:
-#   複数コマンド (`;` / `&&` / `||` / `|`) を含む入力に対応するため、
-#   まず command を separator で分割し、各サブコマンドが `git ... push`
-#   であるものだけを取り出す。以降の判定はサブコマンドの push 以降の
-#   引数列に限定して行う（他コマンドの引数に含まれる `--force` などを
-#   偽陽性で拾わないため、および先頭に現れる危険な push を貪欲マッチで
-#   飛ばさないため）。
+#   1. command 全体を単一 record として読み、シングルクォート内の separator
+#      (; / & / | / \n) を空白に neutralize してから subcommand 分割する。
+#      これにより `echo 'x;git push --force ...'` のような単なる文字列引数を
+#      subcommand として誤検出しない。
+#   2. 各 subcommand は先頭の env-var 代入 / env コマンドを剥がしてから
+#      whitespace で token 化し、tok[1]=='git' かつ最初の 'push' token を
+#      subcommand 位置として扱う。POSIX awk の longest-match による
+#      `git push --force origin push` (refspec 名が push) のような bypass を
+#      避けるため。
+#   3. token 化後の args から quote (' / ") を除去してから regex 判定する。
+#      シェル実行時に quote が除去されて git に argv として渡るため。
+#
+# 既知の限界（defense-in-depth の限界として明示的に許容）:
+#   - ダブルクォート内・ヒアドキュメント内の separator は neutralize しない
+#     ため、`echo "x;git push --force ..."` のような入力は分割されて誤検出
+#     する（false positive: 実際には実行されない）。
+#   - `env -i git push --force` のように env に flag が付く形式は先頭の
+#     env-var stripping を通過しないので検査対象外になる（false negative）。
 # ============================================================================
 
 # shellcheck disable=SC2016  # 拒否メッセージ内の backtick は markdown 装飾で意図的
@@ -58,15 +70,13 @@ emit_deny() {
     exit 0
 }
 
-# サブコマンドごとに push 引数を評価する。1 つでも危険な形が見つかれば拒否。
-# awk は 1 変数のみ入力として扱うため、command 全体を stdin から流し込む。
 verdict=$(printf '%s' "$cmd" | awk '
     function ltrim(s) { sub(/^[[:space:]]+/, "", s); return s }
 
     # 先頭の環境変数代入 (FOO=bar) と env コマンド (env / env FOO=bar) を剥がす。
     # 剥がした後で "^git" 判定に入るので、`GIT_SSH_COMMAND=... git push --force`
     # や `env git push -f` も検査対象になる。env に flag が付く形式 (env -i 等)
-    # は対応外（そのケースは検査を素通り、defense-in-depth の限界として許容）。
+    # は未対応（defense-in-depth の限界として document 済み）。
     function strip_env(s,   prev) {
         prev = ""
         while (s != prev) {
@@ -83,25 +93,45 @@ verdict=$(printf '%s' "$cmd" | awk '
         return s
     }
 
-    # 改行 (\n) も ; と同等のコマンド区切りとして扱う (Bash 準拠)。
-    BEGIN { RS = "[;&|\n]+" }
+    # シングルクォート (\047) 内の separator を空白に置換する。Bash の
+    # シングルクォートはあらゆる展開を無効化するため、内部を単なる文字列と
+    # して扱ってよい。ダブルクォート・ヒアドキュメントは $(...) や `...`
+    # command substitution を含みうるので neutralize しない。
+    function neutralize_sq(s,   r, i, n, c, in_sq) {
+        r = ""
+        n = length(s)
+        in_sq = 0
+        for (i = 1; i <= n; i++) {
+            c = substr(s, i, 1)
+            if (c == "\047") { in_sq = 1 - in_sq; r = r c; continue }
+            if (in_sq && (c == ";" || c == "&" || c == "|" || c == "\n")) {
+                r = r " "
+                continue
+            }
+            r = r c
+        }
+        return r
+    }
 
-    {
-        line = strip_env(ltrim($0))
-        # `git ...push ...` の形を持つサブコマンドだけ評価。
-        # git と push の間には任意個の flag / value トークンを許容する。
-        if (line !~ /^git([[:space:]]+[^[:space:]]+)*[[:space:]]+push([[:space:]]|$)/) next
+    function check_subcommand(line,   n, tok, i, pos, args, args_padded, has_raw_force, has_with_lease) {
+        line = strip_env(ltrim(line))
+        n = split(line, tok, /[[:space:]]+/)
+        if (n == 0 || tok[1] != "git") return ""
+        # git の直後で最初に現れる "push" token を subcommand 位置と扱う。
+        # tok[1] は "git" 固定なので i は 2 から探す。
+        pos = 0
+        for (i = 2; i <= n; i++) {
+            if (tok[i] == "push") { pos = i; break }
+        }
+        if (pos == 0) return ""
 
-        # push 以降の引数列を取り出す（push の直後の空白より後 or 末尾）
-        args = line
-        sub(/^git([[:space:]]+[^[:space:]]+)*[[:space:]]+push/, "", args)
-        args = ltrim(args)
-        # シェルは実行時に quote を除去して git に argv を渡すため、引用符を
-        # 事前に取り除いてから判定する。`git push "--force"` / `git push origin
-        # "+main"` / `git push '\''--force-with-lease'\'' --force` 等の quote 混在も
-        # raw / plus / combined として拾えるようになる。
-        gsub(/["'\'']/, "", args)
-        args_padded = " " args " "  # 前後 padding で境界マッチを簡潔化
+        # push 以降の tokens を args として結合し、quote を除去する。
+        args = ""
+        for (i = pos + 1; i <= n; i++) {
+            args = (args == "") ? tok[i] : args " " tok[i]
+        }
+        gsub(/["\047]/, "", args)
+        args_padded = " " args " "
 
         has_raw_force = 0
         has_with_lease = 0
@@ -114,25 +144,24 @@ verdict=$(printf '%s' "$cmd" | awk '
         # --force-with-lease
         if (args_padded ~ /[[:space:]]--force-with-lease([[:space:]]|=)/) has_with_lease = 1
 
-        if (has_raw_force && has_with_lease) {
-            print "combined"
-            exit
-        }
-        if (has_raw_force) {
-            print "raw"
-            exit
-        }
+        if (has_raw_force && has_with_lease) return "combined"
+        if (has_raw_force) return "raw"
+        if (args_padded ~ /[[:space:]]--mirror[[:space:]]/) return "mirror"
+        if (args_padded ~ /[[:space:]]\+[^[:space:]]+[[:space:]]/) return "plus"
+        return ""
+    }
 
-        # --mirror
-        if (args_padded ~ /[[:space:]]--mirror[[:space:]]/) {
-            print "mirror"
-            exit
-        }
+    # 全 record を単一 buffer に蓄積してから処理する。awk のデフォルト RS
+    # では入力の改行が record 境界になり、シングルクォート内の改行判定が
+    # できないため。
+    { input = (NR == 1 ? $0 : input "\n" $0) }
 
-        # +<refspec>: token whose first non-blank char is +
-        if (args_padded ~ /[[:space:]]\+[^[:space:]]+[[:space:]]/) {
-            print "plus"
-            exit
+    END {
+        neutralized = neutralize_sq(input)
+        n = split(neutralized, subs, /[;&|\n]+/)
+        for (i = 1; i <= n; i++) {
+            v = check_subcommand(subs[i])
+            if (v != "") { print v; exit }
         }
     }
 ')
