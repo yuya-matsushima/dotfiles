@@ -175,6 +175,21 @@ assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin main \\\n  
 current_case="deny: quote 込み空白の env var 後の force push"
 assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"GIT_SSH_COMMAND='ssh -i key' git push --force origin main\"}}"
 
+current_case="deny: --git-dir DIR global option 後の --force"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git --git-dir /tmp/repo/.git push --force origin main"}}'
+
+current_case="deny: --work-tree DIR global option 後の -f"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git --work-tree /tmp/tree push -f origin main"}}'
+
+current_case="deny: subshell 内の force push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"(git push --force origin main)"}}'
+
+current_case="deny: if...then 内の force push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"if true; then git push -f origin main; fi"}}'
+
+current_case="deny: { ... ; } 内の force push"
+assert_deny "$GUARD_BASH" '{"tool_input":{"command":"{ git push --force origin main; }"}}'
+
 current_case="allow: git checkout push --force (別 subcommand の arg が push)"
 assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git checkout push --force"}}'
 

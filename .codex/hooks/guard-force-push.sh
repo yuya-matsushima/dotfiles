@@ -142,20 +142,48 @@ verdict=$(printf '%s' "$cmd" | awk '
         return r
     }
 
-    function check_subcommand(line,   n, tok, i, pos, args, args_padded, has_raw_force, has_with_lease) {
+    # git global option のうち、次 token を値として consume するもの。
+    # 空白区切りで値を取る形式 (`--git-dir /path`) と attached 形式
+    # (`--git-dir=/path`) の両方が git で受理されるため、両対応する。
+    # attached 形式は先頭に `=` を含むので `-` 判定だけで自然に flag 扱いになる。
+    function takes_separate_value(t) {
+        return (t == "-c" || t == "-C" ||
+                t == "--git-dir" || t == "--work-tree" ||
+                t == "--namespace" || t == "--super-prefix" ||
+                t == "--config-env")
+    }
+
+    # 先頭に現れうる shell control keyword / 記号。
+    # subshell paren は RS で separator にしているので tok として現れないが、
+    # `{`, `}`, `!`, `time`, if/then/else/... は tok として残りうる。
+    function is_shell_control(t) {
+        return (t == "!" || t == "time" ||
+                t == "if" || t == "then" || t == "else" || t == "elif" || t == "fi" ||
+                t == "do" || t == "done" || t == "while" || t == "until" ||
+                t == "for" || t == "case" || t == "in" || t == "esac" ||
+                t == "{" || t == "}")
+    }
+
+    function check_subcommand(line,   n, tok, i, pos, start, args, args_padded, has_raw_force, has_with_lease) {
         line = strip_env(ltrim(line))
         n = split(line, tok, /[[:space:]]+/)
-        if (n == 0 || tok[1] != "git") return ""
-        # git の直後: グローバル option (-c VAL / -C dir / --xxx / -x) を読み飛ばし、
-        # 最初に現れる bare token を "git のサブコマンド" として扱う。それが
-        # "push" のときのみ検査対象。`git checkout push --force` のような
-        # 別サブコマンドの引数に "push" が現れても push subcommand と誤認しない。
-        i = 2
+        if (n == 0) return ""
+        # 先頭の shell control token (if / then / do / { など) を読み飛ばす。
+        # `if true; then git push -f ...; fi` のように制御構文で囲まれた
+        # 実コマンドも subcommand として検査対象にする。
+        start = 1
+        while (start <= n && is_shell_control(tok[start])) start++
+        if (start > n || tok[start] != "git") return ""
+        # git の直後: グローバル option (-c VAL / -C dir / --git-dir DIR / --xxx / -x)
+        # を読み飛ばし、最初に現れる bare token を git subcommand として扱う。
+        # `git checkout push --force` のような別 subcommand の引数に "push" が
+        # 現れても push subcommand と誤認しない。
+        i = start + 1
         pos = 0
         while (i <= n) {
             if (substr(tok[i], 1, 1) == "-") {
-                # flag。-c と -C は次 token を値として消費する。
-                if (tok[i] == "-c" || tok[i] == "-C") {
+                # flag。next token を値として consume する global option は 2 token 進める。
+                if (takes_separate_value(tok[i])) {
                     i += 2
                 } else {
                     i += 1
@@ -205,7 +233,10 @@ verdict=$(printf '%s' "$cmd" | awk '
         # 分割対象の改行から除外する必要がある。
         gsub(/\\\n/, " ", input)
         neutralized = neutralize_sq(input)
-        n = split(neutralized, subs, /[;&|\n]+/)
+        # subshell paren `(cmd)` の内側も subcommand として検査対象にするため、
+        # `(` / `)` も separator に含める。制御構文の keyword (if / then / do
+        # など) は tok ベースで check_subcommand が読み飛ばすので RS には不要。
+        n = split(neutralized, subs, /[;&|\n()]+/)
         for (i = 1; i <= n; i++) {
             v = check_subcommand(subs[i])
             if (v != "") { print v; exit }
