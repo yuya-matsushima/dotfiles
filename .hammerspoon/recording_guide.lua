@@ -57,7 +57,9 @@ local function getTargetScreen()
 	local best, bestPixels = nil, 0
 	for _, s in ipairs(screens) do
 		local mode = s:currentMode()
-		local p = (mode.w or 0) * (mode.h or 0)
+		local scale = mode.scale or 1
+		-- 物理ピクセル数で比較する (mode.w/h はポイント)
+		local p = (mode.w or 0) * (mode.h or 0) * scale * scale
 		if p > bestPixels then
 			bestPixels = p
 			best = s
@@ -188,7 +190,8 @@ end
 function M.show()
 	state.visible = true
 	if not state.canvas then rebuildCanvas() end
-	state.canvas:show()
+	-- 録画中は canvas を表示しない (border/暗幕が録画に混入するため)
+	if not state.recordingTask then state.canvas:show() end
 	updateMenubarTitle()
 end
 
@@ -224,19 +227,17 @@ function M.startRecording()
 	local path = string.format("%s/Movies/recording-guide-%s.mov", os.getenv("HOME"), ts)
 	local rect = string.format("%.0f,%.0f,%.0f,%.0f", g.x, g.y, g.w, g.h)
 	state.recordingPath = path
-	-- ガイドの border が録画に混入するため一時的に非表示 (状態は wasVisibleBeforeRecording に保持)
-	state.wasVisibleBeforeRecording = state.visible
+	-- ガイドの border が録画に混入するため一時的に非表示。
+	-- 復元は task 完了 callback 内で「その時点の state.visible」を見て判定する
+	-- (録画中にユーザーが Hide/Show した最終状態を尊重する)。
 	if state.canvas and state.visible then state.canvas:hide() end
 	state.recordingTask = hs.task.new(
 		"/usr/sbin/screencapture",
 		function(_exitCode, _stdout, _stderr)
 			state.recordingTask = nil
-			-- screencapture プロセスが実際に終了したここで canvas を復元。
-			-- stopRecording 経由でも外部シグナル終了でも共通で復元される。
-			if state.wasVisibleBeforeRecording and state.canvas then
+			if state.visible and state.canvas then
 				state.canvas:show()
 			end
-			state.wasVisibleBeforeRecording = nil
 			updateMenubarTitle()
 		end,
 		{ "-v", "-g", "-R", rect, path }
