@@ -32,10 +32,6 @@ local state = {
 	recordingPath = nil,
 }
 _G.__recording_guide_state = state
--- 過去バージョンで永続化された dimOutside を破棄し、常に default から始める
-hs.settings.clear(SETTINGS_PREFIX .. "dimOutside")
--- 旧 key (name ベース) は UUID ベースに移行済み。ゴミを掃除しておく
-hs.settings.clear(SETTINGS_PREFIX .. "targetScreenName")
 
 local function getSetting(key)
 	local v = hs.settings.get(SETTINGS_PREFIX .. key)
@@ -165,7 +161,8 @@ local function rebuildCanvas()
 	}
 
 	state.canvas = canvas
-	if state.visible then canvas:show() end
+	-- 録画中はガイドを再表示しない (border/暗幕が録画に混入するため)
+	if state.visible and not state.recordingTask then canvas:show() end
 end
 
 local function updateMenubarTitle()
@@ -234,6 +231,12 @@ function M.startRecording()
 		"/usr/sbin/screencapture",
 		function(_exitCode, _stdout, _stderr)
 			state.recordingTask = nil
+			-- screencapture プロセスが実際に終了したここで canvas を復元。
+			-- stopRecording 経由でも外部シグナル終了でも共通で復元される。
+			if state.wasVisibleBeforeRecording and state.canvas then
+				state.canvas:show()
+			end
+			state.wasVisibleBeforeRecording = nil
 			updateMenubarTitle()
 		end,
 		{ "-v", "-g", "-R", rect, path }
@@ -252,11 +255,7 @@ function M.stopRecording()
 	end
 	local path = state.recordingPath
 	state.recordingPath = nil
-	-- 録画開始時に隠していた canvas を復元
-	if state.wasVisibleBeforeRecording and state.canvas then
-		state.canvas:show()
-	end
-	state.wasVisibleBeforeRecording = nil
+	-- canvas 復元は task 完了 callback で行う (プロセス終了完了後)
 	-- ファイル確定を待って Finder で表示
 	if path then
 		hs.timer.doAfter(1.2, function()
