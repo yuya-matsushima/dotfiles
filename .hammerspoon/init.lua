@@ -153,3 +153,6 @@ local frontApp = hs.application.frontmostApplication()
 if frontApp and ctrlJTargetApps[frontApp:name()] then
 	ctrlJHotkey:enable()
 end
+
+-- OBS 録画用 1920x1080 ガイドオーバーレイ
+require("recording_guide")
