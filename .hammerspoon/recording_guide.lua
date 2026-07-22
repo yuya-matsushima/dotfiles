@@ -8,6 +8,10 @@ if _G.__recording_guide_state then
 	local prev = _G.__recording_guide_state
 	if prev.canvas then prev.canvas:delete() end
 	if prev.menubar then prev.menubar:delete() end
+	if prev.recordingTask and prev.recordingTask:isRunning() then
+		local pid = prev.recordingTask:pid()
+		if pid then hs.execute("kill -INT " .. pid) end
+	end
 end
 
 local SETTINGS_PREFIX = "recording_guide."
@@ -24,6 +28,8 @@ local state = {
 	menubar = nil,
 	visible = false,
 	dimOutside = DEFAULTS.dimOutside,
+	recordingTask = nil,
+	recordingPath = nil,
 }
 _G.__recording_guide_state = state
 -- 過去バージョンで永続化された dimOutside を破棄し、常に default から始める
@@ -157,11 +163,18 @@ end
 
 local function updateMenubarTitle()
 	if not state.menubar then return end
-	if state.visible then
+	local font = { name = ".AppleSystemUIFont", size = 13 }
+	if state.recordingTask then
+		state.menubar:setTitle(hs.styledtext.new(" ● REC ", {
+			color = { white = 1, alpha = 1 },
+			backgroundColor = { red = 0.85, green = 0.15, blue = 0.15, alpha = 1 },
+			font = font,
+		}))
+	elseif state.visible then
 		state.menubar:setTitle(hs.styledtext.new(" REC ", {
 			color = { white = 1, alpha = 1 },
 			backgroundColor = { white = 0.4, alpha = 1 },
-			font = { name = ".AppleSystemUIFont", size = 13 },
+			font = font,
 		}))
 	else
 		state.menubar:setTitle("REC")
@@ -192,6 +205,57 @@ end
 function M.toggleDimming()
 	state.dimOutside = not state.dimOutside
 	rebuildCanvas()
+end
+
+function M.startRecording()
+	if state.recordingTask then
+		hs.alert.show("Already recording")
+		return
+	end
+	local screen = getTargetScreen()
+	local g = computeGuide(screen)
+	if g.previewScale < 1 then
+		hs.alert.show("Preview mode: recording at scaled size, not 1920x1080")
+	end
+	local ts = os.date("%Y%m%d-%H%M%S")
+	local path = string.format("%s/Movies/recording-guide-%s.mov", os.getenv("HOME"), ts)
+	local rect = string.format("%.0f,%.0f,%.0f,%.0f", g.x, g.y, g.w, g.h)
+	state.recordingPath = path
+	state.recordingTask = hs.task.new(
+		"/usr/sbin/screencapture",
+		function(_exitCode, _stdout, _stderr)
+			state.recordingTask = nil
+			updateMenubarTitle()
+		end,
+		{ "-v", "-g", "-R", rect, path }
+	)
+	state.recordingTask:start()
+	hs.alert.show("Recording started\n" .. path:match("([^/]+)$"))
+	updateMenubarTitle()
+end
+
+function M.stopRecording()
+	if not state.recordingTask then
+		hs.alert.show("Not recording")
+		return
+	end
+	local pid = state.recordingTask:pid()
+	if pid then
+		hs.execute("kill -INT " .. pid)
+	end
+	local path = state.recordingPath
+	state.recordingPath = nil
+	hs.alert.show("Recording stopped")
+	-- ファイル確定を待って Finder で表示
+	if path then
+		hs.timer.doAfter(1.2, function()
+			hs.execute(string.format("open -R %q", path))
+		end)
+	end
+end
+
+function M.toggleRecording()
+	if state.recordingTask then M.stopRecording() else M.startRecording() end
 end
 
 function M.copyCrop()
@@ -252,6 +316,8 @@ local function buildMenubar()
 	mb:setTooltip("Recording Guide")
 	mb:setMenu(function()
 		return {
+			{ title = state.recordingTask and "Stop Recording" or "Start Recording (mic on)", fn = M.toggleRecording },
+			{ title = "-" },
 			{ title = state.visible and "Hide Guide" or "Show Guide", fn = M.toggle },
 			{ title = "Center Guide", fn = M.center },
 			{ title = "-" },
