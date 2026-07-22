@@ -34,6 +34,8 @@ local state = {
 _G.__recording_guide_state = state
 -- 過去バージョンで永続化された dimOutside を破棄し、常に default から始める
 hs.settings.clear(SETTINGS_PREFIX .. "dimOutside")
+-- 旧 key (name ベース) は UUID ベースに移行済み。ゴミを掃除しておく
+hs.settings.clear(SETTINGS_PREFIX .. "targetScreenName")
 
 local function getSetting(key)
 	local v = hs.settings.get(SETTINGS_PREFIX .. key)
@@ -47,12 +49,13 @@ end
 
 -- 対象ディスプレイを解決する。ユーザーが選んだ画面を優先し、
 -- なければ物理ピクセル数が最大のもの (通常は 4K 外部) を採用する。
+-- 同型モニタ複数接続でも一意に識別できるよう UUID を保存 key に使う。
 local function getTargetScreen()
-	local savedName = hs.settings.get(SETTINGS_PREFIX .. "targetScreenName")
+	local savedUUID = hs.settings.get(SETTINGS_PREFIX .. "targetScreenUUID")
 	local screens = hs.screen.allScreens()
-	if savedName then
+	if savedUUID then
 		for _, s in ipairs(screens) do
-			if s:name() == savedName then return s end
+			if s:getUUID() == savedUUID then return s end
 		end
 	end
 	local best, bestPixels = nil, 0
@@ -71,8 +74,12 @@ end
 local function computeGuide(screen)
 	local frame = screen:fullFrame()
 	local mode = screen:currentMode()
-	local scaleX = mode.w / frame.w
-	local scaleY = mode.h / frame.h
+	-- currentMode().w/h は POINT のため、物理ピクセルには mode.scale を掛ける必要がある
+	local scaleFactor = mode.scale or 1
+	local modePxW = mode.w * scaleFactor
+	local modePxH = mode.h * scaleFactor
+	local scaleX = modePxW / frame.w
+	local scaleY = modePxH / frame.h
 	local outW = getSetting("outputWidth")
 	local outH = getSetting("outputHeight")
 	local guideWpt = outW / scaleX
@@ -87,8 +94,8 @@ local function computeGuide(screen)
 	end
 	return {
 		screenFrame = frame,
-		modeW = mode.w,
-		modeH = mode.h,
+		modeW = modePxW,
+		modeH = modePxH,
 		scaleX = scaleX,
 		scaleY = scaleY,
 		previewScale = previewScale,
@@ -209,7 +216,6 @@ end
 
 function M.startRecording()
 	if state.recordingTask then
-		hs.alert.show("Already recording")
 		return
 	end
 	local screen = getTargetScreen()
@@ -221,6 +227,9 @@ function M.startRecording()
 	local path = string.format("%s/Movies/recording-guide-%s.mov", os.getenv("HOME"), ts)
 	local rect = string.format("%.0f,%.0f,%.0f,%.0f", g.x, g.y, g.w, g.h)
 	state.recordingPath = path
+	-- ガイドの border が録画に混入するため一時的に非表示 (状態は wasVisibleBeforeRecording に保持)
+	state.wasVisibleBeforeRecording = state.visible
+	if state.canvas and state.visible then state.canvas:hide() end
 	state.recordingTask = hs.task.new(
 		"/usr/sbin/screencapture",
 		function(_exitCode, _stdout, _stderr)
@@ -230,13 +239,11 @@ function M.startRecording()
 		{ "-v", "-g", "-R", rect, path }
 	)
 	state.recordingTask:start()
-	hs.alert.show("Recording started\n" .. path:match("([^/]+)$"))
 	updateMenubarTitle()
 end
 
 function M.stopRecording()
 	if not state.recordingTask then
-		hs.alert.show("Not recording")
 		return
 	end
 	local pid = state.recordingTask:pid()
@@ -245,7 +252,11 @@ function M.stopRecording()
 	end
 	local path = state.recordingPath
 	state.recordingPath = nil
-	hs.alert.show("Recording stopped")
+	-- 録画開始時に隠していた canvas を復元
+	if state.wasVisibleBeforeRecording and state.canvas then
+		state.canvas:show()
+	end
+	state.wasVisibleBeforeRecording = nil
 	-- ファイル確定を待って Finder で表示
 	if path then
 		hs.timer.doAfter(1.2, function()
@@ -282,7 +293,7 @@ end
 local function targetDisplaySubmenu()
 	local items = {}
 	local activeScreen = getTargetScreen()
-	local savedName = hs.settings.get(SETTINGS_PREFIX .. "targetScreenName")
+	local savedUUID = hs.settings.get(SETTINGS_PREFIX .. "targetScreenUUID")
 	for _, s in ipairs(hs.screen.allScreens()) do
 		local mode = s:currentMode()
 		local name = s:name() or "Unknown"
@@ -291,17 +302,17 @@ local function targetDisplaySubmenu()
 			title = string.format("%s (%dx%d)", name, mode.w or 0, mode.h or 0),
 			checked = screen:id() == activeScreen:id(),
 			fn = function()
-				hs.settings.set(SETTINGS_PREFIX .. "targetScreenName", screen:name())
+				hs.settings.set(SETTINGS_PREFIX .. "targetScreenUUID", screen:getUUID())
 				rebuildCanvas()
 			end,
 		})
 	end
-	if savedName then
+	if savedUUID then
 		table.insert(items, { title = "-" })
 		table.insert(items, {
 			title = "Auto (Largest Display)",
 			fn = function()
-				hs.settings.set(SETTINGS_PREFIX .. "targetScreenName", nil)
+				hs.settings.set(SETTINGS_PREFIX .. "targetScreenUUID", nil)
 				rebuildCanvas()
 			end,
 		})
