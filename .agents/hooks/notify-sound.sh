@@ -29,6 +29,6 @@ command -v afplay >/dev/null 2>&1 || exit 0
 SOUND="/System/Library/Sounds/Ping.aiff"
 [ -f "$SOUND" ] || exit 0
 
-afplay "$SOUND" >/dev/null 2>&1 &
+afplay -v 0.05 "$SOUND" >/dev/null 2>&1 &
 
 exit 0
