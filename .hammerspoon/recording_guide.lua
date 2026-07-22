@@ -18,12 +18,47 @@ end
 
 local SETTINGS_PREFIX = "recording_guide."
 local DEFAULTS = {
-	outputWidth = 1920,
-	outputHeight = 1080,
-	dimOpacity = 0.2,
-	borderWidth = 3,
+	dimOpacity = 0.5,
 	dimOutside = true,
 }
+
+-- 出力サイズプリセット。auto は対象ディスプレイの framebuffer 幅で選ぶ
+local OUTPUT_PRESETS = {
+	{ key = "1920x1080", label = "1920x1080 (FHD)", w = 1920, h = 1080 },
+	{ key = "2560x1440", label = "2560x1440 (QHD)", w = 2560, h = 1440 },
+	{ key = "3840x2160", label = "3840x2160 (4K)",  w = 3840, h = 2160 },
+}
+
+-- 対象ディスプレイの横幅目一杯を 16:9 で確保。
+-- 高さがはみ出す (極端に横長でないディスプレイでは起きない) 場合のみ高さ基準に切り替え。
+-- 物理ピクセルに換算、コーデックの偶数要件に合わせて 2 の倍数へ丸める。
+local function autoOutputSize(screen)
+	local mode = screen:currentMode()
+	local frame = screen:fullFrame()
+	local scale = mode.scale or 1
+	local scaleX = (mode.w * scale) / frame.w
+	local scaleY = (mode.h * scale) / frame.h
+	local wPt = frame.w
+	local hPt = wPt * 9 / 16
+	if hPt > frame.h then
+		hPt = frame.h
+		wPt = hPt * 16 / 9
+	end
+	local outW = math.floor(wPt * scaleX / 2 + 0.5) * 2
+	local outH = math.floor(hPt * scaleY / 2 + 0.5) * 2
+	return outW, outH
+end
+
+local function getOutputSize(screen)
+	local key = hs.settings.get(SETTINGS_PREFIX .. "outputPreset")
+	if key == nil or key == "auto" then
+		return autoOutputSize(screen)
+	end
+	for _, p in ipairs(OUTPUT_PRESETS) do
+		if p.key == key then return p.w, p.h end
+	end
+	return autoOutputSize(screen)
+end
 
 local state = {
 	canvas = nil,
@@ -80,8 +115,7 @@ local function computeGuide(screen)
 	local modePxH = mode.h * scaleFactor
 	local scaleX = modePxW / frame.w
 	local scaleY = modePxH / frame.h
-	local outW = getSetting("outputWidth")
-	local outH = getSetting("outputHeight")
+	local outW, outH = getOutputSize(screen)
 	local guideWpt = outW / scaleX
 	local guideHpt = outH / scaleY
 	-- ディスプレイに収まらない場合はプレビュー用に 16:9 維持したまま縮小
@@ -155,15 +189,6 @@ local function rebuildCanvas()
 		}
 	end
 
-	-- 境界線
-	canvas[#canvas + 1] = {
-		type = "rectangle",
-		action = "stroke",
-		strokeColor = { red = 1, green = 0.2, blue = 0.2, alpha = 1 },
-		strokeWidth = getSetting("borderWidth"),
-		frame = { x = localX, y = localY, w = g.w, h = g.h },
-	}
-
 	state.canvas = canvas
 	-- 録画中はガイドを再表示しない (border/暗幕が録画に混入するため)
 	if state.visible and not state.recordingTask then canvas:show() end
@@ -223,7 +248,8 @@ function M.startRecording()
 	local screen = getTargetScreen()
 	local g = computeGuide(screen)
 	if g.previewScale < 1 then
-		hs.alert.show("Preview mode: recording at scaled size, not 1920x1080")
+		local outW, outH = getOutputSize(screen)
+		hs.alert.show(string.format("Preview mode: recording at scaled size, not %dx%d", outW, outH))
 	end
 	local ts = os.date("%Y%m%d-%H%M%S")
 	local path = string.format("%s/Movies/recording-guide-%s.mov", os.getenv("HOME"), ts)
@@ -276,8 +302,7 @@ function M.copyCrop()
 		hs.alert.show("Preview mode: OBS crop values not accurate on this display")
 		return
 	end
-	local outW = getSetting("outputWidth")
-	local outH = getSetting("outputHeight")
+	local outW, outH = getOutputSize(screen)
 	local left = math.floor((g.x - g.screenFrame.x) * g.scaleX + 0.5)
 	local top = math.floor((g.y - g.screenFrame.y) * g.scaleY + 0.5)
 	local right = g.modeW - left - outW
@@ -320,6 +345,34 @@ local function targetDisplaySubmenu()
 	return items
 end
 
+local function outputSizeSubmenu()
+	local items = {}
+	local savedKey = hs.settings.get(SETTINGS_PREFIX .. "outputPreset") or "auto"
+	local screen = getTargetScreen()
+	local autoW, autoH = autoOutputSize(screen)
+	table.insert(items, {
+		title = string.format("Auto (%dx%d)", autoW, autoH),
+		checked = savedKey == "auto",
+		fn = function()
+			hs.settings.set(SETTINGS_PREFIX .. "outputPreset", "auto")
+			rebuildCanvas()
+		end,
+	})
+	table.insert(items, { title = "-" })
+	for _, p in ipairs(OUTPUT_PRESETS) do
+		local preset = p
+		table.insert(items, {
+			title = preset.label,
+			checked = savedKey == preset.key,
+			fn = function()
+				hs.settings.set(SETTINGS_PREFIX .. "outputPreset", preset.key)
+				rebuildCanvas()
+			end,
+		})
+	end
+	return items
+end
+
 local function buildMenubar()
 	local mb = hs.menubar.new()
 	if mb == nil then return nil end
@@ -333,6 +386,7 @@ local function buildMenubar()
 			{ title = "Center Guide", fn = M.center },
 			{ title = "-" },
 			{ title = "Toggle Outside Dimming", fn = M.toggleDimming, checked = state.dimOutside },
+			{ title = "Output Size", menu = outputSizeSubmenu() },
 			{ title = "Target Display", menu = targetDisplaySubmenu() },
 			{ title = "-" },
 			{ title = "Copy OBS Crop Values", fn = M.copyCrop },
@@ -342,5 +396,8 @@ local function buildMenubar()
 end
 
 state.menubar = buildMenubar()
+
+-- 起動時にガイドを表示 (位置は computeGuide で常に画面中央)
+M.show()
 
 return M
