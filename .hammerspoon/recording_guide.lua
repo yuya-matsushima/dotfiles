@@ -6,8 +6,10 @@ local M = {}
 -- hs.reload() 時の二重登録防止: 既存インスタンスをクリーンアップ
 if _G.__recording_guide_state then
 	local prev = _G.__recording_guide_state
-	if prev.canvas then prev.canvas:delete() end
-	if prev.menubar then prev.menubar:delete() end
+	-- SIGINT 後に発火する task 完了 callback は prev への closure を持つため、
+	-- 破棄後の canvas/menubar を触らないよう先にフィールドを nil 化しておく
+	if prev.canvas then prev.canvas:delete(); prev.canvas = nil end
+	if prev.menubar then prev.menubar:delete(); prev.menubar = nil end
 	if prev.recordingTask and prev.recordingTask:isRunning() then
 		local pid = prev.recordingTask:pid()
 		if pid then hs.execute("kill -INT " .. pid) end
