@@ -235,10 +235,16 @@ function M.startRecording()
 	if state.canvas and state.visible then state.canvas:hide() end
 	state.recordingTask = hs.task.new(
 		"/usr/sbin/screencapture",
-		function(_exitCode, _stdout, _stderr)
+		function(exitCode, _stdout, _stderr)
 			state.recordingTask = nil
 			if state.visible and state.canvas then
 				state.canvas:show()
+			end
+			-- 録画プロセスが実際に終了 → ファイル確定後に Finder で表示
+			local finishedPath = state.recordingPath
+			state.recordingPath = nil
+			if finishedPath and exitCode == 0 and hs.fs.attributes(finishedPath) then
+				hs.execute(string.format("open -R %q", finishedPath))
 			end
 			updateMenubarTitle()
 		end,
@@ -256,15 +262,7 @@ function M.stopRecording()
 	if pid then
 		hs.execute("kill -INT " .. pid)
 	end
-	local path = state.recordingPath
-	state.recordingPath = nil
-	-- canvas 復元は task 完了 callback で行う (プロセス終了完了後)
-	-- ファイル確定を待って Finder で表示
-	if path then
-		hs.timer.doAfter(1.2, function()
-			hs.execute(string.format("open -R %q", path))
-		end)
-	end
+	-- canvas 復元 / Finder 表示は task 完了 callback で行う (プロセス終了完了後)
 end
 
 function M.toggleRecording()
