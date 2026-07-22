@@ -29,22 +29,24 @@ local OUTPUT_PRESETS = {
 	{ key = "3840x2160", label = "3840x2160 (4K)",  w = 3840, h = 2160 },
 }
 
--- 対象ディスプレイに previewScale なしで収まる最大プリセットを採用。
--- 例: LG 4K (3008x1692 pt, scale=2) → 4K, MBP Retina (1512x982 pt, scale=2) → QHD
+-- 対象ディスプレイの横幅目一杯を 16:9 で確保。
+-- 高さがはみ出す (極端に横長でないディスプレイでは起きない) 場合のみ高さ基準に切り替え。
+-- 物理ピクセルに換算、コーデックの偶数要件に合わせて 2 の倍数へ丸める。
 local function autoOutputSize(screen)
 	local mode = screen:currentMode()
 	local frame = screen:fullFrame()
 	local scale = mode.scale or 1
 	local scaleX = (mode.w * scale) / frame.w
 	local scaleY = (mode.h * scale) / frame.h
-	for i = #OUTPUT_PRESETS, 1, -1 do
-		local p = OUTPUT_PRESETS[i]
-		if (p.w / scaleX) <= frame.w and (p.h / scaleY) <= frame.h then
-			return p.w, p.h
-		end
+	local wPt = frame.w
+	local hPt = wPt * 9 / 16
+	if hPt > frame.h then
+		hPt = frame.h
+		wPt = hPt * 16 / 9
 	end
-	-- どれも収まらない場合は最小 (FHD) を返し previewScale に任せる
-	return OUTPUT_PRESETS[1].w, OUTPUT_PRESETS[1].h
+	local outW = math.floor(wPt * scaleX / 2 + 0.5) * 2
+	local outH = math.floor(hPt * scaleY / 2 + 0.5) * 2
+	return outW, outH
 end
 
 local function getOutputSize(screen)
