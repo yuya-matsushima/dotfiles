@@ -155,15 +155,30 @@ local function rebuildCanvas()
 	if state.visible then canvas:show() end
 end
 
+local function updateMenubarTitle()
+	if not state.menubar then return end
+	if state.visible then
+		state.menubar:setTitle(hs.styledtext.new(" REC ", {
+			color = { white = 1, alpha = 1 },
+			backgroundColor = { white = 0.4, alpha = 1 },
+			font = { name = ".AppleSystemUIFont", size = 13 },
+		}))
+	else
+		state.menubar:setTitle("REC")
+	end
+end
+
 function M.show()
 	state.visible = true
 	if not state.canvas then rebuildCanvas() end
 	state.canvas:show()
+	updateMenubarTitle()
 end
 
 function M.hide()
 	state.visible = false
 	if state.canvas then state.canvas:hide() end
+	updateMenubarTitle()
 end
 
 function M.toggle()
