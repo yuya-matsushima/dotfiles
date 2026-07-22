@@ -112,11 +112,14 @@ Output: 1920x1080
 
 `hs.settings.set()` / `hs.settings.get()` を使い、以下を保存する:
 
-- `dimOutside` (bool, default true)
-- `dimOpacity` (float, default 0.55)
+- `dimOpacity` (float, default 0.2)
 - `borderWidth` (float, default 3)
 - `outputWidth` (int, default 1920)
 - `outputHeight` (int, default 1080)
+- `targetScreenUUID` (string, ユーザーが Target Display から手動選択した画面の UUID)
+
+`dimOutside` は **敢えて永続化しない**。ユーザー要望により常に default (true) から起動し、
+Toggle Outside Dimming はセッション内でのみ有効。`hs.reload()` すると ON に戻る。
 
 MVP では設定 UI は用意せず、値の変更は init.lua 内で定数を書き換える運用でよい。
 
