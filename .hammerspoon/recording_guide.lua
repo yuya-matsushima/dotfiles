@@ -238,7 +238,8 @@ function M.startRecording()
 	local screen = getTargetScreen()
 	local g = computeGuide(screen)
 	if g.previewScale < 1 then
-		hs.alert.show("Preview mode: recording at scaled size, not 1920x1080")
+		local outW, outH = getOutputSize(screen)
+		hs.alert.show(string.format("Preview mode: recording at scaled size, not %dx%d", outW, outH))
 	end
 	local ts = os.date("%Y%m%d-%H%M%S")
 	local path = string.format("%s/Movies/recording-guide-%s.mov", os.getenv("HOME"), ts)
