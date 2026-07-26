@@ -502,7 +502,7 @@ _ymt_skill_update() {
   # フォーマット: <status>\t<skill_name>\t<repo>\t<github_path>\t<latest>
   #   (repo/github_path/latest は更新実行に必要なので候補行へ埋め込んで持ち回る)
   local -a candidates
-  local skill_name skill_md repo_url repo gh_path pinned latest _tab=$'\t'
+  local skill_name skill_md repo_url repo gh_path pinned ref_val latest _tab=$'\t'
   # frontmatter パース用 / タグ解決用の作業変数 (ループ外で宣言する。ループ内で local
   # 再宣言すると既存ローカルが 'name=値' として stdout に漏れるため)。
   local fm_key fm_val tags_out tags_rc
@@ -522,6 +522,7 @@ _ymt_skill_update() {
     repo_url=""
     gh_path=""
     pinned=""
+    ref_val=""
     if [[ -f "$skill_md" ]]; then
       # frontmatter (先頭 --- ... ---) の metadata から github-* を抽出する。
       # d==1 (frontmatter 内) に限定するため本文中の --- やコードブロックは拾わない。
@@ -530,14 +531,19 @@ _ymt_skill_update() {
           github-repo)   repo_url="$fm_val" ;;
           github-path)   gh_path="$fm_val" ;;
           github-pinned) pinned="$fm_val" ;;
+          github-ref)    ref_val="$fm_val" ;;
         esac
       done < <(awk '
         /^---[[:space:]]*$/ { d++; next }
-        d==1 && /^[[:space:]]+github-(repo|path|pinned):[[:space:]]/ {
+        d==1 && /^[[:space:]]+github-(repo|path|pinned|ref):[[:space:]]/ {
           key=$1; sub(/:$/, "", key); $1=""; sub(/^[[:space:]]+/, "")
           print key "\t" $0
         }
       ' "$skill_md")
+      # github-pinned は --pin 明示時のみ書かれる。無い場合は常に書かれる github-ref を
+      # fallback として使う。ただし refs/tags/ のときだけ剥がす: refs/heads/<branch> や
+      # commit SHA を pin 扱いすると sort -V 比較に混入し, 誤判定やダウングレードを招く。
+      [[ -z "$pinned" && "$ref_val" == refs/tags/* ]] && pinned="${ref_val#refs/tags/}"
     fi
 
     # github-repo / github-path が取れなければ更新不能 (メタ無し)
@@ -988,7 +994,7 @@ _ymt_skill_list() {
   # column -t -s $'\t' に流して列揃えするため, 区切りは必ず 1 個の TAB とする。
   # 注意: 'status' は zsh の read-only 特殊変数 ($? のエイリアス) なので使えない。
   #   status 列の値は st で保持する。
-  local skill_name skill_md has_claude has_agents st repo_url repo pinned
+  local skill_name skill_md has_claude has_agents st repo_url repo pinned ref_val
   local fm_key fm_val
   local _tab=$'\t'
   local -a rows
@@ -1015,21 +1021,26 @@ _ymt_skill_list() {
 
     repo_url=""
     pinned=""
+    ref_val=""
     if [[ -f "$skill_md" ]]; then
-      # frontmatter (先頭 --- ... ---) の metadata から github-repo / github-pinned を抽出。
-      # _ymt_skill_update と同じ awk スニペット (d==1 で frontmatter 内に限定)。
+      # frontmatter (先頭 --- ... ---) の metadata から github-repo / github-pinned /
+      # github-ref を抽出。_ymt_skill_update と同じ awk スニペット (d==1 で frontmatter 内に限定)。
       while IFS=$'\t' read -r fm_key fm_val; do
         case "$fm_key" in
           github-repo)   repo_url="$fm_val" ;;
           github-pinned) pinned="$fm_val" ;;
+          github-ref)    ref_val="$fm_val" ;;
         esac
       done < <(awk '
         /^---[[:space:]]*$/ { d++; next }
-        d==1 && /^[[:space:]]+github-(repo|pinned):[[:space:]]/ {
+        d==1 && /^[[:space:]]+github-(repo|pinned|ref):[[:space:]]/ {
           key=$1; sub(/:$/, "", key); $1=""; sub(/^[[:space:]]+/, "")
           print key "\t" $0
         }
       ' "$skill_md")
+      # github-pinned が無い (--pin 無しインストール) 場合の fallback。
+      # _ymt_skill_update と同じく refs/tags/ のときだけ剥がす。
+      [[ -z "$pinned" && "$ref_val" == refs/tags/* ]] && pinned="${ref_val#refs/tags/}"
     fi
 
     # repo は https://github.com/ プレフィックスと .git サフィックスを剥がす
