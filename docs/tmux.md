@@ -93,6 +93,8 @@ YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
   なお元の状態への復元は、その window で最後の agent が終了した時点で 1 回だけ行われます
   (実行中ペインの集合を window option `@ymt_win_agents` で参照カウントしているため、
   終了順に関わらず `automatic-rename` の設定が壊れることはありません)。
+  agent 実行中のペインを `Prefix` + `z` (`kill-pane`) で消した場合は precmd が走らないため、
+  `.tmux.conf` の `after-kill-pane` hook から `~/.tmux/window-name-cleanup.sh` が後始末します。
 - 同じ window の複数ペインで agent を **ほぼ同時** (数十 ms 以内) に起動・終了した場合、
   `@ymt_win_agents` の read-modify-write が競合して window 名の表示がずれることがあります。
   ロックは意図的に導入していません (ペイン kill 時の stale lock で rename 自体が止まる方が
