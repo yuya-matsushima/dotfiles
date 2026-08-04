@@ -113,7 +113,7 @@ mac: ## Apply Macbook Setting
 	sh ./bin/mac.sh
 
 .PHONY: agent_hooks
-agent_hooks: ## Install AI agent status hooks (Claude Code / Codex)
+agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode)
 	sh ./bin/agent_hooks.sh
 
 .PHONY: agent_hooks_uninstall
