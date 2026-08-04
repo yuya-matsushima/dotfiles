@@ -42,7 +42,9 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
 # `-` はそのまま渡し、移動を再現する過程の OLDPWD で解決する
 # (`cd dir && cd - && claude` を正しく再現するため)。
 # ディレクトリとして開けない語は zoxide のクエリ結果で解決を試みる
-# (このリポジトリの .zshrc は cd を zoxide 関数に置き換えるため)。
+# (このリポジトリの .zshrc は `zoxide init zsh --cmd cd` で cd を置き換えるため)。
+# 1 つの cd に複数の引数がある場合 (`cd foo bar`) は TAB 区切りの 1 要素として渡され、
+# zoxide の複数語クエリとして解決する。
 # 途中で移動に失敗したら、誤った移動先を使わず現在の PWD basis に戻す。
 _ymt_tmux_window_repo_name() {
   local common="" top="" root repo wt d z
@@ -52,6 +54,13 @@ _ymt_tmux_window_repo_name() {
       for d in "$@"; do
         if [[ $d == - ]]; then
           builtin cd -q - >/dev/null 2>&1 || exit 1
+          continue
+        fi
+        # 複数語は zoxide のクエリとしてのみ意味を持つ
+        if [[ $d == *$'\t'* ]]; then
+          (( $+commands[zoxide] )) || exit 1
+          z="$(zoxide query -- "${(@ps:\t:)d}" 2>/dev/null)" || exit 1
+          builtin cd -q -- "$z" 2>/dev/null || exit 1
           continue
         fi
         builtin cd -q -- "$d" 2>/dev/null && continue
@@ -97,7 +106,10 @@ _ymt_tmux_window_repo_name() {
 }
 
 # コマンドラインを 1 回走査し、出現順に `cmd<TAB><コマンド名>` / `cd<TAB><移動先>`
-# を出力する。呼び出し側はこれを順に読み、agent に到達した時点で cd の収集を止める。
+# を _ymt_tmux_window_parsed に格納する。呼び出し側はこれを順に読み、
+# agent に到達した時点で cd の収集を止める。
+# preexec は全コマンドで走るため、結果は stdout ではなくグローバル配列に返す
+# (command substitution による subshell fork を毎コマンド払わないため)。
 #
 # `cd foo && claude` や `claude | tee log` のような複合コマンドも拾えるよう、
 # 区切り (; && || | & 等) ごとに先頭語を取り直す。環境変数代入は読み飛ばす。
@@ -106,11 +118,17 @@ _ymt_tmux_window_repo_name() {
 # `env -P /path claude` / `sudo --user root claude` のように引数を取るオプションは
 # ラッパーごとに異なり、網羅的な表を持つのは現実的でないため。
 # 候補が増えても、YMT_TMUX_AGENT_COMMANDS に一致しない語は無視されるだけで済む。
-_ymt_tmux_window_parse() {
-  local -a words
-  local w next
-  local head=1 wrapper=0 i=1 n
+#
+# 1 つの cd が複数引数を取る場合 (`cd foo bar` = zoxide の複数語クエリ) は
+# TAB 区切りで 1 要素にまとめる。
+typeset -ga _ymt_tmux_window_parsed
 
+_ymt_tmux_window_parse() {
+  local -a words cdargs
+  local w next
+  local head=1 wrapper=0 i=1 n j sep
+
+  _ymt_tmux_window_parsed=()
   words=(${(z)1})
   n=${#words}
 
@@ -137,7 +155,7 @@ _ymt_tmux_window_parse() {
 
     # ラッパー配下では残りの語をすべて候補にする (オプションとその引数を含む)
     if (( wrapper )); then
-      print -r -- "cmd"$'\t'"${w:t}"
+      _ymt_tmux_window_parsed+=( "cmd"$'\t'"${w:t}" )
       (( i++ ))
       continue
     fi
@@ -151,10 +169,13 @@ _ymt_tmux_window_parse() {
     esac
 
     if [[ $w == cd ]]; then
-      # cd のオプション (-L / -P / -q 等) を読み飛ばし、実際の移動先を決める。
-      # 引数なしは $HOME、`cd -- <dir>` は次の語。
+      # cd のオプション (-L / -P / -q 等) を読み飛ばし、実際の移動先を集める。
+      # 引数なしは $HOME、`cd -- <dir>` は以降を literal 扱い。
       # `cd -` は OLDPWD がここまでの移動で変わるため、`-` のまま後段へ渡す。
-      local j=$(( i + 1 )) target="$HOME" sep=0
+      # 引数が複数ある場合 (zoxide の複数語クエリ) はすべて保持する。
+      j=$(( i + 1 ))
+      sep=0
+      cdargs=()
       while (( j <= n )); do
         next="${words[j]}"
         case $next in
@@ -164,29 +185,46 @@ _ymt_tmux_window_parse() {
             ;;
         esac
         next="${(Q)next}"
-        if [[ $next == '--' ]]; then
+        if (( ${#cdargs} == 0 )) && [[ $next == '--' ]]; then
+          # 以降はオプションとして解釈しない
           (( j++ ))
-          (( j <= n )) && target="${(Q)words[j]}"
+          while (( j <= n )); do
+            next="${words[j]}"
+            case $next in
+              ';'|'&&'|'||'|'|'|'|&'|'&'|'('|')'|'{'|'}'|$'\n')
+                sep=1
+                break
+                ;;
+            esac
+            cdargs+="${(Q)next}"
+            (( j++ ))
+          done
           break
-        elif [[ $next == '-' ]]; then
-          target='-'
+        elif (( ${#cdargs} == 0 )) && [[ $next == '-' ]]; then
+          cdargs+='-'
+          (( j++ ))
           break
-        elif [[ $next == -* ]]; then
+        elif (( ${#cdargs} == 0 )) && [[ $next == -* ]]; then
           (( j++ ))
           continue
         else
-          target="$next"
-          break
+          cdargs+="$next"
+          (( j++ ))
         fi
       done
-      [[ -n $target ]] && print -r -- "cd"$'\t'"$target"
+
+      if (( ${#cdargs} == 0 )); then
+        _ymt_tmux_window_parsed+=( "cd"$'\t'"$HOME" )
+      else
+        _ymt_tmux_window_parsed+=( "cd"$'\t'"${(pj:\t:)cdargs}" )
+      fi
       head=0
-      # 区切りで抜けた場合はその区切りを次のループで処理させる
-      (( sep )) && (( i = j )) || (( i = j + 1 ))
+      # j は区切り、または消費し終えた次の位置を指す
+      i=$j
       continue
     fi
 
-    print -r -- "cmd"$'\t'"${w:t}"
+    _ymt_tmux_window_parsed+=( "cmd"$'\t'"${w:t}" )
     head=0
     (( i++ ))
   done
@@ -264,32 +302,43 @@ _ymt_tmux_window_name_preexec() {
 
   # `cd foo && claude` は preexec 時点でまだ移動していないため、移動先も集める。
   # agent に到達した後の cd は反映しない (`claude; cd ../other` 等)。
-  local l kind val d
-  local -a cddirs cdexp
+  # 対象コマンドでない場合にコストを払わないよう、展開は判定後にまとめて行う。
+  local l kind val d w2
+  local -a rawcds cddirs parts eparts cdexp
   setopt localoptions nonomatch nonullglob
-  for l in ${(f)"$(_ymt_tmux_window_parse "$line")"}; do
+  _ymt_tmux_window_parse "$line"
+  for l in $_ymt_tmux_window_parsed; do
     kind="${l%%$'\t'*}"
     val="${l#*$'\t'}"
     if [[ $kind == cd ]]; then
-      (( matched )) && continue
-      d="$val"
-      if [[ $d == - ]]; then
-        # OLDPWD は移動を再現する側で解決する
-        cddirs+='-'
-        continue
-      fi
+      (( matched )) || rawcds+="$val"
+    elif (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$val]} )); then
+      matched=1
+    fi
+  done
+  (( matched )) || return
+
+  for val in $rawcds; do
+    if [[ $val == - ]]; then
+      # OLDPWD は移動を再現する側で解決する
+      cddirs+='-'
+      continue
+    fi
+    # 複数語 (zoxide クエリ) も 1 語も、語ごとに展開してから TAB 区切りで戻す
+    parts=("${(@ps:\t:)val}")
+    eparts=()
+    for w2 in $parts; do
+      d="$w2"
       # $VAR / ${VAR} を展開する。コマンド置換は preexec で実行してしまうため除外する
       if [[ $d == *'$'* && $d != *'$('* && $d != *'`'* ]]; then
         d="${(e)d}"
       fi
       # ~ 展開のため、配列コンテキストで GLOB_SUBST をかける
       cdexp=(${~d})
-      cddirs+="${cdexp[1]:-$d}"
-    elif (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$val]} )); then
-      matched=1
-    fi
+      eparts+="${cdexp[1]:-$d}"
+    done
+    cddirs+="${(pj:\t:)eparts}"
   done
-  (( matched )) || return
 
   local name state
   local -a others f
