@@ -138,13 +138,37 @@ _ymt_tmux_window_parse() {
     esac
 
     if [[ $w == cd ]]; then
-      next="${(Q)words[i+1]}"
-      case $next in
-        ''|-*|';'|'&&'|'||'|'|'|'&') ;;
-        *) print -r -- "cd"$'\t'"$next" ;;
-      esac
+      # cd のオプション (-L / -P / -q 等) を読み飛ばし、実際の移動先を決める。
+      # 引数なしは $HOME、`cd -` は $OLDPWD、`cd -- <dir>` は次の語。
+      local j=$(( i + 1 )) target="$HOME" sep=0
+      while (( j <= n )); do
+        next="${words[j]}"
+        case $next in
+          ';'|'&&'|'||'|'|'|'|&'|'&'|'('|')'|'{'|'}'|$'\n')
+            sep=1
+            break
+            ;;
+        esac
+        next="${(Q)next}"
+        if [[ $next == '--' ]]; then
+          (( j++ ))
+          (( j <= n )) && target="${(Q)words[j]}"
+          break
+        elif [[ $next == '-' ]]; then
+          target="$OLDPWD"
+          break
+        elif [[ $next == -* ]]; then
+          (( j++ ))
+          continue
+        else
+          target="$next"
+          break
+        fi
+      done
+      [[ -n $target ]] && print -r -- "cd"$'\t'"$target"
       head=0
-      (( i += 2 ))
+      # 区切りで抜けた場合はその区切りを次のループで処理させる
+      (( sep )) && (( i = j )) || (( i = j + 1 ))
       continue
     fi
 
