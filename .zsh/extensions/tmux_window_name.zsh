@@ -124,19 +124,29 @@ _ymt_tmux_window_repo_name() {
 # `cd foo && claude` や `claude | tee log` のような複合コマンドも拾えるよう、
 # 区切り (; && || | & 等) ごとに先頭語を取り直す。環境変数代入は読み飛ばす。
 #
-# command/env/sudo などのラッパー配下では、その残りの語をすべて cmd として出す。
-# `env -P /path claude` / `sudo --user root claude` のように引数を取るオプションは
-# ラッパーごとに異なり、網羅的な表を持つのは現実的でないため。
-# 候補が増えても、YMT_TMUX_AGENT_COMMANDS に一致しない語は無視されるだけで済む。
+# command/env/sudo などのラッパー配下では、そのラッパーが引数を取るオプションを
+# 消費したうえで、実際に実行されるコマンドだけを cmd として出す
+# (`sudo echo claude` を agent 起動と誤判定しないため)。
 #
 # 1 つの cd が複数引数を取る場合 (`cd foo bar` = zoxide の複数語クエリ) は
-# TAB 区切りで 1 要素にまとめる。
+# TAB 区切りで 1 要素にまとめる。各移動先の語は展開可否を表す 1 文字
+# (E = 展開する / L = リテラル) を接頭辞に持つ。
 typeset -ga _ymt_tmux_window_parsed
 
+# ラッパーごとの「次の語を引数として取る」オプション。
+# 表にないオプションが引数を取る場合は agent を検出できない (誤検出はしない) 側に倒れる。
+typeset -gA _ymt_tmux_window_wrapper_optargs
+_ymt_tmux_window_wrapper_optargs=(
+  env   '-u --unset -C --chdir -S --split-string -P'
+  sudo  '-u --user -g --group -C --close-from -D --chdir -h --host -p --prompt -r --role -t --type -T --command-timeout -R --chroot -U --other-user'
+  time  '-o --output -f --format'
+  exec  '-a'
+)
+
 _ymt_tmux_window_parse() {
-  local -a words cdargs
-  local w next
-  local head=1 wrapper=0 i=1 n j sep cond=u
+  local -a words cdargs optargs
+  local w next raw wname flag
+  local head=1 wrapper=0 i=1 n j sep cond=u prev_seg=none
 
   _ymt_tmux_window_parsed=()
   words=(${(z)1})
@@ -173,15 +183,33 @@ _ymt_tmux_window_parse() {
       continue
     fi
 
+    raw="$w"
     w="${(Q)w}"
     if [[ $w == *=* ]]; then
       (( i++ ))
       continue
     fi
 
-    # ラッパー配下では残りの語をすべて候補にする (オプションとその引数を含む)
+    # ラッパー配下ではオプション (と引数を取るものはその引数) を読み飛ばし、
+    # 最初の非オプション語を実行コマンドとして 1 つだけ候補にする
     if (( wrapper )); then
+      if [[ $w == '--' ]]; then
+        wrapper=2
+        (( i++ ))
+        continue
+      fi
+      if (( wrapper == 1 )) && [[ $w == -* && $w != '-' ]]; then
+        if [[ $w != *=* ]] && (( ${optargs[(Ie)$w]} )); then
+          (( i += 2 ))
+        else
+          (( i++ ))
+        fi
+        continue
+      fi
       _ymt_tmux_window_parsed+=( "cmd"$'\t'"${w:t}" )
+      prev_seg=other
+      wrapper=0
+      head=0
       (( i++ ))
       continue
     fi
@@ -189,6 +217,8 @@ _ymt_tmux_window_parse() {
     case $w in
       command|builtin|exec|env|nohup|time|sudo)
         wrapper=1
+        wname="$w"
+        optargs=(${=_ymt_tmux_window_wrapper_optargs[$wname]})
         (( i++ ))
         continue
         ;;
@@ -210,7 +240,14 @@ _ymt_tmux_window_parse() {
             break
             ;;
         esac
+        raw="$next"
         next="${(Q)next}"
+        # 引用・エスケープされた $ は shell も展開しないので、リテラル扱いにする
+        if [[ $raw == *\'* || $raw == *'\$'* ]]; then
+          flag=L
+        else
+          flag=E
+        fi
         if (( ${#cdargs} == 0 )) && [[ $next == '--' ]]; then
           # 以降はオプションとして解釈しない
           (( j++ ))
@@ -222,28 +259,39 @@ _ymt_tmux_window_parse() {
                 break
                 ;;
             esac
-            cdargs+="${(Q)next}"
+            if [[ $next == *\'* || $next == *'\$'* ]]; then
+              cdargs+="L${(Q)next}"
+            else
+              cdargs+="E${(Q)next}"
+            fi
             (( j++ ))
           done
           break
         elif (( ${#cdargs} == 0 )) && [[ $next == '-' ]]; then
-          cdargs+='-'
+          cdargs+='L-'
           (( j++ ))
           break
         elif (( ${#cdargs} == 0 )) && [[ $next == -* ]]; then
           (( j++ ))
           continue
         else
-          cdargs+="$next"
+          cdargs+="${flag}${next}"
           (( j++ ))
         fi
       done
 
+      # 直前が cd でない条件付き cd は先行コマンドの成否を再現できない。
+      # 誤った移動先を使わないよう `x` (再現不能) として後段に伝える。
+      if [[ $cond != u && $prev_seg != cd ]]; then
+        cond=x
+      fi
+
       if (( ${#cdargs} == 0 )); then
-        _ymt_tmux_window_parsed+=( "cd"$'\t'"$cond"$'\t'"$HOME" )
+        _ymt_tmux_window_parsed+=( "cd"$'\t'"$cond"$'\t'"L$HOME" )
       else
         _ymt_tmux_window_parsed+=( "cd"$'\t'"$cond"$'\t'"${(pj:\t:)cdargs}" )
       fi
+      prev_seg=cd
       head=0
       # j は区切り、または消費し終えた次の位置を指す
       i=$j
@@ -251,6 +299,7 @@ _ymt_tmux_window_parse() {
     fi
 
     _ymt_tmux_window_parsed+=( "cmd"$'\t'"${w:t}" )
+    prev_seg=other
     head=0
     (( i++ ))
   done
@@ -344,12 +393,24 @@ _ymt_tmux_window_name_preexec() {
   done
   (( matched )) || return
 
-  # val は `<cond><TAB><移動先...>` 形式。cond はそのまま保持して後段へ渡す
-  local cond rest
+  # val は `<cond><TAB><E|L><移動先>...` 形式。cond はそのまま保持して後段へ渡す
+  local cond rest skip_cond=0
   for val in $rawcds; do
     cond="${val%%$'\t'*}"
     rest="${val#*$'\t'}"
-    if [[ $rest == - ]]; then
+
+    # 再現不能な条件付き cd。ここまでの収集を破棄し、次の無条件 cd まで無視する
+    if [[ $cond == x ]]; then
+      cddirs=()
+      skip_cond=1
+      continue
+    fi
+    if (( skip_cond )); then
+      [[ $cond == u ]] || continue
+      skip_cond=0
+    fi
+
+    if [[ $rest == 'L-' ]]; then
       # OLDPWD は移動を再現する側で解決する
       cddirs+="$cond"$'\t'"-"
       continue
@@ -358,14 +419,18 @@ _ymt_tmux_window_name_preexec() {
     parts=("${(@ps:\t:)rest}")
     eparts=()
     for w2 in $parts; do
-      d="$w2"
-      # $VAR / ${VAR} を展開する。コマンド置換は preexec で実行してしまうため除外する
-      if [[ $d == *'$'* && $d != *'$('* && $d != *'`'* ]]; then
-        d="${(e)d}"
+      d="${w2[2,-1]}"
+      # 引用符で抑止されていない $VAR / ${VAR} だけを展開する。
+      # コマンド置換は preexec で実行してしまうため除外する
+      if [[ ${w2[1]} == E ]]; then
+        if [[ $d == *'$'* && $d != *'$('* && $d != *'`'* ]]; then
+          d="${(e)d}"
+        fi
+        # ~ 展開のため、配列コンテキストで GLOB_SUBST をかける
+        cdexp=(${~d})
+        d="${cdexp[1]:-$d}"
       fi
-      # ~ 展開のため、配列コンテキストで GLOB_SUBST をかける
-      cdexp=(${~d})
-      eparts+="${cdexp[1]:-$d}"
+      eparts+="$d"
     done
     cddirs+="$cond"$'\t'"${(pj:\t:)eparts}"
   done
