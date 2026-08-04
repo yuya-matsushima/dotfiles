@@ -53,3 +53,38 @@
 | `Prefix` + `r` | `.tmux.conf` のリロード | `.tmux.conf` |
 | `Prefix` + `g` | `lazygit` をポップアップウィンドウで開く | `.tmux.conf` |
 | `C-z` | Prefixキーを内側のアプリケーションに送信 | `.tmux.conf` |
+
+## AI agent 実行中の window 名
+
+`.tmux.conf` は `automatic-rename on` のため、window 名は通常フォアグラウンドのプロセス名になります。
+ただし AI agent CLI ではこれが役に立ちません
+(Claude Code はバージョン付きバイナリで起動するため `2.1.221` のような window 名になります)。
+
+そこで `.zsh/extensions/tmux_window_name.zsh` が、対象 CLI の実行中だけ window 名をリポジトリ名に差し替えます。
+
+| 状況 | window 名 |
+|---|---|
+| 通常のリポジトリ | `website-2026` |
+| リポジトリ内のサブディレクトリ | `website-2026` (リポジトリルート基準) |
+| git worktree 内 | `website-2026:fix-login` (`リポジトリ名:worktree ディレクトリ名`) |
+| git 管理外のディレクトリ | カレントディレクトリ名 |
+
+CLI が終了すると元の状態へ戻ります。`Prefix` + `,` で手動リネームした window は、その名前へ復元されます。
+
+### 対象コマンド
+
+既定は `claude` / `codex` / `opencode` / `agy` / `antigravity` です。
+`~/.zshrc_local` で配列を定義すると上書きできます。
+
+```zsh
+YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
+```
+
+リポジトリ名と worktree 名の区切り文字は `_ymt_tmux_window_sep` (既定 `:`) で変更できます。
+
+### 制限
+
+- zsh の `preexec` / `precmd` で発火するため、対話 shell から起動した場合のみ有効です。
+  `tmux new-window claude` のような直起動やスクリプト経由では発火しません。
+- window 名は window 単位のため、1 つの window の複数ペインで別々の agent を動かすと後勝ちになります。
+  ペイン単位の識別は `~/.tmux/agent-status.sh` によるステータスバー(左端の色付きバー)が担います。
