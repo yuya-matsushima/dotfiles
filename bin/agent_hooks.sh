@@ -1,11 +1,13 @@
 #!/bin/sh
 
-# Install / uninstall AI agent hooks for Claude Code and Codex.
+# Install / uninstall AI agent hooks for Claude Code, Codex, and OpenCode.
 #
 # Manages:
 #   - tmux status hooks (agent-status.sh) for both CLIs
 #   - shared notification sound (~/.agents/hooks/notify-sound.sh)
 #   - Codex-only protected-file and force-push guards
+#   - OpenCode tmux status plugin (.config/opencode/plugins/tmux-status.js)
+#     is self-contained and auto-loaded; no registration step needed.
 #
 # Unrelated hook entries (e.g. Claude Code's existing guard-protected-files.sh
 # / guard-force-push.sh under ~/.claude/hooks/) are preserved on both install
