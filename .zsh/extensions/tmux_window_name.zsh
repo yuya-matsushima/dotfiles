@@ -43,33 +43,43 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
 # (`cd dir && cd - && claude` を正しく再現するため)。
 # ディレクトリとして開けない語は zoxide のクエリ結果で解決を試みる
 # (このリポジトリの .zshrc は `zoxide init zsh --cmd cd` で cd を置き換えるため)。
-# 1 つの cd に複数の引数がある場合 (`cd foo bar`) は TAB 区切りの 1 要素として渡され、
-# zoxide の複数語クエリとして解決する。
-# 途中で移動に失敗したら、誤った移動先を使わず現在の PWD basis に戻す。
+# 各引数は `<cond><TAB><移動先...>` 形式で、cond は直前の区切りを表す:
+#   u = 無条件 (`;` / 先頭) / a = `&&` (直前成功時のみ) / o = `||` (直前失敗時のみ)
+# 移動先が TAB 区切りで複数ある場合 (`cd foo bar`) は zoxide の複数語クエリとして解決する。
+# 最終的に移動に失敗していたら、誤った移動先を使わず現在の PWD basis に戻す。
 _ymt_tmux_window_repo_name() {
   local common="" top="" root repo wt d z
 
   if (( $# )); then
     (
+      local last_ok=1 cond rest
       for d in "$@"; do
-        if [[ $d == - ]]; then
-          builtin cd -q - >/dev/null 2>&1 || exit 1
-          continue
+        cond="${d%%$'\t'*}"
+        rest="${d#*$'\t'}"
+        case $cond in
+          a) (( last_ok )) || continue ;;
+          o) (( last_ok )) && continue ;;
+        esac
+
+        last_ok=0
+        if [[ $rest == - ]]; then
+          builtin cd -q - >/dev/null 2>&1 && last_ok=1
+        elif [[ $rest == *$'\t'* ]]; then
+          # 複数語は zoxide のクエリとしてのみ意味を持つ
+          if (( $+commands[zoxide] )); then
+            z="$(zoxide query -- "${(@ps:\t:)rest}" 2>/dev/null)" &&
+              builtin cd -q -- "$z" 2>/dev/null && last_ok=1
+          fi
+        elif builtin cd -q -- "$rest" 2>/dev/null; then
+          last_ok=1
+        elif (( $+commands[zoxide] )); then
+          # zoxide のキーワード指定 (`cd project`) を query で解決する。
+          # query は読み取り専用なので、preexec での実行が履歴を汚さない。
+          z="$(zoxide query -- "$rest" 2>/dev/null)" &&
+            builtin cd -q -- "$z" 2>/dev/null && last_ok=1
         fi
-        # 複数語は zoxide のクエリとしてのみ意味を持つ
-        if [[ $d == *$'\t'* ]]; then
-          (( $+commands[zoxide] )) || exit 1
-          z="$(zoxide query -- "${(@ps:\t:)d}" 2>/dev/null)" || exit 1
-          builtin cd -q -- "$z" 2>/dev/null || exit 1
-          continue
-        fi
-        builtin cd -q -- "$d" 2>/dev/null && continue
-        # zoxide のキーワード指定 (`cd project`) を query で解決する。
-        # query は読み取り専用なので、preexec での実行が履歴を汚さない。
-        (( $+commands[zoxide] )) || exit 1
-        z="$(zoxide query -- "$d" 2>/dev/null)" || exit 1
-        builtin cd -q -- "$z" 2>/dev/null || exit 1
       done
+      (( last_ok )) || exit 1
       _ymt_tmux_window_repo_name
     ) && return
     # cd に失敗した場合は引数なしで解決し直す
@@ -126,7 +136,7 @@ typeset -ga _ymt_tmux_window_parsed
 _ymt_tmux_window_parse() {
   local -a words cdargs
   local w next
-  local head=1 wrapper=0 i=1 n j sep
+  local head=1 wrapper=0 i=1 n j sep cond=u
 
   _ymt_tmux_window_parsed=()
   words=(${(z)1})
@@ -134,8 +144,24 @@ _ymt_tmux_window_parse() {
 
   while (( i <= n )); do
     w="${words[i]}"
+    # 区切りの種類を覚えておき、cd の実行条件 (短絡) の再現に使う
     case $w in
-      ';'|'&&'|'||'|'|'|'|&'|'&'|'('|')'|'{'|'}'|'!'|$'\n')
+      '&&')
+        cond=a
+        head=1
+        wrapper=0
+        (( i++ ))
+        continue
+        ;;
+      '||')
+        cond=o
+        head=1
+        wrapper=0
+        (( i++ ))
+        continue
+        ;;
+      ';'|'|'|'|&'|'&'|'('|')'|'{'|'}'|'!'|$'\n')
+        cond=u
         head=1
         wrapper=0
         (( i++ ))
@@ -214,9 +240,9 @@ _ymt_tmux_window_parse() {
       done
 
       if (( ${#cdargs} == 0 )); then
-        _ymt_tmux_window_parsed+=( "cd"$'\t'"$HOME" )
+        _ymt_tmux_window_parsed+=( "cd"$'\t'"$cond"$'\t'"$HOME" )
       else
-        _ymt_tmux_window_parsed+=( "cd"$'\t'"${(pj:\t:)cdargs}" )
+        _ymt_tmux_window_parsed+=( "cd"$'\t'"$cond"$'\t'"${(pj:\t:)cdargs}" )
       fi
       head=0
       # j は区切り、または消費し終えた次の位置を指す
@@ -318,14 +344,18 @@ _ymt_tmux_window_name_preexec() {
   done
   (( matched )) || return
 
+  # val は `<cond><TAB><移動先...>` 形式。cond はそのまま保持して後段へ渡す
+  local cond rest
   for val in $rawcds; do
-    if [[ $val == - ]]; then
+    cond="${val%%$'\t'*}"
+    rest="${val#*$'\t'}"
+    if [[ $rest == - ]]; then
       # OLDPWD は移動を再現する側で解決する
-      cddirs+='-'
+      cddirs+="$cond"$'\t'"-"
       continue
     fi
     # 複数語 (zoxide クエリ) も 1 語も、語ごとに展開してから TAB 区切りで戻す
-    parts=("${(@ps:\t:)val}")
+    parts=("${(@ps:\t:)rest}")
     eparts=()
     for w2 in $parts; do
       d="$w2"
@@ -337,7 +367,7 @@ _ymt_tmux_window_name_preexec() {
       cdexp=(${~d})
       eparts+="${cdexp[1]:-$d}"
     done
-    cddirs+="${(pj:\t:)eparts}"
+    cddirs+="$cond"$'\t'"${(pj:\t:)eparts}"
   done
 
   local name state
