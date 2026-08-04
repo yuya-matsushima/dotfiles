@@ -39,14 +39,27 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
 # worktree ディレクトリ名が異なる場合のみ `repo:worktree` にする。
 # 引数にディレクトリを渡すと、そこへ順に移動した状態で解決する
 # (`cd foo && claude` のように preexec 時点ではまだ移動していない場合に使う)。
+# `-` はそのまま渡し、移動を再現する過程の OLDPWD で解決する
+# (`cd dir && cd - && claude` を正しく再現するため)。
+# ディレクトリとして開けない語は zoxide のクエリ結果で解決を試みる
+# (このリポジトリの .zshrc は cd を zoxide 関数に置き換えるため)。
 # 途中で移動に失敗したら、誤った移動先を使わず現在の PWD basis に戻す。
 _ymt_tmux_window_repo_name() {
-  local common="" top="" root repo wt d
+  local common="" top="" root repo wt d z
 
   if (( $# )); then
     (
       for d in "$@"; do
-        builtin cd -q -- "$d" 2>/dev/null || exit 1
+        if [[ $d == - ]]; then
+          builtin cd -q - >/dev/null 2>&1 || exit 1
+          continue
+        fi
+        builtin cd -q -- "$d" 2>/dev/null && continue
+        # zoxide のキーワード指定 (`cd project`) を query で解決する。
+        # query は読み取り専用なので、preexec での実行が履歴を汚さない。
+        (( $+commands[zoxide] )) || exit 1
+        z="$(zoxide query -- "$d" 2>/dev/null)" || exit 1
+        builtin cd -q -- "$z" 2>/dev/null || exit 1
       done
       _ymt_tmux_window_repo_name
     ) && return
@@ -139,7 +152,8 @@ _ymt_tmux_window_parse() {
 
     if [[ $w == cd ]]; then
       # cd のオプション (-L / -P / -q 等) を読み飛ばし、実際の移動先を決める。
-      # 引数なしは $HOME、`cd -` は $OLDPWD、`cd -- <dir>` は次の語。
+      # 引数なしは $HOME、`cd -- <dir>` は次の語。
+      # `cd -` は OLDPWD がここまでの移動で変わるため、`-` のまま後段へ渡す。
       local j=$(( i + 1 )) target="$HOME" sep=0
       while (( j <= n )); do
         next="${words[j]}"
@@ -155,7 +169,7 @@ _ymt_tmux_window_parse() {
           (( j <= n )) && target="${(Q)words[j]}"
           break
         elif [[ $next == '-' ]]; then
-          target="$OLDPWD"
+          target='-'
           break
         elif [[ $next == -* ]]; then
           (( j++ ))
@@ -259,6 +273,11 @@ _ymt_tmux_window_name_preexec() {
     if [[ $kind == cd ]]; then
       (( matched )) && continue
       d="$val"
+      if [[ $d == - ]]; then
+        # OLDPWD は移動を再現する側で解決する
+        cddirs+='-'
+        continue
+      fi
       # $VAR / ${VAR} を展開する。コマンド置換は preexec で実行してしまうため除外する
       if [[ $d == *'$'* && $d != *'$('* && $d != *'`'* ]]; then
         d="${(e)d}"
