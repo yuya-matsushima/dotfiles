@@ -37,8 +37,15 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
 # window 名として使うリポジトリ名を出力する。
 # worktree でも本体リポジトリ名を得るため --git-common-dir を使い、
 # worktree ディレクトリ名が異なる場合のみ `repo:worktree` にする。
+# 第 1 引数にディレクトリを渡すと、そこへ移動した状態で解決する
+# (`cd foo && claude` のように preexec 時点ではまだ移動していない場合に使う)。
 _ymt_tmux_window_repo_name() {
   local common="" top="" root repo wt
+
+  if [[ -n ${1:-} && -d ${1} ]]; then
+    ( builtin cd -q -- "$1" 2>/dev/null && _ymt_tmux_window_repo_name )
+    return
+  fi
 
   if (( $+commands[git] )); then
     common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
@@ -199,28 +206,38 @@ _ymt_tmux_window_name_preexec() {
   done
   (( matched )) || return
 
-  local name state agents rest auto wname
-  local -a others
-  name="$(_ymt_tmux_window_repo_name)"
+  # `cd foo && claude` は preexec 時点でまだ移動していないため、移動先で解決する
+  local cddir=""
+  local -a cdexp
+  if [[ ${lw[1]} == cd && -n ${lw[2]} && ${lw[2]} != -* && ${lw[2]} != '&'* && ${lw[2]} != ';' ]]; then
+    setopt localoptions nonomatch nonullglob
+    cddir="${(Q)lw[2]}"
+    # ~ 展開のため、配列コンテキストで GLOB_SUBST をかける
+    cdexp=(${~cddir})
+    cddir="${cdexp[1]:-$cddir}"
+  fi
+
+  local name state
+  local -a others f
+  name="$(_ymt_tmux_window_repo_name "$cddir")"
   [[ -n $name ]] || return
 
   state="$(tmux display-message -p -t "$TMUX_PANE" \
-    "#{@ymt_win_agents}"$'\t'"#{automatic-rename}"$'\t'"#{window_name}" 2>/dev/null)" || return
+    "#{@ymt_win_agents}"$'\t'"#{@ymt_win_prev_auto}"$'\t'"#{automatic-rename}"$'\t'"#{window_name}" \
+    2>/dev/null)" || return
   [[ -n $state ]] || return
-  agents="${state%%$'\t'*}"
-  rest="${state#*$'\t'}"
-  auto="${rest%%$'\t'*}"
-  wname="${rest#*$'\t'}"
+  f=("${(@ps:\t:)state}")
 
-  others=(${(f)"$(_ymt_tmux_window_other_agents "$agents")"})
+  others=(${(f)"$(_ymt_tmux_window_other_agents "$f[1]")"})
 
   tmux rename-window -t "$TMUX_PANE" "$name" 2>/dev/null || return
   # rename-window はそのウィンドウの automatic-rename を off にする
 
-  # この window で最初の agent のときだけ、rename 前の状態を退避する
-  if (( ${#others} == 0 )); then
-    tmux set-option -w -t "$TMUX_PANE" @ymt_win_prev_auto "$auto" 2>/dev/null
-    tmux set-option -w -t "$TMUX_PANE" @ymt_win_prev_name "$wname" 2>/dev/null
+  # 退避値が未設定のときだけ保存する。他ペインが kill されて @ymt_win_agents が
+  # stale になっていても (others が空でも)、既存の退避値は上書きしない。
+  if [[ -z $f[2] ]]; then
+    tmux set-option -w -t "$TMUX_PANE" @ymt_win_prev_auto "$f[3]" 2>/dev/null
+    tmux set-option -w -t "$TMUX_PANE" @ymt_win_prev_name "$f[4]" 2>/dev/null
   fi
   tmux set-option -w -t "$TMUX_PANE" @ymt_win_agents "${(j: :)others} $TMUX_PANE" 2>/dev/null
   _ymt_tmux_window_active=1
