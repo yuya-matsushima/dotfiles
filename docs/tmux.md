@@ -86,5 +86,9 @@ YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
 
 - zsh の `preexec` / `precmd` で発火するため、対話 shell から起動した場合のみ有効です。
   `tmux new-window claude` のような直起動やスクリプト経由では発火しません。
-- window 名は window 単位のため、1 つの window の複数ペインで別々の agent を動かすと後勝ちになります。
-  ペイン単位の識別は `~/.tmux/agent-status.sh` によるステータスバー(左端の色付きバー)が担います。
+- window 名は window 単位のため、1 つの window の複数ペインで別々のリポジトリの agent を動かすと
+  表示名は後勝ちになります。ペイン単位の識別は `~/.tmux/agent-status.sh` によるステータスバー
+  (左端の色付きバー)が担います。
+  なお元の状態への復元は、その window で最後の agent が終了した時点で 1 回だけ行われます
+  (実行中ペインの集合を window option `@ymt_win_agents` で参照カウントしているため、
+  終了順に関わらず `automatic-rename` の設定が壊れることはありません)。
