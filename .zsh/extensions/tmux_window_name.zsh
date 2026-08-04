@@ -37,13 +37,21 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
 # window 名として使うリポジトリ名を出力する。
 # worktree でも本体リポジトリ名を得るため --git-common-dir を使い、
 # worktree ディレクトリ名が異なる場合のみ `repo:worktree` にする。
-# 第 1 引数にディレクトリを渡すと、そこへ移動した状態で解決する
+# 引数にディレクトリを渡すと、そこへ順に移動した状態で解決する
 # (`cd foo && claude` のように preexec 時点ではまだ移動していない場合に使う)。
+# 途中で移動に失敗したら、誤った移動先を使わず現在の PWD basis に戻す。
 _ymt_tmux_window_repo_name() {
-  local common="" top="" root repo wt
+  local common="" top="" root repo wt d
 
-  if [[ -n ${1:-} && -d ${1} ]]; then
-    ( builtin cd -q -- "$1" 2>/dev/null && _ymt_tmux_window_repo_name )
+  if (( $# )); then
+    (
+      for d in "$@"; do
+        builtin cd -q -- "$d" 2>/dev/null || exit 1
+      done
+      _ymt_tmux_window_repo_name
+    ) && return
+    # cd に失敗した場合は引数なしで解決し直す
+    _ymt_tmux_window_repo_name
     return
   fi
 
@@ -75,14 +83,18 @@ _ymt_tmux_window_repo_name() {
   fi
 }
 
-# コマンドラインに含まれる各コマンドの先頭語を 1 行ずつ出力する。
+# コマンドラインから、対象コマンド判定に使う候補語を 1 行ずつ出力する。
 # `cd foo && claude` や `claude | tee log` のような複合コマンドも拾えるよう、
-# 区切り (; && || | & 等) ごとに先頭語を取り直す。
-# 環境変数代入と、command/env などのラッパー (そのオプションを含む) は読み飛ばす。
-_ymt_tmux_window_head_commands() {
+# 区切り (; && || | & 等) ごとに先頭語を取り直す。環境変数代入は読み飛ばす。
+#
+# command/env/sudo などのラッパー配下では、その残りの語をすべて候補として出す。
+# `env -P /path claude` / `sudo --user root claude` のように引数を取るオプションは
+# ラッパーごとに異なり、網羅的な表を持つのは現実的でないため。
+# 候補が増えても、YMT_TMUX_AGENT_COMMANDS に一致しない語は無視されるだけで済む。
+_ymt_tmux_window_command_candidates() {
   local -a words
   local w
-  local head=1 wrapper=0 skip_next=0
+  local head=1 wrapper=0
   words=(${(z)1})
 
   for w in $words; do
@@ -90,27 +102,17 @@ _ymt_tmux_window_head_commands() {
       ';'|'&&'|'||'|'|'|'|&'|'&'|'('|')'|'{'|'}'|'!'|$'\n')
         head=1
         wrapper=0
-        skip_next=0
         continue
         ;;
     esac
     (( head )) || continue
 
     w="${(Q)w}"
-
-    # 直前のラッパーオプションが引数を取る場合 (env -u NAME / sudo -u USER)
-    if (( skip_next )); then
-      skip_next=0
-      continue
-    fi
-
     [[ $w == *=* ]] && continue
 
-    # ラッパーに渡されたオプション (env -u FOO / sudo -E / time -p)
-    if (( wrapper )) && [[ $w == -* ]]; then
-      case $w in
-        -u|--unset) skip_next=1 ;;
-      esac
+    # ラッパー配下では残りの語をすべて候補にする (オプションとその引数を含む)
+    if (( wrapper )); then
+      print -r -- "${w:t}"
       continue
     fi
 
@@ -123,7 +125,52 @@ _ymt_tmux_window_head_commands() {
 
     print -r -- "${w:t}"
     head=0
-    wrapper=0
+  done
+}
+
+# 対象コマンドより前にある `cd` の移動先を、出現順に 1 行ずつ出力する。
+# `cd repo-a && cd ../repo-b && claude` のように複数あっても順に反映できるようにする。
+_ymt_tmux_window_cd_targets() {
+  local -a words
+  local w next
+  local head=1 i=1 n
+
+  words=(${(z)1})
+  n=${#words}
+
+  while (( i <= n )); do
+    w="${words[i]}"
+    case $w in
+      ';'|'&&'|'||'|'|'|'|&'|'&'|'('|')'|'{'|'}'|'!'|$'\n')
+        head=1
+        (( i++ ))
+        continue
+        ;;
+    esac
+    if (( ! head )); then
+      (( i++ ))
+      continue
+    fi
+
+    w="${(Q)w}"
+    if [[ $w == cd ]]; then
+      next="${(Q)words[i+1]}"
+      case $next in
+        ''|-*|';'|'&&'|'||'|'|'|'&') ;;
+        *) print -r -- "$next" ;;
+      esac
+      head=0
+      (( i += 2 ))
+      continue
+    fi
+
+    # 対象コマンドに到達したらそこで打ち切る (agent より後ろの cd は反映しない)
+    if (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)${w:t}]} )); then
+      return
+    fi
+
+    head=0
+    (( i++ ))
   done
 }
 
@@ -197,7 +244,7 @@ _ymt_tmux_window_name_preexec() {
     [[ -n $jtext ]] && line="$jtext"
   fi
 
-  cmds=(${(f)"$(_ymt_tmux_window_head_commands "$line")"})
+  cmds=(${(f)"$(_ymt_tmux_window_command_candidates "$line")"})
   for cmd in $cmds; do
     if (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$cmd]} )); then
       matched=1
@@ -207,19 +254,18 @@ _ymt_tmux_window_name_preexec() {
   (( matched )) || return
 
   # `cd foo && claude` は preexec 時点でまだ移動していないため、移動先で解決する
-  local cddir=""
-  local -a cdexp
-  if [[ ${lw[1]} == cd && -n ${lw[2]} && ${lw[2]} != -* && ${lw[2]} != '&'* && ${lw[2]} != ';' ]]; then
-    setopt localoptions nonomatch nonullglob
-    cddir="${(Q)lw[2]}"
+  local d
+  local -a cddirs cdexp
+  setopt localoptions nonomatch nonullglob
+  for d in ${(f)"$(_ymt_tmux_window_cd_targets "$line")"}; do
     # ~ 展開のため、配列コンテキストで GLOB_SUBST をかける
-    cdexp=(${~cddir})
-    cddir="${cdexp[1]:-$cddir}"
-  fi
+    cdexp=(${~d})
+    cddirs+="${cdexp[1]:-$d}"
+  done
 
   local name state
   local -a others f
-  name="$(_ymt_tmux_window_repo_name "$cddir")"
+  name="$(_ymt_tmux_window_repo_name "${cddirs[@]}")"
   [[ -n $name ]] || return
 
   state="$(tmux display-message -p -t "$TMUX_PANE" \
