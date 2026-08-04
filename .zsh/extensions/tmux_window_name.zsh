@@ -120,6 +120,44 @@ _ymt_tmux_window_head_commands() {
   done
 }
 
+# ジョブ指定 (%1 / %+ / %string 等) から、そのジョブのコマンド文字列を出力する。
+# Ctrl-Z で停止した agent を fg で再開したときに、再び対象コマンドとして
+# 判定できるようにするために使う。
+_ymt_tmux_window_job_text() {
+  local spec="${1:-%+}" j mark
+
+  (( ${+jobtexts} )) || return
+  (( ${#jobtexts} )) || return
+
+  case $spec in
+    %%|%+|'') spec='+' ;;
+    %-) spec='-' ;;
+    %<->)
+      print -r -- "${jobtexts[${spec#%}]}"
+      return
+      ;;
+    %*)
+      # %string : コマンドが string で始まるジョブ
+      for j in ${(k)jobtexts}; do
+        if [[ ${jobtexts[$j]} == ${spec#%}* ]]; then
+          print -r -- "${jobtexts[$j]}"
+          return
+        fi
+      done
+      return
+      ;;
+    *) spec='+' ;;
+  esac
+
+  for j in ${(k)jobstates}; do
+    mark="${${(s.:.)jobstates[$j]}[2]}"
+    if [[ $mark == $spec ]]; then
+      print -r -- "${jobtexts[$j]}"
+      return
+    fi
+  done
+}
+
 # @ymt_win_agents のうち、生存していて自ペイン以外のものを出力する。
 # ペインが kill された場合に古い ID が残り続けないよう、都度 list-panes と突き合わせる。
 _ymt_tmux_window_other_agents() {
@@ -139,9 +177,20 @@ _ymt_tmux_window_name_preexec() {
   (( $+commands[tmux] )) || return
 
   # $3 は alias 展開済みのコマンドライン
-  local -a cmds
-  local cmd matched=0
-  cmds=(${(f)"$(_ymt_tmux_window_head_commands "${3:-$1}")"})
+  local -a cmds lw
+  local cmd matched=0 line jobspec jtext
+  line="${3:-$1}"
+
+  # `fg` / `fg %2` / `%2` はジョブ再開なので、停止中ジョブのコマンドで判定し直す
+  lw=(${(z)line})
+  if [[ ${lw[1]} == fg || ${lw[1]} == %* ]]; then
+    jobspec="${lw[1]}"
+    [[ $jobspec == fg ]] && jobspec="${lw[2]:-%+}"
+    jtext="$(_ymt_tmux_window_job_text "$jobspec")"
+    [[ -n $jtext ]] && line="$jtext"
+  fi
+
+  cmds=(${(f)"$(_ymt_tmux_window_head_commands "$line")"})
   for cmd in $cmds; do
     if (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$cmd]} )); then
       matched=1
