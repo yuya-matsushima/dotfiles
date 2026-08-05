@@ -19,6 +19,8 @@ _domain-checker() {
         'spf:show SPF record for a domain'
         'dkim:show DKIM record for a domain'
         'dmarc:show DMARC record for a domain'
+        'ssl:show SSL certificate info for a domain (Port 443)'
+        'cert:show SSL certificate info for a domain (Port 443)'
       )
       _describe 'command' subcmds
       # ドメイン名も直接指定可能
