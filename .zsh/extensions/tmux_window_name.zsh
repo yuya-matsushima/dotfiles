@@ -7,17 +7,20 @@
 # preexec で対象 CLI を検出して window 名をリポジトリ名へ変更し、
 # precmd (= CLI 終了後) に元の状態へ戻す。
 #
-#   通常のリポジトリ : website-2026
-#   git worktree 内  : website-2026:fix-login
+#   通常のリポジトリ     : website-2026
+#   git worktree 内      : website-2026:fix-login
+#   複数ペインで異なる repo : website-2026|api
+#   同名 window が既存     : website-2026-2
 #
 # 対象コマンドは YMT_TMUX_AGENT_COMMANDS で上書きできる (~/.zshrc_local など)。
 #
 # 1 つの window の複数ペインで agent を動かしても壊れないよう、rename 前の状態は
 # shell 変数ではなく window option に持たせ、実行中ペインの集合で参照カウントする。
 #
-#   @ymt_win_agents    : agent 実行中のペイン ID (スペース区切り)
-#   @ymt_win_prev_auto : 最初の agent 起動前の automatic-rename
-#   @ymt_win_prev_name : 最初の agent 起動前の window 名
+#   @ymt_win_agents     : agent 実行中のペイン ID (スペース区切り)
+#   @ymt_win_pane_repos : ペインごとのリポジトリ名 (pane_id=repo_name 改行区切り)
+#   @ymt_win_prev_auto  : 最初の agent 起動前の automatic-rename
+#   @ymt_win_prev_name  : 最初の agent 起動前の window 名
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
@@ -101,10 +104,22 @@ _ymt_tmux_window_repo_name() {
   elif [[ -n $top ]]; then
     # --path-format 非対応の古い git 向けフォールバック
     repo="${top:t}"
+    root="$top"
   else
     # git 管理外 / git 未インストール
     print -r -- "${PWD:t}"
     return
+  fi
+
+  # GitHub リポジトリの場合は remote URL から canonical なリポジトリ名を取得
+  if [[ -n $root ]]; then
+    local remote_url
+    remote_url="$(git -C "$root" remote get-url origin 2>/dev/null)"
+    if [[ $remote_url == *github.com* ]]; then
+      remote_url="${remote_url##*/}"
+      remote_url="${remote_url%.git}"
+      repo="$remote_url"
+    fi
   fi
 
   wt="${top:t}"
@@ -357,6 +372,86 @@ _ymt_tmux_window_other_agents() {
   done
 }
 
+# @ymt_win_pane_repos にペインのリポジトリ名を追加または更新する。
+# データ形式: pane_id=repo_name を改行区切りで保持
+_ymt_tmux_window_pane_repos_update() {
+  local data="$1" pane_id="$2" repo="$3"
+  local -a result
+  local entry found=0
+
+  if [[ -z $data ]]; then
+    print -r -- "${pane_id}=${repo}"
+    return
+  fi
+
+  for entry in ${(f)data}; do
+    [[ -z $entry ]] && continue
+    if [[ ${entry%%=*} == $pane_id ]]; then
+      result+=("${pane_id}=${repo}")
+      found=1
+    else
+      result+=("$entry")
+    fi
+  done
+  (( found )) || result+=("${pane_id}=${repo}")
+  print -r -- "${(F)result}"
+}
+
+# @ymt_win_pane_repos から指定ペインのエントリを削除する
+_ymt_tmux_window_pane_repos_remove() {
+  local data="$1" pane_id="$2"
+  local -a result
+  local entry
+
+  [[ -z $data ]] && return
+
+  for entry in ${(f)data}; do
+    [[ -z $entry ]] && continue
+    [[ ${entry%%=*} == $pane_id ]] || result+=("$entry")
+  done
+  (( ${#result} )) && print -r -- "${(F)result}"
+}
+
+# @ymt_win_pane_repos の全ペインから一意なリポジトリ名を収集し | 区切りで出力
+_ymt_tmux_window_composite_name() {
+  local data="$1" entry repo
+  local -a repos
+
+  [[ -n $data ]] || return 1
+
+  for entry in ${(f)data}; do
+    [[ -z $entry ]] && continue
+    repo="${entry#*=}"
+    [[ -n $repo ]] && (( ${repos[(Ie)$repo]} )) || repos+=("$repo")
+  done
+
+  (( ${#repos} )) || return 1
+  print -r -- "${(j:|:)repos}"
+}
+
+# 同名の window が既に存在する場合、末尾に -N サフィックスを付与する
+_ymt_tmux_window_suffixed_name() {
+  local base="$1" win_name max_n=0 n
+  local -a existing
+
+  existing=(${(f)"$(tmux list-windows -F '#{window_name}' 2>/dev/null)"})
+
+  for win_name in $existing; do
+    if [[ $win_name == $base ]]; then
+      max_n=1
+    elif [[ $win_name == $base-<-> ]]; then
+      n="${win_name#$base-}"
+      [[ $n == <-> ]] && (( n > max_n )) && max_n=$n
+    fi
+  done
+
+  if (( max_n > 0 )); then
+    print -r -- "${base}-$(( max_n + 1 ))"
+  else
+    print -r -- "$base"
+  fi
+}
+
 _ymt_tmux_window_name_preexec() {
   [[ -n $TMUX && -n $TMUX_PANE ]] || return
   (( $+commands[tmux] )) || return
@@ -435,20 +530,31 @@ _ymt_tmux_window_name_preexec() {
     cddirs+="$cond"$'\t'"${(pj:\t:)eparts}"
   done
 
-  local name state
+  local name state composite_name pane_repos_data
   local -a others f
   name="$(_ymt_tmux_window_repo_name "${cddirs[@]}")"
   [[ -n $name ]] || return
 
   state="$(tmux display-message -p -t "$TMUX_PANE" \
-    "#{@ymt_win_agents}"$'\t'"#{@ymt_win_prev_auto}"$'\t'"#{automatic-rename}"$'\t'"#{window_name}" \
+    "#{@ymt_win_agents}"$'\t'"#{@ymt_win_prev_auto}"$'\t'"#{automatic-rename}"$'\t'"#{window_name}"$'\t'"#{@ymt_win_pane_repos}" \
     2>/dev/null)" || return
   [[ -n $state ]] || return
   f=("${(@ps:\t:)state}")
+  pane_repos_data="${f[5]}"
 
   others=(${(f)"$(_ymt_tmux_window_other_agents "$f[1]")"})
 
-  tmux rename-window -t "$TMUX_PANE" "$name" 2>/dev/null || return
+  pane_repos_data="$(_ymt_tmux_window_pane_repos_update "$pane_repos_data" "$TMUX_PANE" "$name")"
+
+  composite_name="$(_ymt_tmux_window_composite_name "$pane_repos_data")"
+  [[ -n $composite_name ]] || composite_name="$name"
+
+  # 初回リネーム時のみサフィックスを付与
+  if [[ -z $f[1] ]]; then
+    composite_name="$(_ymt_tmux_window_suffixed_name "$composite_name")"
+  fi
+
+  tmux rename-window -t "$TMUX_PANE" "$composite_name" 2>/dev/null || return
   # rename-window はそのウィンドウの automatic-rename を off にする
 
   # 退避値が未設定のときだけ保存する。他ペインが kill されて @ymt_win_agents が
@@ -458,6 +564,7 @@ _ymt_tmux_window_name_preexec() {
     tmux set-option -w -t "$TMUX_PANE" @ymt_win_prev_name "$f[4]" 2>/dev/null
   fi
   tmux set-option -w -t "$TMUX_PANE" @ymt_win_agents "${(j: :)others} $TMUX_PANE" 2>/dev/null
+  tmux set-option -w -t "$TMUX_PANE" @ymt_win_pane_repos "$pane_repos_data" 2>/dev/null
   _ymt_tmux_window_active=1
 }
 
@@ -469,26 +576,33 @@ _ymt_tmux_window_name_precmd() {
   [[ -n $TMUX && -n $TMUX_PANE ]] || return
   (( $+commands[tmux] )) || return
 
-  local state agents rest auto name
+  local state agents rest auto name pane_repos_data composite_name
   local -a others
   state="$(tmux display-message -p -t "$TMUX_PANE" \
-    "#{@ymt_win_agents}"$'\t'"#{@ymt_win_prev_auto}"$'\t'"#{@ymt_win_prev_name}" 2>/dev/null)" || return
+    "#{@ymt_win_agents}"$'\t'"#{@ymt_win_prev_auto}"$'\t'"#{@ymt_win_prev_name}"$'\t'"#{@ymt_win_pane_repos}" 2>/dev/null)" || return
   agents="${state%%$'\t'*}"
   rest="${state#*$'\t'}"
   auto="${rest%%$'\t'*}"
-  name="${rest#*$'\t'}"
+  rest="${rest#*$'\t'}"
+  name="${rest%%$'\t'*}"
+  pane_repos_data="${rest#*$'\t'}"
 
   others=(${(f)"$(_ymt_tmux_window_other_agents "$agents")"})
 
-  # 他ペインでまだ agent が動いているので、自ペインを外すだけで名前は維持する
+  # 他ペインでまだ agent が動いている場合は自ペインを外し、window 名を再計算
   if (( ${#others} )); then
+    pane_repos_data="$(_ymt_tmux_window_pane_repos_remove "$pane_repos_data" "$TMUX_PANE")"
+    composite_name="$(_ymt_tmux_window_composite_name "$pane_repos_data")"
     tmux set-option -w -t "$TMUX_PANE" @ymt_win_agents "${(j: :)others}" 2>/dev/null
+    tmux set-option -w -t "$TMUX_PANE" @ymt_win_pane_repos "$pane_repos_data" 2>/dev/null
+    [[ -n $composite_name ]] && tmux rename-window -t "$TMUX_PANE" "$composite_name" 2>/dev/null
     return
   fi
 
   tmux set-option -w -t "$TMUX_PANE" -u @ymt_win_agents 2>/dev/null
   tmux set-option -w -t "$TMUX_PANE" -u @ymt_win_prev_auto 2>/dev/null
   tmux set-option -w -t "$TMUX_PANE" -u @ymt_win_prev_name 2>/dev/null
+  tmux set-option -w -t "$TMUX_PANE" -u @ymt_win_pane_repos 2>/dev/null
 
   if [[ $auto == 1 ]]; then
     tmux set-window-option -t "$TMUX_PANE" automatic-rename on 2>/dev/null
