@@ -40,7 +40,7 @@ domain-checker is a simple tool to check DNS records for a domain.
 <domain> には URL (例: https://example.com/path?q=1) を渡してもよく, その場合はホスト部分を抽出して処理します。
 
 Usage:
-  domain-checker <domain>          show all DNS records for a domain
+  domain-checker <domain>          show all records for a domain
   domain-checker a <domain>        show A records for a domain
   domain-checker aaaa <domain>     show AAAA records for a domain
   domain-checker shodan <domain>   show Shodan InternetDB info for all A/AAAA IPs
@@ -300,6 +300,8 @@ _ymt_dc_all() {
   _ymt_dc_dkim "$DOMAIN"
   echo ""
   _ymt_dc_dmarc "$DOMAIN"
+  echo ""
+  _ymt_dc_cert_info "$DOMAIN"
 }
 
 case $1 in
