@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Check dependencies
-for _ymt_dc_cmd in dig whois curl jq; do
+for _ymt_dc_cmd in dig whois curl jq openssl; do
   if ! command -v "$_ymt_dc_cmd" >/dev/null 2>&1; then
     echo "Error: $_ymt_dc_cmd command not found. Please install $_ymt_dc_cmd." >&2
     return 1
@@ -48,6 +48,8 @@ Usage:
   domain-checker spf <domain>      show SPF record for a domain
   domain-checker dkim <domain>     show DKIM record for a domain
   domain-checker dmarc <domain>    show DMARC record for a domain
+  domain-checker ssl <domain>      show SSL certificate info for a domain (Port 443)
+  domain-checker cert <domain>     show SSL certificate info for a domain (Port 443)
 
 Options:
   -h, --help                       print help
@@ -57,6 +59,7 @@ Dependencies:
   curl
   dig
   jq
+  openssl
   whois
 EOF
 }
@@ -214,6 +217,76 @@ _ymt_dc_shodan() {
   done
 }
 
+_ymt_dc_cert_info() {
+  local DOMAIN="$1"
+  local CERT TLS_INFO TLS_VERSION LINE
+
+  echo "## SSL certificate for $DOMAIN (Port 443):\n"
+
+  if ! CERT=$(printf 'QUIT\r\n' | openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null | openssl x509 2>/dev/null); then
+    echo "Error: Failed to retrieve SSL certificate for $DOMAIN:443" >&2
+    return 1
+  fi
+  if [[ -z "$CERT" ]]; then
+    echo "Error: No SSL certificate found for $DOMAIN:443" >&2
+    return 1
+  fi
+
+  local SUBJECT ISSUER DATES NOT_BEFORE NOT_AFTER SERIAL SIGALG FINGERPRINT SAN SAN_VALUES
+
+  SUBJECT=$(printf '%s' "$CERT" | openssl x509 -noout -subject)
+  SUBJECT="${SUBJECT#subject=}"
+  SUBJECT="${SUBJECT# }"
+  echo "* subject: $SUBJECT"
+
+  ISSUER=$(printf '%s' "$CERT" | openssl x509 -noout -issuer)
+  ISSUER="${ISSUER#issuer=}"
+  ISSUER="${ISSUER# }"
+  echo "* issuer: $ISSUER"
+
+  DATES=$(printf '%s' "$CERT" | openssl x509 -noout -startdate -enddate)
+  NOT_BEFORE="${DATES#*notBefore=}"
+  NOT_BEFORE="${NOT_BEFORE%%$'\n'*}"
+  NOT_BEFORE="${NOT_BEFORE# }"
+  NOT_AFTER="${DATES#*notAfter=}"
+  NOT_AFTER="${NOT_AFTER# }"
+  echo "* notBefore: $NOT_BEFORE"
+  echo "* notAfter: $NOT_AFTER"
+
+  SERIAL=$(printf '%s' "$CERT" | openssl x509 -noout -serial)
+  SERIAL="${SERIAL#serial=}"
+  SERIAL="${SERIAL# }"
+  echo "* serial: $SERIAL"
+
+  SIGALG=$(printf '%s' "$CERT" | openssl x509 -noout -text | awk -F': ' '/Signature Algorithm/ {print $2; exit}')
+  echo "* signature algorithm: $SIGALG"
+
+  FINGERPRINT=$(printf '%s' "$CERT" | openssl x509 -noout -fingerprint -sha256)
+  FINGERPRINT="${FINGERPRINT#sha256 Fingerprint=}"
+  FINGERPRINT="${FINGERPRINT# }"
+  echo "* fingerprint (SHA-256): $FINGERPRINT"
+
+  SAN=$(printf '%s' "$CERT" | openssl x509 -noout -ext subjectAltName 2>/dev/null)
+  SAN_VALUES=""
+  while IFS= read -r LINE; do
+    if [[ "$LINE" == *"DNS:"* || "$LINE" == *"IP Address:"* ]]; then
+      local VAL="${LINE#*: }"
+      VAL="${VAL#"${VAL%%[![:space:]]*}"}"
+      VAL="${VAL%"${VAL##*[![:space:]]}"}"
+      SAN_VALUES="${SAN_VALUES:+, }${VAL}"
+    fi
+  done <<< "$SAN"
+  if [[ -n "$SAN_VALUES" ]]; then
+    echo "* subjectAltName: $SAN_VALUES"
+  fi
+
+  TLS_INFO=$(printf 'QUIT\r\n' | openssl s_client -connect "$DOMAIN:443" -servername "$DOMAIN" 2>/dev/null)
+  TLS_VERSION=$(printf '%s' "$TLS_INFO" | grep -oE 'TLSv[0-9](\.[0-9]+)?' | head -n 1)
+  if [[ -n "$TLS_VERSION" ]]; then
+    echo "* TLS version: $TLS_VERSION"
+  fi
+}
+
 _ymt_dc_all() {
   local DOMAIN="$1"
   _ymt_dc_a "$DOMAIN"
@@ -234,7 +307,7 @@ case $1 in
     _ymt_dc_usage
   ;;
 
-  a|aaaa|mx|spf|dkim|dmarc|shodan)
+  a|aaaa|mx|spf|dkim|dmarc|shodan|ssl|cert)
     local _SUBCMD="$1"
     if [[ -z "$2" ]]; then
       echo "Error: Please specify a domain" >&2
@@ -248,13 +321,14 @@ case $1 in
       return 1
     fi
     case $_SUBCMD in
-      a)      _ymt_dc_a      "$_DOMAIN" ;;
-      aaaa)   _ymt_dc_aaaa   "$_DOMAIN" ;;
-      mx)     _ymt_dc_mx     "$_DOMAIN" ;;
-      spf)    _ymt_dc_spf    "$_DOMAIN" ;;
-      dkim)   _ymt_dc_dkim   "$_DOMAIN" ;;
-      dmarc)  _ymt_dc_dmarc  "$_DOMAIN" ;;
-      shodan) _ymt_dc_shodan "$_DOMAIN" ;;
+      a)      _ymt_dc_a        "$_DOMAIN" ;;
+      aaaa)   _ymt_dc_aaaa     "$_DOMAIN" ;;
+      mx)     _ymt_dc_mx       "$_DOMAIN" ;;
+      spf)    _ymt_dc_spf      "$_DOMAIN" ;;
+      dkim)   _ymt_dc_dkim     "$_DOMAIN" ;;
+      dmarc)  _ymt_dc_dmarc    "$_DOMAIN" ;;
+      shodan) _ymt_dc_shodan   "$_DOMAIN" ;;
+      ssl|cert) _ymt_dc_cert_info "$_DOMAIN" ;;
     esac
   ;;
 
