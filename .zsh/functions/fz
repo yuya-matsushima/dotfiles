@@ -101,23 +101,10 @@ _ymt_fz_check_dependencies() {
     missing_deps+=("mo (brew install k1LoW/tap/mo)")
   fi
 
-  if [[ "$subcommand" == "lazygit" ]]; then
-    if ! (( $+commands[lazygit] )); then
-      missing_deps+=("lazygit")
-    fi
-    if ! (( $+commands[fd] )); then
-      missing_deps+=("fd")
-    fi
-  fi
-
   # オプショナルな依存（警告のみ）
   local optional_deps=()
   if ! (( $+commands[bat] )); then
     optional_deps+=("bat (syntax highlighting)")
-  fi
-
-  if ! (( $+commands[glow] )); then
-    optional_deps+=("glow (markdown rendering for pr/issue)")
   fi
 
   if ! (( $+commands[pbcopy] )) && [[ "$OSTYPE" == "darwin"* ]]; then
@@ -159,7 +146,6 @@ Subcommands:
   history   コマンド履歴検索・実行
   issue     GitHub Issue一覧
   kill      プロセス検索・kill
-  lazygit   Git リポジトリを検索して lazygit で開く
   log       Git commit履歴検索（batでシンタックスハイライト）
   pr        GitHub Pull Request一覧
   skills    Skill (SKILL.md + 関連ファイル) を mo でブラウザ表示
@@ -176,7 +162,6 @@ Examples:
   fz history    # コマンド履歴を検索して実行
   fz issue      # Issueを選択して詳細表示
   fz kill       # プロセスを選択してkill
-  fz lazygit    # Git リポジトリを検索して lazygit で開く
   fz log        # Git logを検索（Ctrl+Yでhash copy）
   fz pr         # Pull Requestを選択して詳細表示
   fz skills     # Skill 一覧から選んで mo でブラウザプレビュー
@@ -597,19 +582,10 @@ _ymt_fz_pr() {
 
   if [ -n "$selected_pr" ]; then
     local pr_number=$(echo "$selected_pr" | cut -d'#' -f2 | cut -d' ' -f1)
-    if (( $+commands[glow] )); then
-      # glow でMarkdownをレンダリング
-      {
-        gh pr view "$pr_number" --json number,title,author,state,createdAt,url | jq -r '"# PR #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**URL:** \(.url)\n\n---\n"'
-        gh pr view "$pr_number" --json body -q ".body" | sed "s/<[^>]*>//g"
-      } | glow -p -
+    if [ -n "$PAGER" ]; then
+      gh pr view "$pr_number" | $PAGER
     else
-      # glowがない場合は通常表示
-      if [ -n "$PAGER" ]; then
-        gh pr view "$pr_number" | $PAGER
-      else
-        gh pr view "$pr_number" | less -R
-      fi
+      gh pr view "$pr_number" | less -R
     fi
   fi
 }
@@ -642,42 +618,11 @@ _ymt_fz_issue() {
 
   if [ -n "$selected_issue" ]; then
     local issue_number=$(echo "$selected_issue" | cut -d'#' -f2 | cut -d' ' -f1)
-    if (( $+commands[glow] )); then
-      # glow でMarkdownをレンダリング
-      {
-        gh issue view "$issue_number" --json number,title,author,state,createdAt,url,labels | jq -r '"# Issue #\(.number): \(.title)\n\n**Author:** \(.author.login)  \n**State:** \(.state)  \n**Created:** \(.createdAt | sub("T"; " ") | sub("Z"; " UTC"))  \n**Labels:** \(.labels | map(.name) | join(", "))  \n**URL:** \(.url)\n\n---\n"'
-        gh issue view "$issue_number" --json body -q ".body" | sed "s/<[^>]*>//g"
-      } | glow -p -
+    if [ -n "$PAGER" ]; then
+      gh issue view "$issue_number" | $PAGER
     else
-      # glowがない場合は通常表示
-      if [ -n "$PAGER" ]; then
-        gh issue view "$issue_number" | $PAGER
-      else
-        gh issue view "$issue_number" | less -R
-      fi
+      gh issue view "$issue_number" | less -R
     fi
-  fi
-}
-
-# Git リポジトリ検索・lazygit起動
-_ymt_fz_lazygit() {
-  if ! (( $+commands[fzf] )) || ! (( $+commands[fd] )); then
-    echo "Error: fzf and fd are required for lazygit subcommand" >&2
-    return 1
-  fi
-
-  if ! (( $+commands[lazygit] )); then
-    echo "Error: lazygit command not found" >&2
-    return 1
-  fi
-
-  local repo
-  repo=$(fd -H -t d '^\.git$' --max-depth 5 --exec dirname {} \; | fzf \
-    --preview 'cd {} && git log --oneline --graph --all -20 2>/dev/null || echo "No git history"' \
-    --header "Select git repository")
-
-  if [[ -n "$repo" ]]; then
-    lazygit -p "$repo"
   fi
 }
 
@@ -1101,10 +1046,6 @@ case "${1:-help}" in
   issue)
     shift
     _ymt_fz_issue "$@"
-    ;;
-  lazygit)
-    shift
-    _ymt_fz_lazygit "$@"
     ;;
   find)
     shift

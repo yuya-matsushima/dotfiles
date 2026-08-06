@@ -21,7 +21,6 @@ TARGETS=( \
          ".git-templates" \
          ".gitconfig" \
          "_.gitignore" \
-         ".tigrc" \
          ".tmux" \
          ".tmux.conf" \
          ".vim" \
@@ -32,12 +31,9 @@ TARGETS=( \
          ".zshrc" \
          ".zshenv" \
          ".psqlrc" \
-         ".config/alacritty" \
          ".config/ghostty" \
          ".config/nvim" \
          ".config/opencode" \
-         ".config/yazi" \
-         ".config/lazygit" \
          ".hammerspoon" \
          ".markdownlint.yml" \
          ".claude/hooks" \

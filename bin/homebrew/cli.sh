@@ -21,7 +21,6 @@ brew install \
           gh \
           git \
           git-secrets \
-          glow \
           gnu-sed \
           gossm \
           grep \
@@ -32,14 +31,12 @@ brew install \
           pngpaste \
           jq \
           jnv \
-          lazygit \
           libpq \
           opencode \
           make \
           mysql-client \
           ncurses \
           neovim \
-          peco \
           poppler \
           qrencode \
           resvg \
@@ -48,12 +45,10 @@ brew install \
           sd \
           sevenzip \
           stern \
-          tig \
           tldr \
           tmux \
           tree-sitter-cli \
           uv \
-          yazi \
           wget \
           zsh \
           zsh-completions \
