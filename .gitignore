@@ -29,3 +29,7 @@
 **/captures/
 **/markdown/
 webdata-output/
+
+# Working directories
+tmp/
+feature/

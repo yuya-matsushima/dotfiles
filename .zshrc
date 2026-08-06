@@ -179,7 +179,6 @@ if (( $+commands[pnpm] )); then
   export PNPM_HOME="$HOME/.local/share/pnpm"
   export PATH="$PNPM_HOME:$PATH"
 fi
-(( $+commands[kubectl] )) && source <(kubectl completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
@@ -196,10 +195,6 @@ if (( $+commands[fzf] )); then
   source <(fzf --zsh 2>/dev/null) 2>/dev/null || true
   [ -f "$HOME/.zsh/fzf.zsh" ] && source "$HOME/.zsh/fzf.zsh"
 fi
-if (( $+commands[yazi] )); then
-  [ -f "$HOME/.zsh/yazi.zsh" ] && source "$HOME/.zsh/yazi.zsh"
-fi
-(( $+commands[lazygit] )) && alias lg='lazygit'
 
 ## terminal configuration
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
