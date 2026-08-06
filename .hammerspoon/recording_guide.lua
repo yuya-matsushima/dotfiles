@@ -397,7 +397,4 @@ end
 
 state.menubar = buildMenubar()
 
--- 起動時にガイドを表示 (位置は computeGuide で常に画面中央)
-M.show()
-
 return M
