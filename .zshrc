@@ -181,6 +181,7 @@ if (( $+commands[pnpm] )); then
 fi
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
+(( $+commands[herdr] )) && source <(herdr completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[qr] )) && alias qr="qrencode -t UTF8"
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 if (( $+commands[nvim] )); then

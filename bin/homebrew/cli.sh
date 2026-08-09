@@ -24,6 +24,7 @@ brew install \
           gnu-sed \
           gossm \
           grep \
+          herdr \
           font-symbols-only-nerd-font \
           fzf \
           htop \

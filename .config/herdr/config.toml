@@ -1,0 +1,149 @@
+# herdr configuration
+#
+# tmux (~/.tmux.conf) の操作感に可能な限り寄せた設定。
+# 既定値と同じ項目も「tmux と一致していること」を明示するために意図的に書いている。
+#
+# tmux にはない herdr 固有の機能 (sidebar / workspace / worktree / agent 検知) は
+# herdr の既定キーをそのまま採用している。
+#
+# 既定値一覧は `herdr --default-config`, 検証は `herdr config check` で確認できる。
+
+[theme]
+# tmux は端末のカラーパレットをそのまま使うため, 同じ挙動になる "terminal" を採用。
+# Ghostty 側のテーマ (TokyoNight) に揃えたい場合は "tokyo-night" に変更する。
+name = "terminal"
+
+[terminal]
+# tmux: split-window / new-window に -c "#{pane_current_path}" を付けているのと同じ挙動。
+new_cwd = "follow"
+
+# tmux は macOS では login shell を起動する。"auto" が同じ挙動。
+shell_mode = "auto"
+
+[keys]
+# tmux: set-option -g prefix C-e
+prefix = "ctrl+e"
+
+# --- prefix mode: tmux と一致するもの ---
+# tmux: bind ? list-keys
+help = "prefix+?"
+# tmux: bind d detach-client
+detach = "prefix+d"
+# tmux: bind r source-file ~/.tmux.conf
+reload_config = "prefix+r"
+# tmux: bind w choose-tree (window/session 一覧)
+workspace_picker = "prefix+w"
+# tmux: bind i display-panes (pane 番号を出して飛ぶ) に相当する herdr の navigate mode
+goto = "prefix+i"
+# tmux: bind c new-window -c "#{pane_current_path}"
+new_tab = "prefix+c"
+# tmux: bind , rename-window
+rename_tab = "prefix+comma"
+# tmux: bind p previous-window
+previous_tab = "prefix+p"
+# tmux: bind n next-window (この設定では prefix+C-n も next-window だが herdr は 1 action 1 binding)
+next_tab = "prefix+n"
+# tmux: bind 1..9 select-window (base-index 1 と一致)
+switch_tab = "prefix+1..9"
+# tmux: bind h/j/k/l select-pane -L/-D/-U/-R
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+# tmux: bind - split-window -vc "#{pane_current_path}" (上下分割)
+split_horizontal = "prefix+minus"
+# tmux: bind \ split-window -hc "#{pane_current_path}" (左右分割)
+split_vertical = "prefix+backslash"
+# tmux: bind z kill-pane (herdr 既定の prefix+x から移動)
+close_pane = "prefix+z"
+# tmux: bind y copy-mode
+# ※ copy_mode は `herdr --default-config` には出てこないが 0.8.0 で有効な action
+copy_mode = "prefix+y"
+
+# --- prefix mode: tmux に対応するものがなく調整したもの ---
+# tmux 側で prefix+z は kill-pane に潰しているため zoom は shift 付きへ退避。
+zoom = "prefix+shift+z"
+# tmux の resize-pane (prefix+H/J/K/L) 相当。prefix+r を reload に譲ったのでこちらへ。
+# 入ったあとは h/j/k/l でリサイズ, esc で抜ける。
+resize_mode = "prefix+shift+r"
+
+# --- herdr 固有機能: 既定のまま ---
+settings = "prefix+s"
+toggle_sidebar = "prefix+b"
+new_workspace = "prefix+shift+n"
+rename_workspace = "prefix+shift+w"
+close_workspace = "prefix+shift+d"
+new_worktree = "prefix+shift+g"
+rename_pane = "prefix+shift+p"
+edit_scrollback = "prefix+e"
+close_tab = "prefix+shift+x"
+cycle_pane_next = "prefix+tab"
+cycle_pane_previous = "prefix+shift+tab"
+open_notification_target = "prefix+o"
+
+# navigate mode 内の移動 (herdr 既定が既に vi 風なのでそのまま)
+navigate_pane_left = "h"
+navigate_pane_down = "j"
+navigate_pane_up = "k"
+navigate_pane_right = "l"
+
+# tmux: bind g display-popup -d '#{pane_current_path}' -w98% -h98% -E lazygit
+# popup は起動元 pane の cwd を引き継ぐため -d 相当の指定は不要。
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "lazygit"
+width = "98%"
+height = "98%"
+
+[ui]
+# tmux: status bar は既定で画面下部 (status-position bottom)
+tab_bar_position = "bottom"
+
+# tmux: set -g mouse on
+mouse_capture = true
+
+# tmux の MouseDragEnd1Pane 既定 (ドラッグ選択でバッファへコピー) と同じ挙動。
+copy_on_select = true
+
+# tmux: bind -T copy-mode-vi WheelUpPane ... -N 2 scroll-up (既定 5 行から 2 行へ落としている)
+mouse_scroll_lines = 2
+
+# tmux: bind c new-window は名前を聞かずに即作成する
+prompt_new_tab_name = false
+
+# tmux: pane-border-lines simple 相当。tmux は pane 間に隙間を作らないので gaps は無効。
+pane_borders = true
+pane_gaps = false
+
+# tmux: setw -g window-status-current-style fg=green
+accent = "green"
+
+# tmux: kill-window 系は確認を挟むのでそのまま有効
+confirm_close = true
+
+# tmux に相当する通知機構がないため無効化 (状態は sidebar で確認する)
+[ui.toast]
+delivery = "off"
+
+[ui.sound]
+enabled = false
+
+[session]
+# tmux が server 再起動をまたいで pane を維持するのに近い挙動
+resume_agents_on_restore = true
+
+[experimental]
+# 日本語 IME on のまま prefix を押しても取りこぼさないようにする (macOS)。
+# tmux では端末が ctrl+e をそのまま渡すため意識せずに済んでいた挙動を再現する。
+switch_ascii_input_source_in_prefix = true
+
+# Claude Code / Codex など自前でカーソルを描く TUI で, IME の変換候補ウィンドウが
+# 追従しない場合は以下を有効化する (vim の normal mode などで余分なカーソルが出る副作用あり)。
+# reveal_hidden_cursor_for_cjk_ime = true
+# cjk_ime_agents = ["claude", "codex", "copilot"]
+
+[advanced]
+# tmux: set -g history-limit 25000 (herdr は行数ではなくバイト数指定)。
+# 既定の 10MB でおおよそ 25000 行以上を保持できるため既定のままにしている。
+# scrollback_limit_bytes = 10000000

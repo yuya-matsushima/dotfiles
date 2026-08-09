@@ -15,6 +15,8 @@ if [ ! -d $HOME/.config ]; then
 fi
 
 CURRENT_DIR=`pwd`
+# NOTE: `.config/herdr` は herdr が socket / log / session.json を同じディレクトリに
+#       作るため, ディレクトリごとではなく config.toml 単体をリンクする
 TARGETS=( \
          ".asdfrc" \
          ".gemrc" \
@@ -32,6 +34,7 @@ TARGETS=( \
          ".zshenv" \
          ".psqlrc" \
          ".config/ghostty" \
+         ".config/herdr/config.toml" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
