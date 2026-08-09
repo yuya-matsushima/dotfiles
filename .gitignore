@@ -18,6 +18,12 @@
 !.claude/statusline.sh
 .antigravitycli/
 
+# herdr が各マシンで自動生成する agent 連携 hook / plugin
+# (`herdr integration install` や初回 onboarding で配置され, herdr の
+#  integration version が上がるたびに上書きされるため管理対象外とする)
+.claude/hooks/herdr-agent-state.sh
+.config/opencode/plugins/herdr-agent-state.js
+
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/
 

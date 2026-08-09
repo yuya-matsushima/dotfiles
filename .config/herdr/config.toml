@@ -8,6 +8,11 @@
 #
 # 既定値一覧は `herdr --default-config`, 検証は `herdr config check` で確認できる。
 
+# 初回起動時の通知セットアップ (onboarding) を出さない。
+# 未指定または true だと起動のたびに onboarding が走り, 完了時に herdr 自身が
+# この行をファイル先頭へ追記するため, あらかじめここで明示しておく。
+onboarding = false
+
 [theme]
 # tmux は端末のカラーパレットをそのまま使うため, 同じ挙動になる "terminal" を採用。
 # Ghostty 側のテーマ (TokyoNight) に揃えたい場合は "tokyo-night" に変更する。
