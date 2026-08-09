@@ -105,6 +105,22 @@ height = "98%"
 # tmux: status bar は既定で画面下部 (status-position bottom)
 tab_bar_position = "bottom"
 
+# tmux は agent 状態を status line の `▌` 1 文字で出しており横幅を食わない。
+# 同じ感覚にするため sidebar は畳んだ状態で起動し, "compact" の細い status rail
+# だけ残す (agent の state icon はここに出るので一覧性は保たれる)。
+# 中身を見たいときは prefix+b (toggle_sidebar) で開く。
+# 完全に幅 0 にしたい場合は sidebar_collapsed_mode = "hidden"。
+sidebar_start_collapsed = true
+sidebar_collapsed_mode = "compact"
+
+# 展開したときの幅。既定より狭めて, 開いても本文が潰れにくいようにする。
+sidebar_width = 22
+sidebar_min_width = 18
+sidebar_max_width = 30
+
+# tmux の pane にスクロールバーはない。無効にすると 1 桁ぶん本文に回せる。
+pane_scrollbars = false
+
 # tmux: set -g mouse on
 mouse_capture = true
 
