@@ -21,6 +21,11 @@
 #   @ymt_win_pane_repos : ペインごとのリポジトリ名 (pane_id=repo_name 改行区切り)
 #   @ymt_win_prev_auto  : 最初の agent 起動前の automatic-rename
 #   @ymt_win_prev_name  : 最初の agent 起動前の window 名
+#
+# あわせて、CLI 終了時に ~/.tmux/agent-status.sh でステータスバーのバー
+# (pane option @agent_status) をクリアする。Claude Code は SessionEnd hook で
+# 自前でクリアするが、Codex / OpenCode には終了イベントがなく、この precmd が
+# ないとバーが残り続ける (bin/agent_hooks.sh 参照)。
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
@@ -568,6 +573,15 @@ _ymt_tmux_window_name_preexec() {
   _ymt_tmux_window_active=1
 }
 
+# agent 終了時に自ペインのステータスバーのバーをクリアする。
+# @agent_status は pane option なので、他ペインで動いている agent には影響しない。
+# option 名を二重管理しないよう、直接 tmux を叩かずスクリプト経由で呼ぶ。
+_ymt_tmux_agent_status_clear() {
+  local script="$HOME/.tmux/agent-status.sh"
+  [[ -f $script ]] || return
+  sh "$script" clear 2>/dev/null
+}
+
 _ymt_tmux_window_name_precmd() {
   # rename していないプロンプトでは何もしない (サブプロセスを起動しない)
   [[ -n $_ymt_tmux_window_active ]] || return
@@ -575,6 +589,8 @@ _ymt_tmux_window_name_precmd() {
 
   [[ -n $TMUX && -n $TMUX_PANE ]] || return
   (( $+commands[tmux] )) || return
+
+  _ymt_tmux_agent_status_clear
 
   local state agents rest auto name pane_repos_data composite_name
   local -a others

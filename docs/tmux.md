@@ -83,6 +83,18 @@ YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
 
 リポジトリ名と worktree 名の区切り文字は `_ymt_tmux_window_sep` (既定 `:`) で変更できます。
 
+### 終了時のステータスバーのクリア
+
+CLI 終了時 (precmd) に `~/.tmux/agent-status.sh clear` を呼び、そのペインのステータスバー
+(pane option `@agent_status`) のバーを消します。
+
+Claude Code は `SessionEnd` hook で自分でクリアしますが、Codex / OpenCode には終了イベントに
+相当する hook がなく、これがないと OpenCode 終了後も灰色のバーが残ります。
+`@agent_status` はペイン単位なので、同じ window の他ペインで動いている agent のバーには影響しません。
+
+`Ctrl-Z` で停止した場合もいったんクリアされ、`fg` で再開後は次の agent イベント
+(プロンプト送信やツール実行) の時点でバーが復帰します。
+
 ### 制限
 
 - zsh の `preexec` / `precmd` で発火するため、対話 shell から起動した場合のみ有効です。
