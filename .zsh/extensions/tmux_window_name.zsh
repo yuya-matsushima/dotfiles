@@ -581,12 +581,22 @@ _ymt_tmux_window_name_preexec() {
 # _ymt_tmux_window_parsed を上書きするが、precmd 以降で参照する箇所はない
 # (preexec は毎回パースし直す)。
 _ymt_tmux_agent_job_alive() {
-  local j l kind val
+  local j l kind val procs
 
   (( ${+jobtexts} )) || return 1
   (( ${#jobtexts} )) || return 1
 
   for j in ${(k)jobtexts}; do
+    # jobstates は `running:+:12345=running 12346=done` 形式。
+    # jobtexts はジョブ全体のコマンド文字列しか持たず、どのプロセスが
+    # どのパイプ要素かを区別できないため、いずれかのプロセスが done の
+    # ジョブは生存扱いしない (`opencode | sleep 600 &` で opencode だけが
+    # 終了した場合に、後段プロセスの生存でクリアを抑止しないため)。
+    procs="${jobstates[$j]}"
+    [[ -n $procs ]] || continue
+    procs="${procs#*:*:}"
+    [[ $procs == *=done* ]] && continue
+
     _ymt_tmux_window_parse "${jobtexts[$j]}"
     for l in $_ymt_tmux_window_parsed; do
       kind="${l%%$'\t'*}"
