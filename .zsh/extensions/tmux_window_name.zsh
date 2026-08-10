@@ -21,6 +21,11 @@
 #   @ymt_win_pane_repos : ペインごとのリポジトリ名 (pane_id=repo_name 改行区切り)
 #   @ymt_win_prev_auto  : 最初の agent 起動前の automatic-rename
 #   @ymt_win_prev_name  : 最初の agent 起動前の window 名
+#
+# あわせて、CLI 終了時に ~/.tmux/agent-status.sh でステータスバーのバー
+# (pane option @agent_status) をクリアする。Claude Code は SessionEnd hook で
+# 自前でクリアするが、Codex / OpenCode には終了イベントがなく、この precmd が
+# ないとバーが残り続ける (bin/agent_hooks.sh 参照)。
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
@@ -568,6 +573,61 @@ _ymt_tmux_window_name_preexec() {
   _ymt_tmux_window_active=1
 }
 
+# 対象 CLI のジョブがまだ生きているかどうかを返す。
+# precmd は「agent の終了」ではなく「プロンプトの復帰」で走るため、
+# `opencode &` のバックグラウンド起動や `Ctrl-Z` での停止でも呼ばれる。
+# そのままクリアすると稼働中の agent のバーを消してしまうので、
+# ジョブのコマンド文字列を対象コマンドと突き合わせて判定する。
+# _ymt_tmux_window_parsed を上書きするが、precmd 以降で参照する箇所はない
+# (preexec は毎回パースし直す)。
+_ymt_tmux_agent_job_alive() {
+  local j l kind val state procs
+
+  (( ${+jobtexts} )) || return 1
+  (( ${#jobtexts} )) || return 1
+
+  for j in ${(k)jobtexts}; do
+    # jobstates は `suspended:+:12345=done:12346=suspended` 形式
+    # (先頭がジョブ全体の状態、以降がプロセスごとの状態)。
+    # jobtexts はジョブ全体のコマンド文字列しか持たず、どのプロセスが
+    # どのパイプ要素かは区別できないため、次の優先順で判定する:
+    #   - suspended : Ctrl-Z で止めた agent 自身なので生存扱い
+    #                 (`true | opencode` のようにパイプの先行要素が
+    #                  先に done でも、停止中の agent を消さない)
+    #   - running   : いずれかのプロセスが done なら、生きているのが
+    #                 agent 以外かもしれないので生存扱いしない
+    #                 (`opencode | sleep 600 &` で agent だけ終了した場合)
+    #   - それ以外  : done 等。生存扱いしない
+    state="${jobstates[$j]%%:*}"
+    procs="${jobstates[$j]#*:*:}"
+    case $state in
+      suspended) ;;
+      running) [[ $procs == *=done* ]] && continue ;;
+      *) continue ;;
+    esac
+
+    _ymt_tmux_window_parse "${jobtexts[$j]}"
+    for l in $_ymt_tmux_window_parsed; do
+      kind="${l%%$'\t'*}"
+      val="${l#*$'\t'}"
+      [[ $kind == cmd ]] || continue
+      (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$val]} )) && return 0
+    done
+  done
+
+  return 1
+}
+
+# agent 終了時に自ペインのステータスバーのバーをクリアする。
+# @agent_status は pane option なので、他ペインで動いている agent には影響しない。
+# option 名を二重管理しないよう、直接 tmux を叩かずスクリプト経由で呼ぶ。
+_ymt_tmux_agent_status_clear() {
+  local script="$HOME/.tmux/agent-status.sh"
+  [[ -f $script ]] || return
+  _ymt_tmux_agent_job_alive && return
+  sh "$script" clear 2>/dev/null
+}
+
 _ymt_tmux_window_name_precmd() {
   # rename していないプロンプトでは何もしない (サブプロセスを起動しない)
   [[ -n $_ymt_tmux_window_active ]] || return
@@ -575,6 +635,8 @@ _ymt_tmux_window_name_precmd() {
 
   [[ -n $TMUX && -n $TMUX_PANE ]] || return
   (( $+commands[tmux] )) || return
+
+  _ymt_tmux_agent_status_clear
 
   local state agents rest auto name pane_repos_data composite_name
   local -a others

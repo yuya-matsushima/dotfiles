@@ -83,6 +83,30 @@ YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
 
 リポジトリ名と worktree 名の区切り文字は `_ymt_tmux_window_sep` (既定 `:`) で変更できます。
 
+### 終了時のステータスバーのクリア
+
+CLI 終了時 (precmd) に `~/.tmux/agent-status.sh clear` を呼び、そのペインのステータスバー
+(pane option `@agent_status`) のバーを消します。
+
+Claude Code は `SessionEnd` hook で自分でクリアしますが、Codex / OpenCode には終了イベントに
+相当する hook がなく、これがないと OpenCode 終了後も灰色のバーが残ります。
+`@agent_status` はペイン単位なので、同じ window の他ペインで動いている agent のバーには影響しません。
+
+precmd は「agent の終了」ではなく「プロンプトの復帰」で走るため、対象 CLI のジョブが
+まだ生きている間 (`Ctrl-Z` での停止中、`opencode &` のようなバックグラウンド起動中) は
+クリアしません。`Ctrl-Z` で停止した agent のバーはそのまま残り、`fg` で再開して
+本当に終了した時点でクリアされます。
+
+ただし `&` でバックグラウンド起動した場合、終了時には precmd が走らないためバーが残ります
+(下記「制限」の、対話 shell から起動した場合のみ有効という制約と同じ理由です)。
+
+生存判定は zsh の `jobstates` を使いますが、`jobtexts` はジョブ全体のコマンド文字列しか
+持たないため、パイプで agent と他プロセスを組み合わせた場合にどのプロセスが agent かは
+区別できません (agent CLI はバージョン番号のプロセス名で動くため `ps` による照合も不可)。
+そのため、ジョブが `suspended` なら生存、`running` でいずれかのプロセスが `done` なら
+非生存、という保守的な判定にしています。`true | opencode &` のようにバックグラウンド +
+パイプ + 先行要素が先に終了する組み合わせは原理的に判別できません。
+
 ### 制限
 
 - zsh の `preexec` / `precmd` で発火するため、対話 shell から起動した場合のみ有効です。
