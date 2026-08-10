@@ -573,12 +573,39 @@ _ymt_tmux_window_name_preexec() {
   _ymt_tmux_window_active=1
 }
 
+# 対象 CLI のジョブがまだ生きているかどうかを返す。
+# precmd は「agent の終了」ではなく「プロンプトの復帰」で走るため、
+# `opencode &` のバックグラウンド起動や `Ctrl-Z` での停止でも呼ばれる。
+# そのままクリアすると稼働中の agent のバーを消してしまうので、
+# ジョブのコマンド文字列を対象コマンドと突き合わせて判定する。
+# _ymt_tmux_window_parsed を上書きするが、precmd 以降で参照する箇所はない
+# (preexec は毎回パースし直す)。
+_ymt_tmux_agent_job_alive() {
+  local j l kind val
+
+  (( ${+jobtexts} )) || return 1
+  (( ${#jobtexts} )) || return 1
+
+  for j in ${(k)jobtexts}; do
+    _ymt_tmux_window_parse "${jobtexts[$j]}"
+    for l in $_ymt_tmux_window_parsed; do
+      kind="${l%%$'\t'*}"
+      val="${l#*$'\t'}"
+      [[ $kind == cmd ]] || continue
+      (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$val]} )) && return 0
+    done
+  done
+
+  return 1
+}
+
 # agent 終了時に自ペインのステータスバーのバーをクリアする。
 # @agent_status は pane option なので、他ペインで動いている agent には影響しない。
 # option 名を二重管理しないよう、直接 tmux を叩かずスクリプト経由で呼ぶ。
 _ymt_tmux_agent_status_clear() {
   local script="$HOME/.tmux/agent-status.sh"
   [[ -f $script ]] || return
+  _ymt_tmux_agent_job_alive && return
   sh "$script" clear 2>/dev/null
 }
 
