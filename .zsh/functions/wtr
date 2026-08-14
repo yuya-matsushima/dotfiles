@@ -210,15 +210,23 @@ _ymt_wtr_add() {
   fi
 
   # 作成先は <git-common-dir>/wtr 配下なので、明示 name による脱出を禁止する。
-  # 許すと `wtr add x ../refs/foo` のように .git の内部領域へ worktree を
-  # 作成でき、refs や objects を破壊し得る。
-  if [[ "$worktree_name" == /* ]] \
-    || [[ "$worktree_name" == ".." ]] \
-    || [[ "$worktree_name" == "../"* ]] \
-    || [[ "$worktree_name" == *"/.." ]] \
-    || [[ "$worktree_name" == *"/../"* ]]; then
+  # `..` を許すと `wtr add x ../refs/foo` のように .git の内部領域へ worktree
+  # を作成でき refs や objects を破壊し得る。`.` を許すと作成先が wtr
+  # ディレクトリ自体になり、以降の worktree がその配下にネストする。
+  local -a name_parts
+  name_parts=(${(s:/:)worktree_name})
+  local invalid_name=false
+  local part
+
+  [[ "$worktree_name" == /* ]] && invalid_name=true
+  (( ${#name_parts[@]} == 0 )) && invalid_name=true
+  for part in "${name_parts[@]}"; do
+    [[ "$part" == "." || "$part" == ".." ]] && invalid_name=true
+  done
+
+  if [[ "$invalid_name" == true ]]; then
     echo "Error: Invalid worktree name: $worktree_name" >&2
-    echo "       Absolute paths and '..' components are not allowed." >&2
+    echo "       Absolute paths and '.' / '..' components are not allowed." >&2
     return 1
   fi
 
