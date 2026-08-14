@@ -92,13 +92,26 @@ _ymt_wtr_get_main_worktree() {
 # 共通 git ディレクトリを基準にすることで、worktree 内から実行した場合や
 # .git がファイル (submodule 等) の場合でも同じ場所に解決される。
 _ymt_wtr_get_worktrees_dir() {
-  local common_dir
-  common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+  local common_dir=""
+  local raw
+  local -a out
 
-  # git < 2.31 は --path-format 非対応。相対パスで返るため自前で絶対化する。
+  # git >= 2.31 は --path-format=absolute で絶対パスを 1 行返す。
+  # git < 2.31 は --path-format を未知オプションとして stdout へそのまま
+  # echo back したうえで exit 0 するため、空判定だけでは fallback に落ちず
+  # 不正なパスをそのまま採用してしまう。「1 行の絶対パス」であることを
+  # 検証してから採用する。
+  out=(${(f)"$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"})
+  if (( ${#out[@]} == 1 )) && [[ "${out[1]}" == /* ]]; then
+    common_dir="${out[1]}"
+  fi
+
+  # fallback: --git-common-dir 単体は相対パスを返すことがあるため絶対化する。
   if [[ -z "$common_dir" ]]; then
-    common_dir=$(git rev-parse --git-common-dir 2>/dev/null) || return 1
-    [[ -z "$common_dir" ]] && return 1
+    raw=$(git rev-parse --git-common-dir 2>/dev/null) || return 1
+    out=(${(f)raw})
+    (( ${#out[@]} == 1 )) || return 1
+    common_dir="${out[1]}"
     if [[ "$common_dir" != /* ]]; then
       common_dir="$(cd "$common_dir" 2>/dev/null && pwd)" || return 1
     fi
