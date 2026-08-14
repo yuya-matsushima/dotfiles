@@ -1,6 +1,10 @@
 # Recording Guide (Hammerspoon 版) 追加計画
 
-## ステータス: 未着手
+## ステータス: 廃止 (実装済みだったが削除)
+
+本計画で追加した `.hammerspoon/recording_guide.lua` は、後継の CLI ツール
+[`fillin/recbox`](https://github.com/fillin-inc/recbox) に置き換えたため削除済み。
+以降の記述は当時の設計判断の記録として残す。
 
 **予定ブランチ**: `feat/add-recording-guide`
 **由来**: `fillin/recording-guide-app` リポジトリの Swift 版 spec (`docs/specs/recording-guide-app.md`) を Hammerspoon に移植したもの。
