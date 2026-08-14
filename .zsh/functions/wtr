@@ -36,7 +36,7 @@ Worktree layout:
     invisible to git status / git clean / ripgrep without any .gitignore.
     Note that removing .git also removes every worktree under it.
 
-Auto-symlinked paths (if present in main repo):
+Auto-symlinked paths (only when present and non-empty in main repo):
     .claude/skills   -> <worktree>/.claude/skills
     .agents/skills   -> <worktree>/.agents/skills
 
@@ -139,6 +139,12 @@ _ymt_wtr_symlink_skills() {
     local src="${main_worktree}/${skills_rel}"
     local dst="${worktree_path}/${skills_rel}"
     if [[ -d "$src" ]]; then
+      # 空ディレクトリ (空のサブディレクトリしか無い場合も含む) を symlink すると、
+      # git が空ディレクトリを追跡しない都合で worktree 側には untracked な symlink
+      # だけが残り git status を汚す。ファイルが 1 つでもあるときだけ symlink する。
+      if [[ -z "$(find "$src" -mindepth 1 \( -type f -o -type l \) -print -quit 2>/dev/null)" ]]; then
+        continue
+      fi
       mkdir -p "$(dirname "$dst")"
       if ln -s "$src" "$dst"; then
         echo "  Symlinked: ${skills_rel}"
