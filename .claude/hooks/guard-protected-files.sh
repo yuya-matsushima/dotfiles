@@ -46,13 +46,30 @@ PROTECTED_NAME='(^|/)(\.env(\.[^/]+)?|\.git|package-lock\.json|yarn\.lock|pnpm-l
 # git の内部データ
 GIT_INTERNAL='/\.git/'
 # wtr が作る worktree の作業ツリー（GIT_INTERNAL から除外する）
-# submodule では common-dir が <super>/.git/modules/<name> になるため、
-# `.git/wtr/` と `.git/modules/<name>/wtr/`（ネストも可）の両方を許容する
-GIT_WORKTREE='/\.git/(modules/[^/]+/)*wtr/'
+# submodule では common-dir が <super>/.git/modules/<submodule-path> になる。
+# <submodule-path> は `libs/foo` のように複数階層を取りうるため `.+` で受ける
+GIT_WORKTREE='/\.git/(modules/.+/)?wtr/'
+# `..` 成分を含むパス
+DOTDOT='(^|/)\.\.(/|$)'
 
-if echo "$file_path" | grep -qE "$PROTECTED_NAME" \
-  || { echo "$file_path" | grep -qE "$GIT_INTERNAL" \
-       && ! echo "$file_path" | grep -qE "$GIT_WORKTREE"; }; then
+matches() {
+  echo "$file_path" | grep -qE "$1"
+}
+
+block=false
+if matches "$PROTECTED_NAME"; then
+  block=true
+elif matches "$GIT_INTERNAL"; then
+  block=true
+  # worktree の作業ツリーは git の内部データではないので保護対象から外す。
+  # ただし `..` を含むパスは正規化すると内部へ抜けられるため除外しない
+  # (例: `<repo>/.git/wtr/../config` は実際には .git/config を指す)。
+  if matches "$GIT_WORKTREE" && ! matches "$DOTDOT"; then
+    block=false
+  fi
+fi
+
+if [ "$block" = true ]; then
   cat <<EOF
 {"decision":"block","reason":"guard-protected-files: '$file_path' is a protected file (.env / lockfile / .git). Do not edit directly. If regeneration is needed, run the appropriate package manager or migration command instead, and confirm with the user first."}
 EOF
