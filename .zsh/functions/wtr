@@ -209,6 +209,19 @@ _ymt_wtr_add() {
     worktree_name="${branch_name//\//-}"
   fi
 
+  # 作成先は <git-common-dir>/wtr 配下なので、明示 name による脱出を禁止する。
+  # 許すと `wtr add x ../refs/foo` のように .git の内部領域へ worktree を
+  # 作成でき、refs や objects を破壊し得る。
+  if [[ "$worktree_name" == /* ]] \
+    || [[ "$worktree_name" == ".." ]] \
+    || [[ "$worktree_name" == "../"* ]] \
+    || [[ "$worktree_name" == *"/.." ]] \
+    || [[ "$worktree_name" == *"/../"* ]]; then
+    echo "Error: Invalid worktree name: $worktree_name" >&2
+    echo "       Absolute paths and '..' components are not allowed." >&2
+    return 1
+  fi
+
   # --base without value: fzf branch selection
   if [[ "$base_flag_set" == true && -z "$base_branch" ]]; then
     if ! (( $+commands[fzf] )); then
