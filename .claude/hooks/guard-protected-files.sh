@@ -16,9 +16,10 @@
 #   - lockfile 系: package-lock.json, yarn.lock, pnpm-lock.yaml,
 #                  Cargo.lock, go.sum, composer.lock
 #   - .git/ 配下（オブジェクトや参照の直接編集）
-#     ただし .git/wtr/ 配下は wtr が作る worktree の作業ツリーであり、
-#     git の内部データではないため保護対象から除外する
+#     ただし <git-common-dir>/wtr/ 配下は wtr が作る worktree の作業ツリー
+#     であり、git の内部データではないため保護対象から除外する
 #     （除外しないと worktree 内のソース編集が全面的にブロックされる）
+#     除外対象でも worktree 直下の .git ポインターファイルは保護を維持する
 #
 # 挙動:
 #   - 該当時は stdout に JSON {"decision":"block","reason":"..."} を出力
@@ -38,11 +39,16 @@ file_path=$(jq -r '.tool_input.file_path // empty')
 
 # 保護対象パターン
 # ファイル名ベースの保護（場所を問わず、worktree 内でも適用する）
-PROTECTED_NAME='(^|/)(\.env(\.[^/]+)?|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|composer\.lock)$'
+# `.git` 自体も含める: worktree 直下の .git は
+# `<git-common-dir>/worktrees/<name>` へのポインターで、
+# 書き換えると worktree が使用不能になる
+PROTECTED_NAME='(^|/)(\.env(\.[^/]+)?|\.git|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|composer\.lock)$'
 # git の内部データ
 GIT_INTERNAL='/\.git/'
 # wtr が作る worktree の作業ツリー（GIT_INTERNAL から除外する）
-GIT_WORKTREE='/\.git/wtr/'
+# submodule では common-dir が <super>/.git/modules/<name> になるため、
+# `.git/wtr/` と `.git/modules/<name>/wtr/`（ネストも可）の両方を許容する
+GIT_WORKTREE='/\.git/(modules/[^/]+/)*wtr/'
 
 if echo "$file_path" | grep -qE "$PROTECTED_NAME" \
   || { echo "$file_path" | grep -qE "$GIT_INTERNAL" \
