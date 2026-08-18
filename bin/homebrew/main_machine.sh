@@ -8,7 +8,6 @@ brew install --cask \
           1password \
           1passsword-cli \
           appcleaner \
-          aqua-voice \
           deskpad \
           google-gemini \
           ghostty \
