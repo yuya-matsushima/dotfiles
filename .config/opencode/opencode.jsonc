@@ -9,6 +9,33 @@
     "auto": true
   },
   "permission": {
-    "bash": { "*": "ask", "git *": "allow" }
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "git push --force *": "deny",
+      "git push -f *": "deny",
+      "git push * --force *": "deny",
+      "git push * -f *": "deny",
+      "rm -rf /*": "deny",
+      "rm -r /*": "deny",
+      "rm -rf ~*": "deny",
+      "rm -r ~*": "deny",
+      "rm -rf $HOME/*": "deny",
+      "rm -r $HOME/*": "deny",
+      "terraform apply": "deny",
+      "terraform apply *": "deny",
+      "terraform destroy": "deny",
+      "terraform destroy *": "deny",
+      "terraform taint": "deny",
+      "terraform taint *": "deny",
+      "terraform state rm": "deny",
+      "terraform state rm *": "deny",
+      "terraform force-unlock": "deny",
+      "terraform force-unlock *": "deny"
+    },
+    "read": {
+      "~/.ssh/**": "deny",
+      "~/.aws/**": "deny"
+    }
   }
 }
