@@ -35,3 +35,6 @@ Temporary Items
 
 # Design tools
 *.af~lock~
+
+# Claude Code
+**/.claude/.cc-writes/
