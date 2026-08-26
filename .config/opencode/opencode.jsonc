@@ -32,7 +32,6 @@
       "python3 *": "allow",
       "shellcheck *": "allow",
       "luac *": "allow",
-      "tmux *": "allow",
       "xargs *": "allow",
       "afplay *": "allow",
       "mv *": "allow",
