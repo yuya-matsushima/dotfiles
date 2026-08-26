@@ -3,5 +3,16 @@
   "theme": "gruvbox",
   "mouse": true,
   "diff_style": "auto",
-  "scroll_speed": 3
+  "cursor": {
+    "style": "block",
+    "blinking": true
+  },
+  "scroll_acceleration": {
+    "enabled": true
+  },
+  "attention": {
+    "enabled": true,
+    "sound": true,
+    "volume": 0.4
+  }
 }
