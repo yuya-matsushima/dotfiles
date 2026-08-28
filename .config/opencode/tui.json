@@ -14,5 +14,17 @@
     "enabled": true,
     "sound": true,
     "volume": 0.4
-  }
+  },
+  "plugin": [
+    [
+      "@leohenon/opencode-vim-plugin@0.1.6",
+      {
+        "enabled": true,
+        "vim_initial_mode": "normal",
+        "indicator": true,
+        "vim_enter_submit": true,
+        "vim_system_clipboard_register": true
+      }
+    ]
+  ]
 }
