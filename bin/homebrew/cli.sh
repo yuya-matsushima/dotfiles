@@ -20,7 +20,6 @@ brew install \
           ffmpeg \
           gh \
           git \
-          git-secrets \
           gnu-sed \
           gossm \
           grep \
