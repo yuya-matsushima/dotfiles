@@ -6,7 +6,6 @@
   excludesfile = ~/.gitignore
   pager = less -x2 -RFX
   quotepath = false
-  precomposeunicode = true
   whitespace = cr-at-eol
 [color]
   diff = auto
@@ -39,8 +38,6 @@
   grep = "grep --color=auto"
   cached = "diff --cached"
   hash = "rev-parse --short HEAD"
-[credential]
-	helper = osxkeychain
 [push]
 	default = current
 [filter "lfs"]
