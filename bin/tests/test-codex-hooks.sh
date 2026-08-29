@@ -356,6 +356,15 @@ if [ -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "not a symlink"; fi
 current_case="link: ~/.claude/hooks is a symlink"
 if [ -L "$LINK_HOME/.claude/hooks" ]; then pass; else fail "not a symlink"; fi
 
+current_case="link: Claude settings.json is not symlinked"
+if [ ! -e "$LINK_HOME/.claude/settings.json" ]; then pass; else fail "unexpected settings.json"; fi
+
+current_case="link: Codex config.toml is not symlinked"
+if [ ! -e "$LINK_HOME/.codex/config.toml" ]; then pass; else fail "unexpected config.toml"; fi
+
+current_case="link: portable OpenCode config remains a symlink"
+if [ -L "$LINK_HOME/.config/opencode" ]; then pass; else fail "not a symlink"; fi
+
 (cd "$REPO_ROOT" && HOME="$LINK_HOME" sh "$LINK_SH" unlink >/dev/null)
 
 current_case="unlink: ~/.agents/hooks symlink is removed"

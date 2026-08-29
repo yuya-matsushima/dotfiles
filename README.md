@@ -38,3 +38,18 @@ make setup
 # for Dev Machine
 make develop
 ```
+
+## コーディングエージェントの共通設定例
+
+Claude Code と Codex は、認証・端末固有パス・プロジェクト履歴などを実設定に
+保持するため、設定ファイル全体を symlink しません。dotfiles では、別環境でも
+利用できる共通部分だけを次の設定例として管理します。
+
+- `.claude/settings.example.json`
+- `.codex/config.example.toml`
+- `.codex/hooks.example.json`
+
+これらは `bin/link.sh` の対象外です。ホストの `~/.claude/settings.json` と
+`~/.codex/config.toml` は各マシンの実ファイルとして維持します。hooks や
+statusline、OpenCode のように端末固有情報を含まない既存設定は、従来どおり
+symlink します。

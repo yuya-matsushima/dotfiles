@@ -15,6 +15,7 @@
 # Coding Agent
 .claude/*
 !.claude/hooks/
+!.claude/settings.example.json
 !.claude/statusline.sh
 .antigravitycli/
 

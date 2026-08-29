@@ -1,0 +1,170 @@
+{
+  "language": "Japanese",
+  "model": "sonnet",
+  "fallbackModel": [
+    "claude-opus-5",
+    "claude-opus-4-7[1M]",
+    "claude-sonnet-5"
+  ],
+  "effortLevel": "high",
+  "permissions": {
+    "allow": [
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(git *)",
+      "Bash(gh api *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+      "Bash(shellcheck:*)",
+      "Bash(cat:*)",
+      "Bash(test:*)",
+      "Bash(make:*)",
+      "Bash(readlink:*)",
+      "Bash(command -v:*)",
+      "Bash(xargs:*)",
+      "Bash(python3:*)",
+      "Bash(sd:*)",
+      "Bash(bat:*)",
+      "Bash(fd:*)",
+      "Bash(tree:*)",
+      "Bash(zoxide:*)",
+      "Bash(nvim:*)",
+      "Bash(luac:*)",
+      "Bash(tmux *)",
+      "WebSearch",
+      "WebFetch"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -r /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -r ~*)",
+      "Bash(rm -rf $HOME/*)",
+      "Bash(rm -r $HOME/*)",
+      "Bash(terraform apply)",
+      "Bash(terraform apply *)",
+      "Bash(terraform destroy)",
+      "Bash(terraform destroy *)",
+      "Bash(terraform taint)",
+      "Bash(terraform taint *)",
+      "Bash(terraform state rm)",
+      "Bash(terraform state rm *)",
+      "Bash(terraform force-unlock)",
+      "Bash(terraform force-unlock *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ],
+    "defaultMode": "auto"
+  },
+  "sandbox": {
+    "excludedCommands": [
+      "codex:*"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.claude/hooks/guard-protected-files.sh",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.claude/hooks/guard-force-push.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh idle",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh idle",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh working",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh working",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh blocked",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "sh ~/.agents/hooks/notify-sound.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ~/.tmux/agent-status.sh clear",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "sh ~/.claude/statusline.sh"
+  },
+  "tui": "fullscreen"
+}
