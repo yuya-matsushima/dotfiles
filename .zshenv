@@ -29,13 +29,12 @@ if [ -f /opt/homebrew/bin/brew ]; then
 elif [ -f /usr/local/bin/brew ]; then
   eval "$(/usr/local/bin/brew shellenv)"
   export HOMEBREW_PREFIX=$(/usr/local/bin/brew --prefix)
+elif [ -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  export HOMEBREW_PREFIX=$(/home/linuxbrew/.linuxbrew/bin/brew --prefix)
 else
-  echo "Error: Homebrew not found in /opt/homebrew or /usr/local" >&2
-  if [[ -t 0 ]]; then
-    exit 1
-  else
-    return 1
-  fi
+  # brew が無い環境 (Linux コンテナ等) では対話シェルのみ警告する
+  [[ -t 0 ]] && echo "Warning: Homebrew not found. Using system PATH." >&2
 fi
 
 # additional path
@@ -49,6 +48,8 @@ local add_path_dirs=(
   $HOMEBREW_PREFIX/opt/libpq/bin
   $HOME/.lmstudio/bin
   $HOME/.local/bin
+  $HOME/.codex/bin
+  $HOME/.opencode/bin
   ${ASDF_DATA_DIR:-$HOME/.asdf}/shims
 )
 # Add GOPATH/bin only if GOPATH is defined

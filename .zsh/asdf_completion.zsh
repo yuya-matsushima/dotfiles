@@ -3,7 +3,6 @@
 
 # Check if asdf is available
 if ! (( $+commands[asdf] )); then
-  echo "Warning: asdf not found. Install with: brew install asdf" >&2
   return
 fi
 

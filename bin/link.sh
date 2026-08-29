@@ -18,7 +18,6 @@ CURRENT_DIR=`pwd`
 TARGETS=( \
          ".asdfrc" \
          ".gemrc" \
-         ".git-templates" \
          ".gitconfig" \
          "_.gitignore" \
          ".tmux" \
