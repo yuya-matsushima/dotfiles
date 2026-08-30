@@ -6,8 +6,9 @@
 #   - tmux status hooks (agent-status.sh) for both CLIs
 #   - shared notification sound (~/.agents/hooks/notify-sound.sh)
 #   - Codex-only protected-file and force-push guards
-#   - OpenCode tmux status plugin (.config/opencode/plugins/tmux-status.js)
-#     is self-contained and auto-loaded; no registration step needed.
+#   - OpenCode tmux status plugins (.config/opencode/plugins/tmux-status.js and
+#     .config/opencode/plugins/tui/tmux-status.js) are self-contained and
+#     auto-loaded; no registration step needed.
 #
 # Unrelated hook entries (e.g. Claude Code's existing guard-protected-files.sh
 # / guard-force-push.sh under ~/.claude/hooks/) are preserved on both install

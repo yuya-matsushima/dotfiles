@@ -18,6 +18,7 @@
 !.claude/settings.example.json
 !.claude/statusline.sh
 .antigravitycli/
+.config/opencode/service.json
 
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/
