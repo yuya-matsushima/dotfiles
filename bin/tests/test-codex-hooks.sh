@@ -11,11 +11,14 @@
 #      - 一時 HOME 上での install → reinstall → uninstall の冪等性
 #      - unrelated Hook の保持
 #      - 生成 JSON が jq empty を通る
-#   3. bin/link.sh
+#   3. OpenCode V1 / V2 設定
+#      - V1 tui.json / V2 cli.json の JSON / schema
+#      - tmux status plugin の V1 / V2 export 形式
+#   4. bin/link.sh
 #      - クリーンな HOME にディレクトリを含む TARGETS を link できる
 #      - unlink で symlink のみ削除される
 #
-# 依存: sh (POSIX), jq
+# 依存: sh (POSIX), jq, node
 # 実行: sh bin/tests/test-codex-hooks.sh
 # ============================================================================
 
@@ -26,6 +29,10 @@ GUARD_APPLY="$REPO_ROOT/.codex/hooks/guard-protected-apply-patch.sh"
 GUARD_BASH="$REPO_ROOT/.codex/hooks/guard-force-push.sh"
 AGENT_HOOKS="$REPO_ROOT/bin/agent_hooks.sh"
 LINK_SH="$REPO_ROOT/bin/link.sh"
+OPENCODE_CLI="$REPO_ROOT/.config/opencode/cli.json"
+OPENCODE_TUI="$REPO_ROOT/.config/opencode/tui.json"
+OPENCODE_TMUX_SERVER_PLUGIN="$REPO_ROOT/.config/opencode/plugins/tmux-status.js"
+OPENCODE_TMUX_TUI_PLUGIN="$REPO_ROOT/.config/opencode/plugins/tui/tmux-status.js"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -338,7 +345,44 @@ n=$(jq '[.hooks | .. | objects | select(has("command")) | .command | select(cont
 if [ "$n" = "0" ]; then pass; else fail "expected 0, got $n"; fi
 
 # ------------------------------------------------------------------
-# 4. link.sh
+# 4. OpenCode V1 / V2 config
+# ------------------------------------------------------------------
+echo "# OpenCode V1 / V2 config"
+
+current_case="OpenCode CLI config is valid V2 JSON"
+if jq -e '."$schema" == "https://opencode.ai/v2/cli.json"' "$OPENCODE_CLI" >/dev/null; then
+    pass
+else
+    fail "invalid JSON or schema"
+fi
+
+current_case="OpenCode TUI config is valid V1 JSON"
+if jq -e '."$schema" == "https://opencode.ai/tui.json"' "$OPENCODE_TUI" >/dev/null; then
+    pass
+else
+    fail "invalid JSON or schema"
+fi
+
+current_case="OpenCode tmux server plugin supports V1 and V2 exports"
+if node --no-warnings --input-type=module -e \
+    'const module = await import(`file://${process.argv[1]}?test`); if (typeof module.TmuxStatusPlugin !== "function" || !module.default || typeof module.default.server !== "function" || typeof module.default.setup !== "function") process.exit(1)' \
+    "$OPENCODE_TMUX_SERVER_PLUGIN"; then
+    pass
+else
+    fail "missing V1 or V2 export"
+fi
+
+current_case="OpenCode 2 tmux plugin runs in the TUI process"
+if node --no-warnings --input-type=module -e \
+    'const module = await import(`file://${process.argv[1]}?test`); if (!module.default || module.default.id !== "tmux-status-tui" || typeof module.default.setup !== "function") process.exit(1)' \
+    "$OPENCODE_TMUX_TUI_PLUGIN"; then
+    pass
+else
+    fail "missing V2 TUI export"
+fi
+
+# ------------------------------------------------------------------
+# 5. link.sh
 # ------------------------------------------------------------------
 echo "# link.sh"
 
