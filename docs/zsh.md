@@ -110,3 +110,8 @@ apple-container up ~/Project/foo
 apple-container exec
 apple-container down
 ```
+
+```sh
+# GHCR のイメージを使う場合（Apple Container の keychain バグ修正後）
+IMAGE=ghcr.io/yuya-matsushima/containers:latest apple-container up ~/Project/foo
+```

@@ -50,6 +50,8 @@ Options:
 
 Notes:
     - `up` uses the local image (agent:latest) by default; run `build` first.
+    - To use the GHCR image:
+      IMAGE=ghcr.io/<GH_USER>/containers:latest apple-container up <dir>
     - GHCR (private) pull is currently broken by an Apple Container keychain bug
       (apple/container#816). Use `build` + `up`, or Docker Desktop, as a workaround.
 
