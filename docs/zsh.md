@@ -94,7 +94,9 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 | `doctor` | 前提条件を確認 |
 | `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
 
-複数インスタンスは `--name <name>`（または `NAME` 環境変数）で使い分けます。既定は `containers-agent`。
+`up` のコンテナ名は、指定がなければ `<dir>` から自動決定します:
+`--name <name>` > git リポジトリのルート名（`<dir>` が git リポジトリ内の場合）> ディレクトリ名。
+`exec` / `status` / `logs` / `down` は `--name <name>`（または `NAME` 環境変数、既定 `containers-agent`）で対象を指定します。
 
 環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
 `MEMORY`, `INCLUDE_OPENCODE`, `READY_TIMEOUT`, `DOTFILES`, `CONT_REPO`,

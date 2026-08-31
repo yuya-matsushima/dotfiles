@@ -54,10 +54,12 @@ Usage:
     apple-container pull [ref]            pull the image from GHCR (auto login)
 
 Options:
-    --name <name>    target container name (default: $NAME / containers-agent)
+    --name <name>    override the derived container name
     -h, --help       print help
 
 Notes:
+    - `up` derives the container name from <dir>: the git repo root name if
+      <dir> is in a git repository, otherwise the directory name.
     - `up` uses the local image (agent:latest) by default; run `build` first.
     - To use the GHCR image:
       IMAGE=ghcr.io/<GH_USER>/containers:latest apple-container up <dir>
@@ -66,7 +68,7 @@ Notes:
 
 Environment variables (same names as the containers Makefile):
     IMAGE              image reference (default: agent:latest / local build)
-    NAME               default container name (default: containers-agent)
+    NAME               default container name for exec/status/logs/down (default: containers-agent)
     CPUS               CPU limit (default: 4)
     MEMORY             memory limit (default: 8g)
     INCLUDE_OPENCODE   use the OpenCode variant (default: false)
@@ -126,6 +128,18 @@ _apple_container_check_workspace() {
     "$ws"/*) echo "ERROR: ホームの祖先ディレクトリは指定できません: $ws" >&2; return 1 ;;
   esac
   echo "$ws"
+}
+
+# ワークスペースから既定のコンテナ名を導出する。
+# 優先順: git リポジトリのルート名 > ディレクトリ名。
+_apple_container_derive_name() {
+  local ws="$1"
+  local repo_root
+  if repo_root="$(git -C "$ws" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$repo_root" ]; then
+    print -r -- "${repo_root:t}"
+    return
+  fi
+  print -r -- "${ws:t}"
 }
 
 _apple_container_exists() {
@@ -214,11 +228,15 @@ _apple_container_up() {
         ws="$1"; shift ;;
     esac
   done
-  name="${name:-$APPLE_CONTAINER_NAME}"
 
   _apple_container_doctor || return 1
   ws="$(_apple_container_check_workspace "$ws")" || return 1
   [ -d "$APPLE_CONTAINER_DOTFILES" ] || { echo "ERROR: DOTFILES がディレクトリではありません: $APPLE_CONTAINER_DOTFILES" >&2; return 1; }
+
+  # 名前の決定: --name (明示) > git リポジトリ名 > ディレクトリ名
+  if [ -z "$name" ]; then
+    name="$(_apple_container_derive_name "$ws")"
+  fi
 
   local image
   image="$(_apple_container_image)"
