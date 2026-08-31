@@ -3,13 +3,14 @@
 _apple_container() {
   local -a subcmds
   subcmds=(
+    'list:list containers'
+    'build:build the image locally'
     'up:start the container mounting a workspace dir'
     'exec:attach to the running container (zsh)'
     'status:show container status'
     'logs:show container logs'
     'down:stop and delete the container'
     'doctor:check prerequisites'
-    'build:build the image locally'
     'pull:pull the image from GHCR'
   )
 
@@ -21,14 +22,21 @@ _apple_container() {
   case $words[2] in
     up)
       if [[ $words[CURRENT] == -* ]]; then
-        _values 'option' '--no-pull[skip image pull]'
+        _values 'option' \
+          '--name[container name]' \
+          '--no-pull[skip image pull]'
       else
         _files -/
       fi
       ;;
+    exec|status|logs|down)
+      if [[ $words[CURRENT] == -* ]]; then
+        _values 'option' '--name[container name]'
+      fi
+      ;;
     logs)
       if [[ $words[CURRENT] == -* ]]; then
-        _values 'option' '-f[follow log output]'
+        _values 'option' '--name[container name]' '-f[follow log output]'
       fi
       ;;
   esac

@@ -84,14 +84,17 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 
 | サブコマンド | 機能概要 |
 |---|---|
+| `list` / `ls` | コンテナを一覧表示 |
 | `build` | ローカルでイメージをビルド（`agent:latest` / `-opencode`） |
-| `up <dir> [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定はローカルイメージを使用） |
-| `exec [cmd...]` | 起動中のコンテナへ接続（既定は `zsh`） |
+| `up <dir> [--name <name>] [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定はローカルイメージを使用） |
+| `exec [--name <name>] [cmd...]` | 起動中のコンテナへ接続（既定は `zsh`） |
 | `status` / `ps` | 状態を表示 |
 | `logs [-f]` | ログを表示 |
 | `down` / `rm` | 停止して削除 |
 | `doctor` | 前提条件を確認 |
 | `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
+
+複数インスタンスは `--name <name>`（または `NAME` 環境変数）で使い分けます。既定は `containers-agent`。
 
 環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
 `MEMORY`, `INCLUDE_OPENCODE`, `READY_TIMEOUT`, `DOTFILES`, `CONT_REPO`,
@@ -109,6 +112,15 @@ apple-container build
 apple-container up ~/Project/foo
 apple-container exec
 apple-container down
+```
+
+```sh
+# 複数インスタンスを使い分ける
+apple-container up ~/Project/A --name project-a
+apple-container up ~/Project/B --name project-b
+apple-container list                          # 一覧を確認
+apple-container exec --name project-a
+apple-container down --name project-a
 ```
 
 ```sh
