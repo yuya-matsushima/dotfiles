@@ -1,0 +1,472 @@
+#!/bin/zsh
+#
+# apple-container — Apple Container 上のコーディングエージェント隔離環境を扱う。
+#
+# ~/Project/Personal/containers が提供するコーディングエージェント用コンテナを、
+# Makefile を介さず container CLI を直接呼んで操作する。既定ではローカルビルドした
+# イメージ (agent:latest) を使う。GHCR の private イメージを使う場合は
+# `IMAGE=ghcr.io/<GH_USER>/containers:latest` のように指定して `up` する。
+#
+# 複数インスタンスは `--name <name>`（または NAME 環境変数）で使い分ける。
+# 一覧は `list` で確認する。
+#
+# 注意: Apple Container 1.3.1 時点では、private レジストリ (GHCR 含む) の
+# `container image pull` が keychain バグ (errSecInteractionNotAllowed -25308、
+# https://github.com/apple/container/issues/816) で失敗する。public イメージは
+# pull できる。private イメージを使う場合はローカルビルド (build → up) か
+# Docker Desktop を利用する。
+#
+# agents-update は扱わない (containers リポジトリ側の責務)。
+
+# ------------------------------------------------------------
+# 既定値 (環境変数で上書き可能。containers の Makefile と同名)
+# ------------------------------------------------------------
+typeset -g APPLE_CONTAINER_NAME="${NAME:-containers-agent}"
+typeset -g APPLE_CONTAINER_CPUS="${CPUS:-4}"
+typeset -g APPLE_CONTAINER_MEMORY="${MEMORY:-8g}"
+typeset -g APPLE_CONTAINER_READY_TIMEOUT="${READY_TIMEOUT:-60}"
+typeset -g APPLE_CONTAINER_DOTFILES="${DOTFILES:-$HOME/Project/Personal/dotfiles}"
+typeset -g APPLE_CONTAINER_REPO="${CONT_REPO:-${APPLE_CONTAINER_DOTFILES:h}/containers}"
+typeset -g APPLE_CONTAINER_SSH_SOCKET="${SSH_AGENT_SOCKET:-$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock}"
+typeset -g APPLE_CONTAINER_UID="${USER_UID:-$(id -u)}"
+typeset -g APPLE_CONTAINER_GID="${USER_GID:-$(id -g)}"
+typeset -g APPLE_CONTAINER_GH_USER="${GH_USER:-yuya-matsushima}"
+typeset -g APPLE_CONTAINER_TZ="${TZ:-$(readlink /etc/localtime 2>/dev/null | sed 's:^.*/zoneinfo/::')}"
+[ -n "$APPLE_CONTAINER_TZ" ] || APPLE_CONTAINER_TZ="UTC"
+
+_apple_container_usage() {
+  cat <<'EOF'
+apple-container: Apple Container 上のコーディングエージェント隔離環境を扱う
+
+使い方:
+    apple-container list                  コンテナを一覧表示
+    apple-container build                 イメージをローカルビルド (container build)
+    apple-container up <dir> [--name <name>] [--no-pull]
+                                          コンテナを起動 (<dir> を /workspace にマウント)
+    apple-container exec [--name <name>] [cmd...]
+                                          起動中のコンテナへ接続 (既定は zsh)
+    apple-container status [--name <name>]
+                                          状態を表示
+    apple-container logs [--name <name>] [-f]
+                                          ログを表示
+    apple-container down [--name <name>]  停止して削除
+    apple-container doctor                前提条件を確認
+    apple-container pull [ref]            GHCR から pull (自動ログイン)
+
+オプション:
+    --name <name>    対象コンテナ名 (自動導出の上書き)
+    -h, --help       ヘルプを表示
+
+補足:
+    - コンテナ名は --name 未指定時に自動導出される。up は <dir> から、
+      exec / status / logs / down はカレントディレクトリから。どちらも
+      「git リポジトリのルート名 > ディレクトリ名」の優先順。
+    - up は既定でローカルイメージ (agent:latest) を使う。先に build を実行する。
+    - GHCR イメージを使う場合:
+      IMAGE=ghcr.io/<GH_USER>/containers:latest apple-container up <dir>
+    - GHCR (private) の pull は Apple Container の keychain バグ (apple/container#816)
+      で現状失敗する。build + up か Docker Desktop で回避する。
+
+環境変数 (containers の Makefile と同名):
+    IMAGE              イメージ参照 (既定: agent:latest / ローカルビルド)
+    CPUS               CPU 上限 (既定: 4)
+    MEMORY             メモリ上限 (既定: 8g)
+    INCLUDE_OPENCODE   OpenCode 入りバリアントを使う (既定: false)
+    READY_TIMEOUT      初期化完了の待ち秒数 (既定: 60)
+    DOTFILES           dotfiles リポジトリのパス (既定: ~/Project/Personal/dotfiles)
+    CONT_REPO          containers リポジトリのパス (既定: <DOTFILES dir>/containers)
+    SSH_AGENT_SOCKET   ホストの 1Password SSH agent ソケット
+    GH_USER            GHCR の GitHub アカウント (既定: yuya-matsushima)
+    CR_PAT             GHCR 用の read:packages スコープ付き PAT (優先)
+
+依存:
+    container (Apple Container CLI), jq, gh, ssh-add
+EOF
+}
+
+_apple_container_image() {
+  if [ -n "${IMAGE:-}" ]; then
+    echo "$IMAGE"
+    return
+  fi
+  local tag="latest"
+  [ "${INCLUDE_OPENCODE:-false}" = "true" ] && tag="latest-opencode"
+  echo "agent:${tag}"
+}
+
+_apple_container_ghcr_image() {
+  local tag="latest"
+  [ "${INCLUDE_OPENCODE:-false}" = "true" ] && tag="latest-opencode"
+  echo "ghcr.io/${APPLE_CONTAINER_GH_USER}/containers:${tag}"
+}
+
+_apple_container_check_runtime() {
+  command -v container >/dev/null 2>&1 || { echo "ERROR: Apple Container (container CLI) が見つかりません" >&2; return 1; }
+  [ "$(uname -m)" = "arm64" ] || { echo "ERROR: Apple silicon Mac が必要です" >&2; return 1; }
+  local major
+  major="$(sw_vers -productVersion | awk -F. '{print $1}')"
+  [ "$major" -ge 26 ] || { echo "ERROR: macOS 26 以上が必要です" >&2; return 1; }
+  command -v jq >/dev/null 2>&1 || { echo "ERROR: jq が見つかりません" >&2; return 1; }
+}
+
+_apple_container_doctor() {
+  _apple_container_check_runtime || return 1
+  [ -S "$APPLE_CONTAINER_SSH_SOCKET" ] || { echo "ERROR: SSH agent ソケットが見つかりません: $APPLE_CONTAINER_SSH_SOCKET" >&2; return 1; }
+  SSH_AUTH_SOCK="$APPLE_CONTAINER_SSH_SOCKET" ssh-add -l >/dev/null 2>&1 \
+    || { echo "ERROR: SSH agent から公開鍵を取得できません (1Password SSH agent を有効にしてください)" >&2; return 1; }
+  echo "Apple Container: OK"
+}
+
+_apple_container_check_workspace() {
+  local ws="$1"
+  [ -n "$ws" ] || { echo "ERROR: WORKSPACE (作業ディレクトリ) を指定してください" >&2; return 1; }
+  [ -d "$ws" ] || { echo "ERROR: ディレクトリではありません: $ws" >&2; return 1; }
+  ws="$(cd "$ws" 2>/dev/null && pwd -P)" || { echo "ERROR: 解決できません: $ws" >&2; return 1; }
+  [ "$ws" != "/" ] || { echo "ERROR: WORKSPACE に / は指定できません" >&2; return 1; }
+  [ "$ws" != "$HOME" ] || { echo "ERROR: ホームディレクトリ ($HOME) は指定できません" >&2; return 1; }
+  case "$HOME/" in
+    "$ws"/*) echo "ERROR: ホームの祖先ディレクトリは指定できません: $ws" >&2; return 1 ;;
+  esac
+  echo "$ws"
+}
+
+# ワークスペースから既定のコンテナ名を導出する。
+# 優先順: git リポジトリのルート名 > ディレクトリ名。
+_apple_container_derive_name() {
+  local ws="$1"
+  local repo_root
+  if repo_root="$(git -C "$ws" rev-parse --show-toplevel 2>/dev/null)" && [ -n "$repo_root" ]; then
+    print -r -- "${repo_root:t}"
+    return
+  fi
+  print -r -- "${ws:t}"
+}
+
+_apple_container_exists() {
+  local name="${1:-$APPLE_CONTAINER_NAME}"
+  container list --all --quiet 2>/dev/null | grep -qFx "$name"
+}
+
+_apple_container_running() {
+  local name="${1:-$APPLE_CONTAINER_NAME}"
+  container list --quiet 2>/dev/null | grep -qFx "$name"
+}
+
+_apple_container_image_present() {
+  local ref="$1"
+  container image list --quiet 2>/dev/null | grep -qFx "$ref"
+}
+
+_apple_container_current_image() {
+  local name="${1:-$APPLE_CONTAINER_NAME}"
+  container list --all --format json 2>/dev/null \
+    | jq -r --arg name "$name" '.[] | select(.configuration.id == $name) | .configuration.image.reference // empty' \
+    | head -1
+}
+
+_apple_container_ghcr_login() {
+  container registry list --quiet 2>/dev/null | grep -qFx "ghcr.io" && return 0
+  # GHCR の private パッケージ pull には read:packages スコープが必要。
+  # gh auth token の OAuth トークンはこのスコープを持たないため、CR_PAT
+  # (read:packages 付き PAT) を優先し、未設定なら gh auth token へフォールバックする。
+  local token="${CR_PAT:-}"
+  if [ -z "$token" ] && command -v gh >/dev/null 2>&1; then
+    token="$(gh auth token 2>/dev/null || true)"
+  fi
+  [ -n "$token" ] || { echo "ERROR: GHCR のトークンが取得できません (CR_PAT を設定するか gh auth login してください)" >&2; return 1; }
+  printf '%s' "$token" | container registry login ghcr.io -u "$APPLE_CONTAINER_GH_USER" --password-stdin
+}
+
+_apple_container_pull() {
+  local ref="$1"
+  case "$ref" in
+    ghcr.io/*) _apple_container_ghcr_login || return 1 ;;
+  esac
+  echo "==> pull: $ref"
+  # 注意: private レジストリの pull は keychain バグ (-25308) で失敗する
+  # (apple/container#816)。public イメージのみ現状は pull 可能。
+  container image pull "$ref"
+}
+
+_apple_container_run() {
+  local image="$1" ws="$2" name="${3:-$APPLE_CONTAINER_NAME}"
+  local -a args
+  args=(
+    container run --detach --name "$name" --user 0:0 --workdir /workspace
+    --init
+    --cpus "$APPLE_CONTAINER_CPUS" --memory "$APPLE_CONTAINER_MEMORY" --ssh
+    --env "TERM=xterm-256color" --env "COLORTERM=truecolor" --env "LANG=C.UTF-8"
+    --env "TZ=$APPLE_CONTAINER_TZ" --env "USER_UID=$APPLE_CONTAINER_UID" --env "USER_GID=$APPLE_CONTAINER_GID"
+    --mount "type=bind,source=$ws,target=/workspace"
+    --mount "type=bind,source=$APPLE_CONTAINER_DOTFILES,target=/home/agent/dotfiles,readonly"
+  )
+  [ -z "${GH_TOKEN:-}" ] || args+=(--env GH_TOKEN)
+  [ -z "${ANTHROPIC_OAUTH_TOKEN:-}" ] || args+=(--env ANTHROPIC_OAUTH_TOKEN)
+  [ ! -f "$HOME/.ssh/config" ] || args+=(--volume "$HOME/.ssh/config:/host-auth/ssh-config:ro")
+  [ ! -f "$HOME/.ssh/known_hosts" ] || args+=(--volume "$HOME/.ssh/known_hosts:/host-auth/ssh-known-hosts:ro")
+  [ ! -f "$HOME/.claude.json" ] || args+=(--volume "$HOME/.claude.json:/host-auth/claude.json:ro")
+  [ ! -f "$HOME/.codex/auth.json" ] || args+=(--volume "$HOME/.codex/auth.json:/host-auth/codex-auth.json:ro")
+  [ ! -d "$HOME/.config/gh" ] || args+=(--mount "type=bind,source=$HOME/.config/gh,target=/host-auth/gh,readonly")
+  if [ "${INCLUDE_OPENCODE:-false}" = "true" ] && [ -f "$HOME/.local/share/opencode/auth.json" ]; then
+    args+=(--volume "$HOME/.local/share/opencode/auth.json:/host-auth/opencode-auth.json:ro")
+  fi
+  args+=("$image")
+  SSH_AUTH_SOCK="$APPLE_CONTAINER_SSH_SOCKET" "${args[@]}"
+}
+
+_apple_container_up() {
+  local ws="" name="" no_pull="false"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-pull) no_pull="true"; shift ;;
+      --name)
+        [ -n "${2:-}" ] || { echo "ERROR: --name には値が必要です" >&2; return 1; }
+        name="$2"; shift 2 ;;
+      -*) echo "ERROR: 不明なオプション: $1" >&2; return 1 ;;
+      *)
+        if [ -n "$ws" ]; then echo "ERROR: 余分な引数: $1" >&2; return 1; fi
+        ws="$1"; shift ;;
+    esac
+  done
+
+  _apple_container_doctor || return 1
+  ws="$(_apple_container_check_workspace "$ws")" || return 1
+  [ -d "$APPLE_CONTAINER_DOTFILES" ] || { echo "ERROR: DOTFILES がディレクトリではありません: $APPLE_CONTAINER_DOTFILES" >&2; return 1; }
+
+  # 名前の決定: --name (明示) > git リポジトリ名 > ディレクトリ名
+  if [ -z "$name" ]; then
+    name="$(_apple_container_derive_name "$ws")"
+  fi
+
+  local image
+  image="$(_apple_container_image)"
+
+  if _apple_container_running "$name"; then
+    local cur_image
+    cur_image="$(_apple_container_current_image "$name")"
+    if [ -n "$cur_image" ] && [ "$cur_image" != "$image" ]; then
+      echo "$name のイメージが変わったため再作成します ($cur_image -> $image)"
+      container stop "$name" >/dev/null || return 1
+      container delete "$name" >/dev/null || return 1
+    else
+      echo "$name はすでに起動しています"
+      return 0
+    fi
+  fi
+
+  container system start || return 1
+
+  # レジストリ参照 (ghcr.io/... など) のときだけ pull する。ローカルタグ
+  # (agent:latest など) は build 済み前提で pull しない。
+  case "$image" in
+    */*)
+      if [ "$no_pull" = "true" ]; then
+        if ! _apple_container_image_present "$image"; then
+          echo "ERROR: イメージが見つかりません: $image (apple-container pull を実行してください)" >&2
+          return 1
+        fi
+      else
+        _apple_container_pull "$image" || return 1
+      fi
+      ;;
+    *)
+      if ! _apple_container_image_present "$image"; then
+        echo "ERROR: イメージが見つかりません: $image (apple-container build を実行してください)" >&2
+        return 1
+      fi
+      ;;
+  esac
+
+  if _apple_container_exists "$name"; then
+    echo "$name は停止中です。再作成します"
+    container delete "$name" >/dev/null || return 1
+  fi
+
+  _apple_container_run "$image" "$ws" "$name" || return 1
+
+  local i=0
+  until container exec --user 0:0 "$name" test -f /tmp/agent-ready >/dev/null 2>&1; do
+    i=$((i + 1))
+    if [ "$i" -ge "$APPLE_CONTAINER_READY_TIMEOUT" ] || ! _apple_container_running "$name"; then
+      container logs "$name" 2>&1 || true
+      echo "ERROR: 初期化完了を確認できませんでした" >&2
+      return 1
+    fi
+    sleep 1
+  done
+  echo "$name の初期化が完了しました (apple-container exec --name $name で接続できます)"
+}
+
+_apple_container_exec() {
+  local name=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name)
+        [ -n "${2:-}" ] || { echo "ERROR: --name には値が必要です" >&2; return 1; }
+        name="$2"; shift 2 ;;
+      *) break ;;
+    esac
+  done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
+
+  _apple_container_check_runtime || return 1
+  if ! _apple_container_running "$name"; then
+    echo "ERROR: コンテナ $name は起動していません。先に apple-container up <dir> --name $name を実行してください" >&2
+    return 1
+  fi
+  local -a opts=(--interactive)
+  # TTY がある場合のみ --tty を付ける (非対話シェルでの ENODEV を回避)。
+  # 対話シェル起動 (引数なし) は TTY 前提のため常に --tty を付ける。
+  [ -t 0 ] && opts+=(--tty)
+  if [ $# -gt 0 ]; then
+    container exec "${opts[@]}" --user agent --workdir /workspace "$name" "$@"
+  else
+    container exec --interactive --tty --user agent --workdir /workspace "$name" zsh
+  fi
+}
+
+_apple_container_status() {
+  local name=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name)
+        [ -n "${2:-}" ] || { echo "ERROR: --name には値が必要です" >&2; return 1; }
+        name="$2"; shift 2 ;;
+      *) break ;;
+    esac
+  done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
+
+  _apple_container_check_runtime || return 1
+  if ! _apple_container_exists "$name"; then
+    echo "$name は存在しません"
+    return 0
+  fi
+  container list --all --format json \
+    | jq --arg name "$name" '.[] | select(.configuration.id == $name)'
+}
+
+_apple_container_logs() {
+  local name=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name)
+        [ -n "${2:-}" ] || { echo "ERROR: --name には値が必要です" >&2; return 1; }
+        name="$2"; shift 2 ;;
+      *) break ;;
+    esac
+  done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
+
+  _apple_container_check_runtime || return 1
+  if ! _apple_container_exists "$name"; then
+    echo "$name は存在しません"
+    return 0
+  fi
+  container logs "$@" "$name"
+}
+
+_apple_container_down() {
+  local name=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name)
+        [ -n "${2:-}" ] || { echo "ERROR: --name には値が必要です" >&2; return 1; }
+        name="$2"; shift 2 ;;
+      *) break ;;
+    esac
+  done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
+
+  _apple_container_check_runtime || return 1
+  if ! _apple_container_exists "$name"; then
+    echo "$name は存在しません"
+    return 0
+  fi
+  if _apple_container_running "$name"; then
+    container stop "$name" >/dev/null || return 1
+  fi
+  container delete "$name" >/dev/null || return 1
+  echo "$name を削除しました"
+}
+
+_apple_container_list() {
+  _apple_container_check_runtime || return 1
+  local data
+  data="$(container list --all --format json 2>/dev/null \
+    | jq -r '.[] | select(.configuration.id != "buildkit")
+      | [.configuration.id,
+         (.status.state // "-"),
+         (.configuration.image.reference // "-"),
+         ((.configuration.resources.cpus // "-") | tostring),
+         ((.configuration.resources.memoryInBytes // 0) / 1073741824 | tostring) + "g",
+         (([.configuration.mounts[]? | select(.destination == "/workspace") | .source] | first) // "-")]
+      | @tsv')"
+  if [ -z "$data" ]; then
+    echo "コンテナはありません"
+    return 0
+  fi
+  { printf 'NAME\tSTATE\tIMAGE\tCPUS\tMEMORY\tWORKSPACE\n'; printf '%s\n' "$data"; } \
+    | column -t -s $'\t'
+}
+
+_apple_container_build() {
+  _apple_container_check_runtime || return 1
+  [ -f "$APPLE_CONTAINER_REPO/Dockerfile" ] || { echo "ERROR: Dockerfile が見つかりません: $APPLE_CONTAINER_REPO" >&2; return 1; }
+  local tag="agent:latest"
+  [ "${INCLUDE_OPENCODE:-false}" = "true" ] && tag="agent:latest-opencode"
+  container system start || return 1
+  container build \
+    --build-arg "INCLUDE_OPENCODE=${INCLUDE_OPENCODE:-false}" \
+    --build-arg "USER_UID=$APPLE_CONTAINER_UID" --build-arg "USER_GID=$APPLE_CONTAINER_GID" \
+    --tag "$tag" --file "$APPLE_CONTAINER_REPO/Dockerfile" "$APPLE_CONTAINER_REPO"
+  echo "==> ビルド完了: $tag (IMAGE=$tag apple-container up <dir> で使用)"
+}
+
+case "${1:-}" in
+  -h|--help|help|"")
+    _apple_container_usage
+    ;;
+  list|ls)
+    _apple_container_list
+    ;;
+  doctor)
+    _apple_container_doctor
+    ;;
+  up)
+    shift
+    _apple_container_up "$@"
+    ;;
+  exec|shell|sh|attach)
+    shift
+    _apple_container_exec "$@"
+    ;;
+  status|ps)
+    shift
+    _apple_container_status "$@"
+    ;;
+  logs)
+    shift
+    _apple_container_logs "$@"
+    ;;
+  down|rm|stop)
+    shift
+    _apple_container_down "$@"
+    ;;
+  build)
+    _apple_container_build
+    ;;
+  pull)
+    shift
+    _apple_container_pull "${1:-$(_apple_container_ghcr_image)}"
+    ;;
+  *)
+    echo "ERROR: 不明なサブコマンド: $1" >&2
+    _apple_container_usage >&2
+    return 1
+    ;;
+esac

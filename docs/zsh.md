@@ -73,3 +73,60 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 | `lazygit` | 配下のGitリポジトリを検索して `lazygit` で開く | |
 | `find` | ファイル検索 | パスを表示 (クリップボードにもコピー) |
 | `vi` / `vim` | ファイルを検索して Vim で開く | |
+
+---
+
+## apple-container (Apple Container ラッパー)
+
+コーディングエージェント (Claude Code / Codex / OpenCode) を隔離実行する Apple Container
+を `container` CLI を直接呼んで操作します。既定ではローカルビルドしたイメージ
+（`agent:latest`）を使います。
+
+| サブコマンド | 機能概要 |
+|---|---|
+| `list` / `ls` | コンテナを一覧表示 |
+| `build` | ローカルでイメージをビルド（`agent:latest` / `-opencode`） |
+| `up <dir> [--name <name>] [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定はローカルイメージを使用） |
+| `exec [--name <name>] [cmd...]` | 起動中のコンテナへ接続（既定は `zsh`） |
+| `status` / `ps` | 状態を表示 |
+| `logs [-f]` | ログを表示 |
+| `down` / `rm` | 停止して削除 |
+| `doctor` | 前提条件を確認 |
+| `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
+
+コンテナ名は、`--name <name>` が無ければ自動決定します:
+- `up` は `<dir>` から、`exec` / `status` / `logs` / `down` はカレントディレクトリから。
+- どちらも「git リポジトリのルート名（git リポジトリ内の場合）> ディレクトリ名」の優先順です。
+
+環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
+`MEMORY`, `INCLUDE_OPENCODE`, `READY_TIMEOUT`, `DOTFILES`, `CONT_REPO`,
+`SSH_AGENT_SOCKET`, `GH_USER`。GHCR の private パッケージ pull には `read:packages`
+スコープ付き PAT（`CR_PAT`）が必要です（`gh auth token` はスコープ不足で 403 になります）。
+
+> **注意**: Apple Container 1.3.1 時点では、private レジストリ（GHCR 含む）からの
+> `container image pull` が keychain バグ（`-25308`、[apple/container#816](https://github.com/apple/container/issues/816)）で
+> 失敗します。public イメージは pull できます。private イメージを使う場合は、
+> ローカルビルド（`build` → `up`）か Docker Desktop を利用してください。
+
+```sh
+# 例: ~/Project/foo を隔離環境で作業する
+apple-container build
+apple-container up ~/Project/foo   # 名前は "foo" に自動決定
+cd ~/Project/foo
+apple-container exec                # カレントディレクトリから "foo" を導出
+apple-container down                # 同上
+```
+
+```sh
+# 複数インスタンスを使い分ける
+apple-container up ~/Project/A --name project-a
+apple-container up ~/Project/B --name project-b
+apple-container list                          # 一覧を確認
+apple-container exec --name project-a
+apple-container down --name project-a
+```
+
+```sh
+# GHCR のイメージを使う場合（Apple Container の keychain バグ修正後）
+IMAGE=ghcr.io/yuya-matsushima/containers:latest apple-container up ~/Project/foo
+```
