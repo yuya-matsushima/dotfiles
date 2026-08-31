@@ -94,9 +94,9 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 | `doctor` | 前提条件を確認 |
 | `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
 
-`up` のコンテナ名は、指定がなければ `<dir>` から自動決定します:
-`--name <name>` > git リポジトリのルート名（`<dir>` が git リポジトリ内の場合）> ディレクトリ名。
-`exec` / `status` / `logs` / `down` は `--name <name>`（または `NAME` 環境変数、既定 `containers-agent`）で対象を指定します。
+コンテナ名は、`--name <name>` が無ければ自動決定します:
+- `up` は `<dir>` から、`exec` / `status` / `logs` / `down` はカレントディレクトリから。
+- どちらも「git リポジトリのルート名（git リポジトリ内の場合）> ディレクトリ名」の優先順です。
 
 環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
 `MEMORY`, `INCLUDE_OPENCODE`, `READY_TIMEOUT`, `DOTFILES`, `CONT_REPO`,
@@ -111,9 +111,10 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 ```sh
 # 例: ~/Project/foo を隔離環境で作業する
 apple-container build
-apple-container up ~/Project/foo
-apple-container exec
-apple-container down
+apple-container up ~/Project/foo   # 名前は "foo" に自動決定
+cd ~/Project/foo
+apple-container exec                # カレントディレクトリから "foo" を導出
+apple-container down                # 同上
 ```
 
 ```sh

@@ -58,8 +58,10 @@ Options:
     -h, --help       print help
 
 Notes:
-    - `up` derives the container name from <dir>: the git repo root name if
-      <dir> is in a git repository, otherwise the directory name.
+    - The container name is derived automatically when --name is not given:
+      `up` derives from <dir>, and exec/status/logs/down derive from the
+      current directory. In both cases: the git repo root name if inside a
+      git repository, otherwise the directory name.
     - `up` uses the local image (agent:latest) by default; run `build` first.
     - To use the GHCR image:
       IMAGE=ghcr.io/<GH_USER>/containers:latest apple-container up <dir>
@@ -68,7 +70,6 @@ Notes:
 
 Environment variables (same names as the containers Makefile):
     IMAGE              image reference (default: agent:latest / local build)
-    NAME               default container name for exec/status/logs/down (default: containers-agent)
     CPUS               CPU limit (default: 4)
     MEMORY             memory limit (default: 8g)
     INCLUDE_OPENCODE   use the OpenCode variant (default: false)
@@ -298,7 +299,7 @@ _apple_container_up() {
 }
 
 _apple_container_exec() {
-  local name="$APPLE_CONTAINER_NAME"
+  local name=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --name)
@@ -307,6 +308,8 @@ _apple_container_exec() {
       *) break ;;
     esac
   done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
 
   _apple_container_check_runtime || return 1
   if ! _apple_container_running "$name"; then
@@ -325,7 +328,7 @@ _apple_container_exec() {
 }
 
 _apple_container_status() {
-  local name="$APPLE_CONTAINER_NAME"
+  local name=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --name)
@@ -334,6 +337,8 @@ _apple_container_status() {
       *) break ;;
     esac
   done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
 
   _apple_container_check_runtime || return 1
   if ! _apple_container_exists "$name"; then
@@ -345,7 +350,7 @@ _apple_container_status() {
 }
 
 _apple_container_logs() {
-  local name="$APPLE_CONTAINER_NAME"
+  local name=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --name)
@@ -354,6 +359,8 @@ _apple_container_logs() {
       *) break ;;
     esac
   done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
 
   _apple_container_check_runtime || return 1
   if ! _apple_container_exists "$name"; then
@@ -364,7 +371,7 @@ _apple_container_logs() {
 }
 
 _apple_container_down() {
-  local name="$APPLE_CONTAINER_NAME"
+  local name=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --name)
@@ -373,6 +380,8 @@ _apple_container_down() {
       *) break ;;
     esac
   done
+
+  [ -n "$name" ] || name="$(_apple_container_derive_name "$PWD")"
 
   _apple_container_check_runtime || return 1
   if ! _apple_container_exists "$name"; then
