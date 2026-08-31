@@ -38,49 +38,48 @@ _apple_container_usage() {
   cat <<'EOF'
 apple-container: Apple Container 上のコーディングエージェント隔離環境を扱う
 
-Usage:
-    apple-container list                  list containers
-    apple-container build                 build the image locally (container build)
+使い方:
+    apple-container list                  コンテナを一覧表示
+    apple-container build                 イメージをローカルビルド (container build)
     apple-container up <dir> [--name <name>] [--no-pull]
-                                          start the container (mount <dir> at /workspace)
+                                          コンテナを起動 (<dir> を /workspace にマウント)
     apple-container exec [--name <name>] [cmd...]
-                                          attach to the running container (default: zsh)
+                                          起動中のコンテナへ接続 (既定は zsh)
     apple-container status [--name <name>]
-                                          show container status
+                                          状態を表示
     apple-container logs [--name <name>] [-f]
-                                          show container logs
-    apple-container down [--name <name>]  stop and delete the container
-    apple-container doctor                check prerequisites
-    apple-container pull [ref]            pull the image from GHCR (auto login)
+                                          ログを表示
+    apple-container down [--name <name>]  停止して削除
+    apple-container doctor                前提条件を確認
+    apple-container pull [ref]            GHCR から pull (自動ログイン)
 
-Options:
-    --name <name>    override the derived container name
-    -h, --help       print help
+オプション:
+    --name <name>    対象コンテナ名 (自動導出の上書き)
+    -h, --help       ヘルプを表示
 
-Notes:
-    - The container name is derived automatically when --name is not given:
-      `up` derives from <dir>, and exec/status/logs/down derive from the
-      current directory. In both cases: the git repo root name if inside a
-      git repository, otherwise the directory name.
-    - `up` uses the local image (agent:latest) by default; run `build` first.
-    - To use the GHCR image:
+補足:
+    - コンテナ名は --name 未指定時に自動導出される。up は <dir> から、
+      exec / status / logs / down はカレントディレクトリから。どちらも
+      「git リポジトリのルート名 > ディレクトリ名」の優先順。
+    - up は既定でローカルイメージ (agent:latest) を使う。先に build を実行する。
+    - GHCR イメージを使う場合:
       IMAGE=ghcr.io/<GH_USER>/containers:latest apple-container up <dir>
-    - GHCR (private) pull is currently broken by an Apple Container keychain bug
-      (apple/container#816). Use `build` + `up`, or Docker Desktop, as a workaround.
+    - GHCR (private) の pull は Apple Container の keychain バグ (apple/container#816)
+      で現状失敗する。build + up か Docker Desktop で回避する。
 
-Environment variables (same names as the containers Makefile):
-    IMAGE              image reference (default: agent:latest / local build)
-    CPUS               CPU limit (default: 4)
-    MEMORY             memory limit (default: 8g)
-    INCLUDE_OPENCODE   use the OpenCode variant (default: false)
-    READY_TIMEOUT      seconds to wait for init (default: 60)
-    DOTFILES           dotfiles repo path (default: ~/Project/Personal/dotfiles)
-    CONT_REPO          containers repo path (default: <DOTFILES dir>/containers)
-    SSH_AGENT_SOCKET   host 1Password SSH agent socket
-    GH_USER            GitHub account for GHCR (default: yuya-matsushima)
-    CR_PAT             GitHub PAT with read:packages scope for GHCR (preferred)
+環境変数 (containers の Makefile と同名):
+    IMAGE              イメージ参照 (既定: agent:latest / ローカルビルド)
+    CPUS               CPU 上限 (既定: 4)
+    MEMORY             メモリ上限 (既定: 8g)
+    INCLUDE_OPENCODE   OpenCode 入りバリアントを使う (既定: false)
+    READY_TIMEOUT      初期化完了の待ち秒数 (既定: 60)
+    DOTFILES           dotfiles リポジトリのパス (既定: ~/Project/Personal/dotfiles)
+    CONT_REPO          containers リポジトリのパス (既定: <DOTFILES dir>/containers)
+    SSH_AGENT_SOCKET   ホストの 1Password SSH agent ソケット
+    GH_USER            GHCR の GitHub アカウント (既定: yuya-matsushima)
+    CR_PAT             GHCR 用の read:packages スコープ付き PAT (優先)
 
-Dependencies:
+依存:
     container (Apple Container CLI), jq, gh, ssh-add
 EOF
 }
