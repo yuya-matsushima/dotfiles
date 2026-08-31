@@ -79,18 +79,18 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 ## apple-container (Apple Container ラッパー)
 
 コーディングエージェント (Claude Code / Codex / OpenCode) を隔離実行する Apple Container
-を `container` CLI を直接呼んで操作します。既定では GHCR の private イメージ
-(`ghcr.io/yuya-matsushima/containers`) を pull して使います。
+を `container` CLI を直接呼んで操作します。既定ではローカルビルドしたイメージ
+（`agent:latest`）を使います。
 
 | サブコマンド | 機能概要 |
 |---|---|
-| `up <dir> [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定は pull + run） |
+| `build` | ローカルでイメージをビルド（`agent:latest` / `-opencode`） |
+| `up <dir> [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定はローカルイメージを使用） |
 | `exec [cmd...]` | 起動中のコンテナへ接続（既定は `zsh`） |
 | `status` / `ps` | 状態を表示 |
 | `logs [-f]` | ログを表示 |
 | `down` / `rm` | 停止して削除 |
 | `doctor` | 前提条件を確認 |
-| `build` | ローカルでイメージをビルド（`agent:latest`） |
 | `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
 
 環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
@@ -101,10 +101,11 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 > **注意**: Apple Container 1.3.1 時点では、private レジストリ（GHCR 含む）からの
 > `container image pull` が keychain バグ（`-25308`、[apple/container#816](https://github.com/apple/container/issues/816)）で
 > 失敗します。public イメージは pull できます。private イメージを使う場合は、
-> ローカルビルド（`build` → `up --no-pull`）か Docker Desktop を利用してください。
+> ローカルビルド（`build` → `up`）か Docker Desktop を利用してください。
 
 ```sh
 # 例: ~/Project/foo を隔離環境で作業する
+apple-container build
 apple-container up ~/Project/foo
 apple-container exec
 apple-container down
