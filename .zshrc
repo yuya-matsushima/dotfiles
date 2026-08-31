@@ -18,14 +18,42 @@ fi
 
 autoload colors && colors
 
+# ============================================================
+# 実行環境 (ホスト / Docker / Apple Container) の判定
+#
+# - Docker:          /.dockerenv が存在する (Docker 公式のマーカー)
+# - Apple Container: /proc/cmdline に init=/sbin/vminitd を含む
+#                    (vminitd は Apple Container 固有のゲスト init で、
+#                     Docker Desktop は使用しない)
+# - ホスト (macOS):  どちらにも該当しない
+#
+# 注: /proc/device-tree/hypervisor/compatible の
+#     apple,virtualization-generic-platform は、Docker Desktop も
+#     Apple Virtualization.framework を使うため両者の区別には使えない。
+# ============================================================
+if [[ -f /.dockerenv ]]; then
+    ZSH_CONTAINER_RUNTIME="docker"
+elif [[ -r /proc/cmdline ]] && [[ "$(</proc/cmdline)" == *init=/sbin/vminitd* ]]; then
+    ZSH_CONTAINER_RUNTIME="apple"
+else
+    ZSH_CONTAINER_RUNTIME=""
+fi
+# プロンプト用バッジは Nerd Font アイコンで区別する (モノクロ)
+# Docker: nf-linux-docker (U+F308) / Apple Container: nf-fa-apple (U+F179)
+case "$ZSH_CONTAINER_RUNTIME" in
+docker) ZSH_CONTAINER_BADGE=" " ;;
+apple)  ZSH_CONTAINER_BADGE=" " ;;
+*)      ZSH_CONTAINER_BADGE="" ;;
+esac
+
 case ${UID} in
 0)
-    PROMPT="%{${fg[cyan]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') %B%{${fg[red]}%}%30<~<%/%%%{${reset_color}%}%b "
+    PROMPT="${ZSH_CONTAINER_BADGE}%{${fg[cyan]}%}$(echo ${HOST%%.*} | tr '[a-z]' '[A-Z]') %B%{${fg[red]}%}%30<~<%/%%%{${reset_color}%}%b "
     PROMPT2="%B%{${fg[red]}%}%_#%{${reset_color}%}%b "
     SPROMPT="%B%{${fg[white]}%}%r is correct? [n,y,a,e]:%{${reset_color}%}%b "
     ;;
 *)
-    PROMPT="%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+    PROMPT="${ZSH_CONTAINER_BADGE}%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
     PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
     SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
     [ -n "${REMOTEHOST}${SSH_CONNECTION}" ] &&
