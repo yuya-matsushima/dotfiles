@@ -73,3 +73,39 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 | `lazygit` | 配下のGitリポジトリを検索して `lazygit` で開く | |
 | `find` | ファイル検索 | パスを表示 (クリップボードにもコピー) |
 | `vi` / `vim` | ファイルを検索して Vim で開く | |
+
+---
+
+## apple-container (Apple Container ラッパー)
+
+コーディングエージェント (Claude Code / Codex / OpenCode) を隔離実行する Apple Container
+を `container` CLI を直接呼んで操作します。既定では GHCR の private イメージ
+(`ghcr.io/yuya-matsushima/containers`) を pull して使います。
+
+| サブコマンド | 機能概要 |
+|---|---|
+| `up <dir> [--no-pull]` | `<dir>` を `/workspace` にマウントして起動（既定は pull + run） |
+| `exec [cmd...]` | 起動中のコンテナへ接続（既定は `zsh`） |
+| `status` / `ps` | 状態を表示 |
+| `logs [-f]` | ログを表示 |
+| `down` / `rm` | 停止して削除 |
+| `doctor` | 前提条件を確認 |
+| `build` | ローカルでイメージをビルド（`agent:latest`） |
+| `pull [ref]` | GHCR から pull（`gh` で自動ログイン） |
+
+環境変数（`containers` の Makefile と同名）で上書き可能: `IMAGE`, `NAME`, `CPUS`,
+`MEMORY`, `INCLUDE_OPENCODE`, `READY_TIMEOUT`, `DOTFILES`, `CONT_REPO`,
+`SSH_AGENT_SOCKET`, `GH_USER`。GHCR の private パッケージ pull には `read:packages`
+スコープ付き PAT（`CR_PAT`）が必要です（`gh auth token` はスコープ不足で 403 になります）。
+
+> **注意**: Apple Container 1.3.1 時点では、private レジストリ（GHCR 含む）からの
+> `container image pull` が keychain バグ（`-25308`、[apple/container#816](https://github.com/apple/container/issues/816)）で
+> 失敗します。public イメージは pull できます。private イメージを使う場合は、
+> ローカルビルド（`build` → `up --no-pull`）か Docker Desktop を利用してください。
+
+```sh
+# 例: ~/Project/foo を隔離環境で作業する
+apple-container up ~/Project/foo
+apple-container exec
+apple-container down
+```
