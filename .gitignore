@@ -19,6 +19,8 @@
 !.claude/statusline.sh
 .antigravitycli/
 .config/opencode/service.json
+# agents are distributed from personal-skills via `make install-agents`
+.config/opencode/agents/
 
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/
