@@ -205,7 +205,7 @@ if (( $+commands[go] )); then
 fi
 if (( $+commands[pnpm] )); then
   export PNPM_HOME="$HOME/.local/share/pnpm"
-  export PATH="$PNPM_HOME:$PATH"
+  export PATH="$PNPM_HOME/bin:$PATH"
 fi
 (( $+commands[codex] )) && source <(codex completion zsh 2>/dev/null) 2>/dev/null
 (( $+commands[claude] )) && source "$HOME/.zsh/completions/_claude" 2>/dev/null
