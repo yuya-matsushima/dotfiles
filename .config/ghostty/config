@@ -5,6 +5,7 @@ theme = TokyoNight
 font-family = UDEV Gothic 35NF
 font-size = 14
 font-thicken = true
+font-thicken-strength = 200
 
 # Window Configuration
 background-opacity = 0.92
