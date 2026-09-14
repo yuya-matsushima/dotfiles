@@ -6,6 +6,10 @@
   "scroll": {
     "acceleration": true
   },
+  "keybinds": {
+    "session.line.up": "<leader>k",
+    "session.line.down": "<leader>j"
+  },
   "attention": {
     "enabled": true,
     "sound": true,
