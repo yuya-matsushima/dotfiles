@@ -10,6 +10,7 @@
 #   通常のリポジトリ     : website-2026
 #   git worktree 内      : website-2026:fix-login
 #   複数ペインで異なる repo : website-2026|api
+#   3 リポジトリ以上      : website-2026|api|+2 (最大 _ymt_tmux_window_max_len 文字)
 #   同名 window が既存     : website-2026-2
 #
 # 対象コマンドは YMT_TMUX_AGENT_COMMANDS で上書きできる (~/.zshrc_local など)。
@@ -29,6 +30,12 @@
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
+
+# window 名の最大文字数。0 で無制限。
+# 複数ペインで別リポジトリの agent を動かすと連結名が長くなるため、
+# 収まるリポジトリだけを表示し、残りは `+N` にまとめる
+# (例: 20 文字制限で website-2026|api|dotfiles|blog -> website-2026|api|+2)。
+typeset -g _ymt_tmux_window_max_len="${_ymt_tmux_window_max_len:-20}"
 
 # この shell が rename を実施済みかどうか (precmd の早期 return 用)
 typeset -g _ymt_tmux_window_active=""
@@ -417,9 +424,23 @@ _ymt_tmux_window_pane_repos_remove() {
   (( ${#result} )) && print -r -- "${(F)result}"
 }
 
-# @ymt_win_pane_repos の全ペインから一意なリポジトリ名を収集し | 区切りで出力
+# 文字列を最大 max 文字に収める。超過分は末尾を `…` に置き換える。
+# zsh の ${#var} / ${var[i,j]} はロケール (UTF-8) に従い文字単位で数える。
+_ymt_tmux_window_ellipsize() {
+  local name="$1" max="$2"
+
+  (( max > 0 )) || { print -r -- ""; return; }
+  (( ${#name} > max )) || { print -r -- "$name"; return; }
+  (( max == 1 )) && { print -r -- "…"; return; }
+  print -r -- "${name[1, $(( max - 1 ))]}…"
+}
+
+# @ymt_win_pane_repos の全ペインから一意なリポジトリ名を収集し | 区切りで出力。
+# 最大 _ymt_tmux_window_max_len 文字を超える場合は収まるリポジトリだけを残し、
+# 省略した件数を末尾の `+N` にまとめる (先頭のリポジトリが単体で収まらない
+# 場合は、その名前だけ `…` で切り詰める)。
 _ymt_tmux_window_composite_name() {
-  local data="$1" entry repo
+  local data="$1" entry repo suffix
   local -a repos
 
   [[ -n $data ]] || return 1
@@ -431,7 +452,39 @@ _ymt_tmux_window_composite_name() {
   done
 
   (( ${#repos} )) || return 1
-  print -r -- "${(j:|:)repos}"
+
+  local max="$_ymt_tmux_window_max_len" i n
+  n=${#repos}
+
+  # 制限なし、または全リポジトリが収まる場合はそのまま出力
+  if (( max <= 0 )) || (( ${#${(j:|:)repos}} <= max )); then
+    print -r -- "${(j:|:)repos}"
+    return 0
+  fi
+
+  local out="" remaining shown=0
+  for (( i = 1; i <= n; i++ )); do
+    repo="${repos[i]}"
+    # このリポジトリを採用した場合に残る省略件数ぶんを先に確保する
+    remaining=$(( n - i ))
+    suffix=""
+    (( remaining > 0 )) && suffix="|+${remaining}"
+
+    if (( shown == 0 )); then
+      # 先頭は必ず表示する。単体で収まらない場合は `…` で切る
+      out="$( _ymt_tmux_window_ellipsize "$repo" $(( max - ${#suffix} )) )"
+      shown=1
+    elif (( ${#out} + 1 + ${#repo} + ${#suffix} <= max )); then
+      out="${out}|${repo}"
+      shown=$(( shown + 1 ))
+    else
+      break
+    fi
+  done
+
+  remaining=$(( n - shown ))
+  (( remaining > 0 )) && out="${out}|+${remaining}"
+  print -r -- "$out"
 }
 
 # 同名の window が既に存在する場合、末尾に -N サフィックスを付与する

@@ -68,6 +68,8 @@
 | リポジトリ内のサブディレクトリ | `website-2026` (リポジトリルート基準) |
 | git worktree 内 | `website-2026:fix-login` (`リポジトリ名:worktree ディレクトリ名`) |
 | git 管理外のディレクトリ | カレントディレクトリ名 |
+| 複数ペインで agent 起動 | `website-2026\|api` (`\|` 区切りで連結) |
+| 4 リポジトリ以上で長すぎる場合 | `website-2026\|api\|+2` (既定 20 文字制限) |
 
 CLI が終了すると元の状態へ戻ります。`Prefix` + `,` で手動リネームした window は、その名前へ復元されます。
 `Ctrl-Z` で停止すると一旦元の名前に戻り、`fg` / `fg %N` / `%N` で再開すると再びリポジトリ名になります。
@@ -82,6 +84,15 @@ YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
 ```
 
 リポジトリ名と worktree 名の区切り文字は `_ymt_tmux_window_sep` (既定 `:`) で変更できます。
+
+window 名の最大文字数は `_ymt_tmux_window_max_len` (既定 `20`) で変更できます。`0` にすると制限なしです。
+複数ペインで別リポジトリの agent を動かしている場合、制限内に収まるリポジトリだけを `|` 区切りで表示し、
+省略した分は末尾の `+N` にまとめます。1 つ目のリポジトリが単体で収まらない場合のみ `…` で切り詰めます。
+
+```zsh
+# ~/.zshrc_local
+_ymt_tmux_window_max_len=30
+```
 
 ### 終了時のステータスバーのクリア
 
