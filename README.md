@@ -63,5 +63,5 @@ Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セ
 
 `pi` 本体は Homebrew (`pi-coding-agent`) で導入し、`make cli` に含まれます。
 認証は `OPENCODE_API_KEY` 環境変数か、`pi` 内の `/login` で設定します。
-Vim キーバインドは `settings.json` の `packages` で宣言した `pi-vim` を初回
-起動時に自動導入して有効化します。
+`settings.json` の `packages` で宣言した拡張 (`pi-vim`, `pi-web-search`,
+`pi-mcp-adapter` など) は初回起動時に自動導入されます。
