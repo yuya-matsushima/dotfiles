@@ -9,6 +9,7 @@
     "npm:@gotgenes/pi-permission-system",
     "npm:cc-safety-net",
     "npm:@narumitw/pi-plan-mode",
-    "npm:@narumitw/pi-usage"
+    "npm:@narumitw/pi-usage",
+    "npm:@narumitw/pi-btw"
   ]
 }
