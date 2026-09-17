@@ -33,6 +33,7 @@ brew install \
           jnv \
           libpq \
           opencode \
+          pi-coding-agent \
           make \
           mysql-client \
           ncurses \

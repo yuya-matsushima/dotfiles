@@ -53,3 +53,15 @@ Claude Code と Codex は、認証・端末固有パス・プロジェクト履�
 `~/.codex/config.toml` は各マシンの実ファイルとして維持します。hooks や
 statusline、OpenCode のように端末固有情報を含まない既存設定は、従来どおり
 symlink します。
+
+Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セッション
+(`sessions/`)、導入済みパッケージ (`npm/`) は端末固有のため各マシンの実
+ファイルとして維持し、共通部分だけを symlink します。
+
+- `.pi/agent/settings.json` (既定プロバイダー/モデル, `packages`)
+- `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
+
+`pi` 本体は Homebrew (`pi-coding-agent`) で導入し、`make cli` に含まれます。
+認証は `OPENCODE_API_KEY` 環境変数か、`pi` 内の `/login` で設定します。
+Vim キーバインドは `settings.json` の `packages` で宣言した `pi-vim` を初回
+起動時に自動導入して有効化します。

@@ -21,6 +21,12 @@
 .config/opencode/service.json
 # agents are distributed from personal-skills via `make install-agents`
 .config/opencode/agents/
+# Pi: 設定は $HOME へ symlink, 実行時データは管理対象外
+/.pi/*
+!/.pi/agent/
+/.pi/agent/*
+!/.pi/agent/settings.json
+!/.pi/agent/keybindings.json
 
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/

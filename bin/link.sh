@@ -39,6 +39,8 @@ TARGETS=( \
          ".claude/statusline.sh" \
          ".codex/hooks" \
          ".agents/hooks" \
+         ".pi/agent/settings.json" \
+         ".pi/agent/keybindings.json" \
        )
 
 for TARGET in ${TARGETS[@]}
