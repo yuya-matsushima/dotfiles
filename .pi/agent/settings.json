@@ -11,5 +11,7 @@
     "npm:@narumitw/pi-plan-mode",
     "npm:@narumitw/pi-usage",
     "npm:@narumitw/pi-btw"
-  ]
+  ],
+  "lastChangelogVersion": "0.85.1",
+  "theme": "dark"
 }
