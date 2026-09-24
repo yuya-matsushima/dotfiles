@@ -1,6 +1,10 @@
 #compdef todaymd
-local -a subcmds
+local -a subcmds types
 subcmds=('list:list markdown files in TODAYMD_DIR'\
          'edit:search and edit file with fzf'\
          'rm:search and remove file with fzf')
-_describe 'command' subcmds
+types=('note' 'prompt' 'log')
+
+_arguments -s \
+  '(-t --type)'{-t,--type}'[set frontmatter type]:type:($types)' \
+  '1:subcommand or file name:($subcmds)'

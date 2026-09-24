@@ -76,6 +76,47 @@ Zshは Vi モード (`bindkey -v`) で動作するように設定されていま
 
 ---
 
+## todaymd (Markdown メモ管理)
+
+日付プレフィックス付きの Markdown メモを `TODAYMD_DIR` に作成・管理します。
+
+| コマンド | 機能概要 |
+|---|---|
+| `todaymd [options] [file name]` | メモを作成して `nvim` で開く |
+| `todaymd list` | `TODAYMD_DIR` のメモを一覧表示 |
+| `todaymd edit` | fzf で選択して編集 |
+| `todaymd rm` | fzf で選択して削除 |
+
+| オプション | 説明 |
+|---|---|
+| `-t, --type <type>` | frontmatter の `type` を指定 (既定: `note`) |
+
+作成されるファイルの先頭には OKF (Open Knowledge Format) 形式の YAML frontmatter が付与されます。
+`type` で種類 (例: `note`, `prompt`, `log`) を判別できます。
+
+`todaymd list` と fzf の一覧 (`edit` / `rm`) は `type` 付きで表示します (frontmatter がないファイルは `-`)。fzf では `type` でも絞り込めます。
+
+```markdown
+---
+type: prompt
+title: "prompt memo"
+generated:
+  by: human:<user>
+  at: <ISO 8601 datetime>
+tags: []
+---
+
+# prompt memo
+```
+
+```sh
+todaymd "打ち合わせメモ"            # type: note (既定)
+todaymd -t prompt "要約プロンプト"   # type: prompt
+todaymd --type=log "今日の作業ログ"  # type: log
+```
+
+---
+
 ## apple-container (Apple Container ラッパー)
 
 コーディングエージェント (Claude Code / Codex / OpenCode) を隔離実行する Apple Container
