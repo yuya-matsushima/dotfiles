@@ -213,7 +213,6 @@ fi
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh 2>/dev/null)" 2>/dev/null
 # Agent CLI は常時 --auto で起動する (権限を明示拒否以外すべて自動承認)
 (( $+commands[opencode] )) && alias opcode='opencode --auto'
-(( $+commands[opencode2] )) && alias opcode2='opencode2 --auto'
 if (( $+commands[nvim] )); then
   alias ni="nvim"
   alias vi="nvim"
