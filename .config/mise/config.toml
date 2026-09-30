@@ -22,6 +22,5 @@ tflint = "latest"
 # global npm パッケージ (旧: asdf node lts への npm i -g)
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:@openai/codex" = "latest"
-"npm:@google/gemini-cli" = "latest"
 "npm:ccusage" = "latest"
 "npm:@mermaid-lint/cli" = "latest"
