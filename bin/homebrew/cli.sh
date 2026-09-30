@@ -5,7 +5,7 @@ set -e
 brew tap gjbae1212/gossm
 
 brew install \
-          asdf \
+          mise \
           awsume \
           bat \
           colordiff \

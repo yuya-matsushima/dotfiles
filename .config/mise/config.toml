@@ -1,0 +1,28 @@
+[settings]
+# asdf の legacy_version_file = yes 相当 + ASDF_GOLANG_MOD_VERSION_ENABLED 相当
+idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go"]
+
+[tools]
+# 移行時点の ~/.tool-versions をそのまま移植 (バージョン更新は別タスク)
+node = "lts"
+pnpm = "12.4.1"
+ruby = "4.0.0"
+python = "3.12.6"
+go = "1.26.5"
+golangci-lint = "2.1.6"
+rust = "1.89.0"
+aws-cli = "2.33.11"
+gcloud = "554.0.0"
+aws-sam = "1.125.0"
+kubectl = "1.33.1"
+kubectx = "0.9.5"
+kubeval = "0.16.0"
+terraform = "1.12.2"
+tflint = "0.58.0"
+# global npm パッケージ (旧: asdf node lts への npm i -g)
+# @github/copilot は Homebrew cask copilot-cli に一本化
+"npm:@openai/codex" = "latest"
+"npm:@google/gemini-cli" = "latest"
+"npm:ccusage" = "latest"
+"npm:@inkdropapp/mcp-server" = "latest"
+"npm:@mermaid-lint/cli" = "latest"

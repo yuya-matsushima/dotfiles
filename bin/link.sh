@@ -16,8 +16,8 @@ fi
 
 CURRENT_DIR=`pwd`
 TARGETS=( \
-         ".asdfrc" \
          ".gemrc" \
+         ".config/mise/config.toml" \
          ".gitconfig" \
          "_.gitignore" \
          ".tmux" \
