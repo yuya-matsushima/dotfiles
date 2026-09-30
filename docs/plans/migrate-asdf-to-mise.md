@@ -44,7 +44,7 @@
 | `~/.asdf` (31GB) | 21 plugin / 多数の旧バージョン | 動作確認後に削除 |
 | `~/Project` 配下の `.tool-versions` × 18 | nodejs / golang / terraform / pnpm / tflint / ruby / python / checkov / goreleaser / trivy / hugo / aws-sam-cli / golangci-lint | ファイルはそのまま (mise が読む)。各プロジェクトで `mise install` が必要 |
 | `~/Project` 配下の `.nvmrc` / `.node-version` / `.ruby-version` / `.python-version` | asdf の legacy_version_file で読まれていた | mise の idiomatic 設定を有効化しないと無視される |
-| node (lts=24 系) の global npm パッケージ | `@openai/codex`, `@github/copilot`, `@google/gemini-cli`, `ccusage`, `@mermaid-lint/cli` | config.toml に `npm:` backend で宣言 (後述の注意点 5)。`@inkdropapp/mcp-server` は利用していないため宣言しない (決定事項 6) |
+| node (lts=24 系) の global npm パッケージ | `@openai/codex`, `@github/copilot`, `ccusage`, `@mermaid-lint/cli` (`@google/gemini-cli` は antigravity-cli に統合されたため宣言しない。決定事項 8) | config.toml に `npm:` backend で宣言 (後述の注意点 5)。`@inkdropapp/mcp-server` は利用していないため宣言しない (決定事項 6) |
 | python 3.12.6 の pip パッケージ | `markitdown`, `playwright`, `magika`, `youtube_transcript_api`, `markdownify`, `mammoth` 等 | 再インストール (uv tool 化も検討) |
 | `~/.zprofile`, `~/.zshrc_local`, `~/.config/*`, `~/.claude.json`, `~/.claude/settings*.json`, `~/.codex/config.toml`, LaunchAgents, crontab, `~/.local/bin` | asdf 参照 **なし** を確認済み | 対応不要 |
 | `.envrc` (`use asdf`) | 該当なし | 対応不要 |
@@ -111,7 +111,6 @@
    # global npm パッケージ (旧: asdf node lts への npm i -g)
    # @github/copilot は Homebrew cask copilot-cli に一本化
    "npm:@openai/codex" = "latest"
-   "npm:@google/gemini-cli" = "latest"
    "npm:ccusage" = "latest"
    "npm:@mermaid-lint/cli" = "latest"
    ```
@@ -174,7 +173,7 @@
 3. `rm ~/.asdfrc` (symlink) → `make link` で `~/.config/mise/config.toml` を配置
    - `~/.config/mise/` が既に実ディレクトリで config.toml が実ファイルとして存在する場合 link.sh はエラーで止まるので確認。
 4. 新しいシェルで `mise doctor` / `mise install` を実行。
-5. 旧 ccusage を削除: `/opt/homebrew/bin/npm uninstall -g ccusage`。その後 npm backend のツールが入ったことを確認: `which codex gemini ccusage mermaid-lint` が mise 配下を指すこと。`copilot` は brew cask を指すこと。
+5. 旧 ccusage を削除: `/opt/homebrew/bin/npm uninstall -g ccusage`。その後 npm backend のツールが入ったことを確認: `which codex ccusage mermaid-lint` が mise 配下を指すこと。`copilot` は brew cask を指すこと。
 6. python 3.12.6 の pip パッケージ再インストール (`~/.asdf/installs/python/3.12.6/bin` から一覧を取得)。
 7. `~/Project` 配下 18 プロジェクトで `mise install` (一覧は `find ~/Project -maxdepth 4 -name .tool-versions -not -path '*/node_modules/*'`)。
 8. Phase 2 完了から 2 週間後、問題がなければ `brew uninstall asdf` と `rm -rf ~/.asdf` (31GB 解放)。**不可逆のため実行前に必ずユーザー確認**。Phase 2 完了日と削除予定日を PR 本文に記載する。
@@ -206,3 +205,4 @@
 6. `@inkdropapp/mcp-server` は利用していないため、npm 宣言から外して廃止する (週間ダウンロード数が mise の閾値未満で拒否されたことが発覚のきっかけ)。
 7. kubectl / kubectx / kubeval は利用していないため config.toml から外す。残りのツールはバージョンを固定せず、node は `lts`、それ以外は `latest` にする (決定事項 5 を全ツールに拡張)。更新は `mise upgrade` で行う。
    - `mise upgrade --bump` は `node = "lts"` を LTS でない最新版 (26.x) に書き換えるため使わない。
+8. `@google/gemini-cli` は antigravity-cli に統合されたため、npm 宣言から外して mise 側からも削除する。
