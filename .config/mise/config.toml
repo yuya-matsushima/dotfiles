@@ -1,5 +1,8 @@
 [settings]
 # asdf の legacy_version_file = yes 相当 + ASDF_GOLANG_MOD_VERSION_ENABLED 相当
+# .nvmrc / .node-version / .ruby-version / .python-version / go.mod を mise に読ませる設定。
+# .tool-versions と mise.toml は mise が標準で読むため、この設定とは無関係 (.tool-versions が無くなっても消せない)。
+# 削除できるのは、該当ファイルを使うプロジェクトがなくなった (mise.toml / .tool-versions に統一した) とき。
 idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go"]
 
 [tools]
