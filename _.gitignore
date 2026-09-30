@@ -7,6 +7,8 @@
 .envrc
 .vscode
 .tool-versions
+mise.local.toml
+.mise.local.toml
 .zsh/credentials.zsh
 
 # Mine files (Personal Use)

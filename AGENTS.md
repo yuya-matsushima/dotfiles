@@ -14,7 +14,8 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 
 ## プロジェクト構成とモジュール整理
 - ルートの `Makefile` がセットアップ全体を統括します。利用可能なターゲットは `make help` で確認します。
-- `bin/` には POSIX 準拠のシェルスクリプトを配置し, `homebrew.sh` や `link.sh` が初期構築を担当します。言語別の asdf インストーラーは `bin/asdf/` にまとめます。
+- `bin/` には POSIX 準拠のシェルスクリプトを配置し, `homebrew.sh` や `link.sh` が初期構築を担当します。
+- ランタイム・CLI ツールのバージョンは `.config/mise/config.toml` で宣言的に管理し, `$HOME/.config/mise/config.toml` へ symlink されます。`mise use -g` は symlink 先 (リポジトリ内の config.toml) を書き換えるため, `git status` に差分が出ます。
 - UI 設定は `iterm2/`, `KensingtonWorks/`, キーボードレイアウトは `via/` に置きます。
 - 環境変数テンプレートは `envrc.template` にあり, 機密値は Git 管理外のローカル `.envrc` へ記録します。
 - `tmp/` や `feature/` は作業用ディレクトリです。生成物や個人設定はコミット対象から除外してください。
@@ -23,10 +24,10 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 
 ## ビルド・テスト・開発コマンド
 - `make help` : サポートされるターゲットと概要を一覧表示します。
-- `make setup` : 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, asdf 一式) を実行します。
+- `make setup` : 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, mise 一式) を実行します。
 - `make setup_develop` : 開発機向けの軽量構成を導入します。
 - `make link` / `make unlink` : `$HOME` 配下へシンボリックリンクを張る／解除します。
-- `make asdf_update` : asdf プラグインを最新化します。ランタイム更新時に再実行してください。
+- `make mise_upgrade` : mise 管理のツールを最新化します。(`--bump` は `node = "lts"` を LTS でない最新版に書き換えるため使いません)
 
 ## Skill の利用
 - コミットや PR 作成などの操作では, 利用可能な skill を優先的に使用してください。

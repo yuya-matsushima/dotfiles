@@ -46,67 +46,31 @@ nvim_plugin: ## Install Neovim plugins
 nvim_test: ## Test Neovim configuration
 	nvim --headless "+checkhealth" +qa
 
-.PHONY: asdf_aws_sam
-asdf_aws_sam: ## Install AWS SAM CLI
-	sh ./bin/asdf/aws/sam.sh
-
-.PHONY: asdf_cloud
-asdf_cloud: ## Install Cloud CLI Tools
-	sh ./bin/asdf/cloud.sh
-
-.PHONY: asdf_java
-asdf_java: ## Install Java
-	sh ./bin/asdf/java.sh
-
-.PHONY: asdf_k8s
-asdf_k8s: ## Install k8s Tools
-	sh ./bin/asdf/kubernetes.sh
-
-.PHONY: asdf_terraform
-asdf_terraform: asdf_cloud ## Install Terraform Tools
-	sh ./bin/asdf/terraform.sh
-
 .PHONY: claude_code
 claude_code: ## Install Claude Code CLI
 	sh ./bin/claude_code.sh
 
-.PHONY: asdf_nodejs
-asdf_nodejs: ## Install NodeJS
-	sh ./bin/asdf/nodejs.sh
+.PHONY: mise
+mise: ## Install all tools defined in mise config
+	mise install
+	mise exec -- sh ./bin/languages/golang.sh
 
-.PHONY: asdf_ruby
-asdf_ruby: asdf_nodejs ## Install Ruby
-	sh ./bin/asdf/ruby.sh
+.PHONY: mise_langs
+mise_langs: ## Install languages
+	mise install node pnpm ruby python go golangci-lint rust
+	mise exec -- sh ./bin/languages/golang.sh
 
-.PHONY: asdf_golang
-asdf_golang: ## Install Golang
-	sh ./bin/asdf/golang.sh
-	sh ./bin/languages/golang.sh
+.PHONY: mise_infra
+mise_infra: ## Install infra tools
+	mise install aws-cli gcloud aws-sam terraform tflint
 
-.PHONY: asdf_python
-asdf_python: ## Install Python
-	sh ./bin/asdf/python.sh
+.PHONY: mise_develop
+mise_develop: ## Install tools for develop machine
+	mise install node ruby python aws-cli gcloud
 
-.PHONY: asdf_rust
-asdf_rust: ## Install Rust
-	sh ./bin/asdf/rust.sh
-
-.PHONY: asdf_hugo
-asdf_hugo: ## Install Hugo
-	sh ./bin/asdf/hugo.sh
-
-.PHONY: asdf_infra
-asdf_infra: asdf_cloud asdf_k8s asdf_terraform ## Install Infra Tools
-
-.PHONY: asdf_langs
-asdf_langs: asdf_nodejs asdf_ruby asdf_golang asdf_python asdf_rust ## Install Languages
-
-.PHONY: asdf_update
-asdf_update: ## Update asdf plugins
-	sh ./bin/asdf/update.sh
-
-.PHONY: asdf
-asdf: asdf_update asdf_langs asdf_infra ## Install All asdf
+.PHONY: mise_upgrade
+mise_upgrade: ## Upgrade mise tools to latest
+	mise upgrade
 
 .PHONY: mac
 mac: ## Apply Macbook Setting
@@ -121,10 +85,10 @@ agent_hooks_uninstall: ## Uninstall AI agent status hooks
 	sh ./bin/agent_hooks.sh uninstall
 
 .PHONY: setup_develop
-setup_develop: homebrew cli app link asdf_ruby asdf_python asdf_cloud mac ## *setup develop machine
+setup_develop: homebrew cli app link mise_develop mac ## *setup develop machine
 
 .PHONY: setup
-setup: homebrew cli app main_machine link asdf mac ## *setup main machine
+setup: homebrew cli app main_machine link mise mac ## *setup main machine
 
 help: ## HELP
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'

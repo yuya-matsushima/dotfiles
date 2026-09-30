@@ -1,6 +1,6 @@
 if exists("g:gui_vimr")
-  " Add Homebrew and asdf to PATH for tools required by plugins
-  let $PATH = '/opt/homebrew/bin:/usr/local/bin:' . expand('~/.asdf/shims') . ':' . $PATH
+  " Add Homebrew and mise to PATH for tools required by plugins
+  let $PATH = '/opt/homebrew/bin:/usr/local/bin:' . expand('~/.local/share/mise/shims') . ':' . $PATH
 
   " Font configuration
   " Note: If this doesn't work, configure via VimR → Preferences → Appearance
