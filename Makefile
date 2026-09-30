@@ -62,15 +62,15 @@ mise_langs: ## Install languages
 
 .PHONY: mise_infra
 mise_infra: ## Install infra tools
-	mise install aws-cli gcloud aws-sam kubectl kubectx kubeval terraform tflint
+	mise install aws-cli gcloud aws-sam terraform tflint
 
 .PHONY: mise_develop
 mise_develop: ## Install tools for develop machine
 	mise install node ruby python aws-cli gcloud
 
 .PHONY: mise_upgrade
-mise_upgrade: ## Upgrade mise tools and bump config versions
-	mise upgrade --bump
+mise_upgrade: ## Upgrade mise tools to latest
+	mise upgrade
 
 .PHONY: mac
 mac: ## Apply Macbook Setting

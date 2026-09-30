@@ -27,7 +27,7 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 - `make setup` : 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, mise 一式) を実行します。
 - `make setup_develop` : 開発機向けの軽量構成を導入します。
 - `make link` / `make unlink` : `$HOME` 配下へシンボリックリンクを張る／解除します。
-- `make mise_upgrade` : mise 管理のツールを最新化し, config.toml のバージョンを更新します。
+- `make mise_upgrade` : mise 管理のツールを最新化します。(`--bump` は `node = "lts"` を LTS でない最新版に書き換えるため使いません)
 
 ## Skill の利用
 - コミットや PR 作成などの操作では, 利用可能な skill を優先的に使用してください。
