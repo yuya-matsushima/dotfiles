@@ -7,14 +7,14 @@ local opt = vim.opt
 local g = vim.g
 
 -- ============================================================================
--- PATH SETUP FOR ASDF
+-- PATH SETUP FOR MISE
 -- ============================================================================
--- asdf のグローバル Node.js (lts) を PATH の先頭に追加
--- ディレクトリ固有の .tool-versions で古い Node.js が設定されていても
+-- mise のグローバル Node.js (lts) を PATH の先頭に追加
+-- ディレクトリ固有の .tool-versions / mise.toml で古い Node.js が設定されていても
 -- Neovim のプラグイン (Copilot, Mason, LSP) は常に LTS を使用する
-local asdf_node_path = vim.fn.system('ASDF_NODEJS_VERSION=lts asdf where nodejs 2>/dev/null'):gsub('\n', '')
-if asdf_node_path ~= '' and vim.fn.isdirectory(asdf_node_path .. '/bin') == 1 then
-  vim.env.PATH = asdf_node_path .. '/bin:' .. vim.env.PATH
+local mise_node_path = vim.fn.system('mise -C ~ where node 2>/dev/null'):gsub('\n', '')
+if mise_node_path ~= '' and vim.fn.isdirectory(mise_node_path .. '/bin') == 1 then
+  vim.env.PATH = mise_node_path .. '/bin:' .. vim.env.PATH
 end
 
 -- ============================================================================
