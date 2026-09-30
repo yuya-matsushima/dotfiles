@@ -182,10 +182,7 @@ alias domain-checker='noglob domain-checker'
 alias add-internal-skill='skill add fillin-inc/internal-skills'
 (( $+commands[colordiff] )) && alias diff="colordiff -u"
 (( $+commands[delta] )) && alias gitdiff="git diff --no-index"
-if (( $+commands[asdf] )); then
-  local asdf_path="$(brew --prefix asdf 2>/dev/null)/libexec/asdf.sh"
-  [[ -f "$asdf_path" ]] && . "$asdf_path"
-fi
+(( $+commands[mise] )) && eval "$(mise activate zsh)"
 (( $+commands[awsume] )) && alias awsume="source awsume"
 (( $+commands[direnv] )) && eval "$(direnv hook zsh)"
 # zoxide: 非対話シェル (Claude Code 等) での __zoxide_z エラーを回避するため対話シェルでのみ初期化
@@ -200,7 +197,6 @@ fi
 if (( $+commands[go] )); then
   export GOPATH=$(go env GOPATH)
   export GOBIN=${GOPATH}/bin
-  export ASDF_GOLANG_MOD_VERSION_ENABLED=true
   export PATH="${GOBIN}:${PATH}"
 fi
 if (( $+commands[pnpm] )); then
@@ -277,7 +273,7 @@ if [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh"
   [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
 fi
 
-[ -f $HOME/.zsh/asdf_completion.zsh ] && source $HOME/.zsh/asdf_completion.zsh
+[ -f $HOME/.zsh/mise_completion.zsh ] && source $HOME/.zsh/mise_completion.zsh
 which less > /dev/null && source $HOME/.zsh/config/less.zsh
 
 [ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local

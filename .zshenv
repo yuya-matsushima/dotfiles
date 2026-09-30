@@ -50,7 +50,7 @@ local add_path_dirs=(
   $HOME/.local/bin
   $HOME/.codex/bin
   $HOME/.opencode/bin
-  ${ASDF_DATA_DIR:-$HOME/.asdf}/shims
+  ${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims
 )
 # Add GOPATH/bin only if GOPATH is defined
 [[ -n "$GOPATH" && -d "$GOPATH/bin" ]] && add_path_dirs+=("$GOPATH/bin")
