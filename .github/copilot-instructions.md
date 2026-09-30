@@ -13,7 +13,7 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 ### 初回セットアップ
 
 ```sh
-# 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, asdf 一式)
+# 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, mise 一式)
 make setup
 
 # 開発機向けの軽量構成
@@ -26,7 +26,7 @@ make setup_develop
 make help              # 利用可能なターゲットと概要を一覧表示
 make link              # $HOME 配下へシンボリックリンクを作成
 make unlink            # シンボリックリンクを解除
-make asdf_update       # asdf プラグインを最新化
+make mise_upgrade      # mise 管理のツールを最新化
 make nvim_plugin       # Neovim プラグインをインストール
 make nvim_test         # Neovim 設定の健全性チェック
 ```
@@ -48,7 +48,7 @@ nvim --headless "+checkhealth" +qa
 
 ### ディレクトリ構造
 
-- `bin/` — セットアップスクリプト群。`homebrew.sh`, `link.sh` が初期構築を担当。言語別 asdf インストーラーは `bin/asdf/` に配置。
+- `bin/` — セットアップスクリプト群。`homebrew.sh`, `link.sh` が初期構築を担当。ランタイム・CLI ツールは `.config/mise/config.toml` で宣言的に管理 (`mise use -g` はリポジトリ内のこのファイルを書き換える)。
 - `.config/nvim/` — Neovim 設定 (Lua)。プラグイン管理は lazy.nvim、プラグイン定義は `lua/plugins/` に 1 プラグイン 1 ファイルで配置。
 - `.config/ghostty/` — Ghostty ターミナル設定 (メイン端末)。
 - `.config/yazi/` — Yazi ファイルマネージャ設定。
@@ -114,7 +114,7 @@ nvim --headless "+checkhealth" +qa
 - **シェル**: Zsh + Tmux
 - **エディタ**: Neovim（メイン）, Vim（互換用）, VimR（GUI）
 - **パッケージマネージャ**: Homebrew
-- **ランタイム管理**: asdf
+- **ランタイム管理**: mise
 - **ファイルマネージャ**: Yazi
 - **Git UI**: Lazygit
 - **キーボード自動化**: Hammerspoon
