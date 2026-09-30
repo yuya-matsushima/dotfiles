@@ -44,7 +44,7 @@
 | `~/.asdf` (31GB) | 21 plugin / 多数の旧バージョン | 動作確認後に削除 |
 | `~/Project` 配下の `.tool-versions` × 18 | nodejs / golang / terraform / pnpm / tflint / ruby / python / checkov / goreleaser / trivy / hugo / aws-sam-cli / golangci-lint | ファイルはそのまま (mise が読む)。各プロジェクトで `mise install` が必要 |
 | `~/Project` 配下の `.nvmrc` / `.node-version` / `.ruby-version` / `.python-version` | asdf の legacy_version_file で読まれていた | mise の idiomatic 設定を有効化しないと無視される |
-| node (lts=24 系) の global npm パッケージ | `@openai/codex`, `@github/copilot`, `@google/gemini-cli`, `ccusage`, `@inkdropapp/mcp-server`, `@mermaid-lint/cli` | config.toml に `npm:` backend で宣言 (後述の注意点 5) |
+| node (lts=24 系) の global npm パッケージ | `@openai/codex`, `@github/copilot`, `@google/gemini-cli`, `ccusage`, `@mermaid-lint/cli` | config.toml に `npm:` backend で宣言 (後述の注意点 5)。`@inkdropapp/mcp-server` は利用していないため宣言しない (決定事項 6) |
 | python 3.12.6 の pip パッケージ | `markitdown`, `playwright`, `magika`, `youtube_transcript_api`, `markdownify`, `mammoth` 等 | 再インストール (uv tool 化も検討) |
 | `~/.zprofile`, `~/.zshrc_local`, `~/.config/*`, `~/.claude.json`, `~/.claude/settings*.json`, `~/.codex/config.toml`, LaunchAgents, crontab, `~/.local/bin` | asdf 参照 **なし** を確認済み | 対応不要 |
 | `.envrc` (`use asdf`) | 該当なし | 対応不要 |
@@ -76,7 +76,7 @@
    - npm backend のツールは shebang が `#!/usr/bin/env node` のため、**実行時は PATH 上の node で動く**。古い node を指定したプロジェクト (例: node 16) 内では動かない可能性がある (asdf 時代と同条件のためユーザー了承済み、対応不要)。
    - `latest` 指定のため更新は `mise upgrade` (config は `latest` のまま)。
 6. **ruby / python / node の旧バージョンはバイナリ流用不可**。`~/.asdf/installs` 配下はパスがハードコードされているため mise 側で再インストールする。ruby 2.7 系など古いバージョンは現行 macOS / OpenSSL でビルド失敗の可能性がある (プロジェクト側の問題として報告のみ)。
-7. **python は mise ではデフォルトで precompiled (python-build-standalone)**。asdf (python-build でソースビルド) と挙動が異なる。問題があれば `python.compile = true`。
+7. **python は mise ではデフォルトで precompiled (python-build-standalone)**。asdf (python-build でソースビルド) と挙動が異なる。問題があれば `python.compile = true`。また 3.12.6 は GitHub artifact attestation が無く検証失敗でインストールできなかったため、検証は無効化せずバージョンを最新版 (3.14.7) に上げた。
 8. **rust は rustup ベース**。mise core rust は `~/.rustup` / `~/.cargo` (`RUSTUP_HOME` / `CARGO_HOME`) を使う。現状どちらも存在しないため衝突はない。
 9. **java / gradle は廃止**。java は移行しない。gradle は java が無いと動かないため併せて外す。`~/.asdf` 削除とともに消えるので、以後必要になったらプロジェクト側の設定で入れる。
 10. **shims と activate の併用**。`.zshenv` の shims は非対話シェル (Claude Code / VimR / nvim の外部コマンド) 用、`.zshrc` の `mise activate` は対話シェル用。`.zshrc` 内の `(( $+commands[go] ))` / `pnpm` 判定は activate 前でも shims で解決されるので順序は現状維持でよい。
@@ -99,7 +99,7 @@
    node = "lts"
    pnpm = "12.4.1"
    ruby = "4.0.0"
-   python = "3.12.6"
+   python = "3.14.7"  # 3.12.6 は attestation 検証に失敗するため最新版へ変更 (決定事項 5)
    go = "1.26.5"
    golangci-lint = "2.1.6"
    rust = "1.89.0"
@@ -110,7 +110,6 @@
    "npm:@openai/codex" = "latest"
    "npm:@google/gemini-cli" = "latest"
    "npm:ccusage" = "latest"
-   "npm:@inkdropapp/mcp-server" = "latest"
    "npm:@mermaid-lint/cli" = "latest"
    kubectl = "1.33.1"
    kubectx = "0.9.5"
@@ -176,7 +175,7 @@
 3. `rm ~/.asdfrc` (symlink) → `make link` で `~/.config/mise/config.toml` を配置
    - `~/.config/mise/` が既に実ディレクトリで config.toml が実ファイルとして存在する場合 link.sh はエラーで止まるので確認。
 4. 新しいシェルで `mise doctor` / `mise install` を実行。
-5. 旧 ccusage を削除: `/opt/homebrew/bin/npm uninstall -g ccusage`。その後 npm backend のツールが入ったことを確認: `which codex gemini ccusage inkdrop-mcp-server mermaid-lint` が mise 配下を指すこと。`copilot` は brew cask を指すこと。
+5. 旧 ccusage を削除: `/opt/homebrew/bin/npm uninstall -g ccusage`。その後 npm backend のツールが入ったことを確認: `which codex gemini ccusage mermaid-lint` が mise 配下を指すこと。`copilot` は brew cask を指すこと。
 6. python 3.12.6 の pip パッケージ再インストール (`~/.asdf/installs/python/3.12.6/bin` から一覧を取得)。
 7. `~/Project` 配下 18 プロジェクトで `mise install` (一覧は `find ~/Project -maxdepth 4 -name .tool-versions -not -path '*/node_modules/*'`)。
 8. Phase 2 完了から 2 週間後、問題がなければ `brew uninstall asdf` と `rm -rf ~/.asdf` (31GB 解放)。**不可逆のため実行前に必ずユーザー確認**。Phase 2 完了日と削除予定日を PR 本文に記載する。
@@ -201,3 +200,8 @@
 2. hugo / checkov / goreleaser / trivy は global に入れない。
 3. `~/.asdf` は Phase 2 完了の 2 週間後に削除する。
 4. java は削除する (gradle も java 前提のため併せて削除)。
+
+## 決定事項 (2026-10-01 実装中の追加判断)
+
+5. python は attestation 検証を無効化せず、`3.12.6` から最新版 `3.14.7` に変更する (「移行ではバージョンを変えない」方針の例外)。ユーザーは最新版または LTS を使っているつもりだったため。
+6. `@inkdropapp/mcp-server` は利用していないため、npm 宣言から外して廃止する (週間ダウンロード数が mise の閾値未満で拒否されたことが発覚のきっかけ)。
