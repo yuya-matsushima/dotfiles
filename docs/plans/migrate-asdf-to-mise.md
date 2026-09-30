@@ -6,7 +6,7 @@
 本ドキュメントは調査結果と実装手順をまとめたもので、実装担当 (Sonnet) はこの順に作業する。
 
 - ブランチ: `refactor/asdf-to-mise` (作成済み)
-- 方針: **移行ではバージョンを変えない**。現在 `~/.tool-versions` で有効なバージョンをそのまま mise に移す。バージョン更新は別タスク。
+- 方針: **移行ではバージョンを変えない**。現在 `~/.tool-versions` で有効なバージョンをそのまま mise に移す。バージョン更新は別タスク。(実装中に方針変更: 決定事項 5, 7 により node 以外は最新版を使う)
 - 方針: グローバル設定は `~/.config/mise/config.toml` を **リポジトリで宣言的に管理** し、symlink で配置する (`bin/asdf/*.sh` の命令的インストールを廃止)。
 - 方針: `~/.asdf` (31GB) は Phase 2 完了から 2 週間の並行期間を置いてから削除する。
 - 方針: java (と java 前提の gradle) は移行対象から外し、廃止する。
@@ -76,7 +76,7 @@
    - npm backend のツールは shebang が `#!/usr/bin/env node` のため、**実行時は PATH 上の node で動く**。古い node を指定したプロジェクト (例: node 16) 内では動かない可能性がある (asdf 時代と同条件のためユーザー了承済み、対応不要)。
    - `latest` 指定のため更新は `mise upgrade` (config は `latest` のまま)。
 6. **ruby / python / node の旧バージョンはバイナリ流用不可**。`~/.asdf/installs` 配下はパスがハードコードされているため mise 側で再インストールする。ruby 2.7 系など古いバージョンは現行 macOS / OpenSSL でビルド失敗の可能性がある (プロジェクト側の問題として報告のみ)。
-7. **python は mise ではデフォルトで precompiled (python-build-standalone)**。asdf (python-build でソースビルド) と挙動が異なる。問題があれば `python.compile = true`。また 3.12.6 は GitHub artifact attestation が無く検証失敗でインストールできなかったため、検証は無効化せずバージョンを最新版 (3.14.7) に上げた。
+7. **python は mise ではデフォルトで precompiled (python-build-standalone)**。asdf (python-build でソースビルド) と挙動が異なる。問題があれば `python.compile = true`。また 3.12.6 は GitHub artifact attestation が無く検証失敗でインストールできなかったため、検証は無効化せずバージョンを最新版に上げた (決定事項 5, 7)。
 8. **rust は rustup ベース**。mise core rust は `~/.rustup` / `~/.cargo` (`RUSTUP_HOME` / `CARGO_HOME`) を使う。現状どちらも存在しないため衝突はない。
 9. **java / gradle は廃止**。java は移行しない。gradle は java が無いと動かないため併せて外す。`~/.asdf` 削除とともに消えるので、以後必要になったらプロジェクト側の設定で入れる。
 10. **shims と activate の併用**。`.zshenv` の shims は非対話シェル (Claude Code / VimR / nvim の外部コマンド) 用、`.zshrc` の `mise activate` は対話シェル用。`.zshrc` 内の `(( $+commands[go] ))` / `pnpm` 判定は activate 前でも shims で解決されるので順序は現状維持でよい。
@@ -95,31 +95,30 @@
    idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go"]
 
    [tools]
-   # 移行時点の ~/.tool-versions をそのまま移植 (バージョン更新は別タスク)
+   # node は LTS、それ以外は最新版を使う。kube 系は未使用のため宣言しない
    node = "lts"
-   pnpm = "12.4.1"
-   ruby = "4.0.0"
-   python = "3.14.7"  # 3.12.6 は attestation 検証に失敗するため最新版へ変更 (決定事項 5)
-   go = "1.26.5"
-   golangci-lint = "2.1.6"
-   rust = "1.89.0"
-   aws-cli = "2.33.11"
-   gcloud = "554.0.0"
-   aws-sam = "1.125.0"
+   pnpm = "latest"
+   ruby = "latest"
+   python = "latest"
+   go = "latest"
+   golangci-lint = "latest"
+   rust = "latest"
+   aws-cli = "latest"
+   gcloud = "latest"
+   aws-sam = "latest"
+   terraform = "latest"
+   tflint = "latest"
    # global npm パッケージ (旧: asdf node lts への npm i -g)
+   # @github/copilot は Homebrew cask copilot-cli に一本化
    "npm:@openai/codex" = "latest"
    "npm:@google/gemini-cli" = "latest"
    "npm:ccusage" = "latest"
    "npm:@mermaid-lint/cli" = "latest"
-   kubectl = "1.33.1"
-   kubectx = "0.9.5"
-   kubeval = "0.16.0"
-   terraform = "1.12.2"
-   tflint = "0.58.0"
    ```
 
    - java / gradle は廃止のため含めない。hugo は global に入れないため含めない (`asdf_hugo` / `asdf_java` ターゲットは後継を作らず削除)。
    - 実装前に `~/.tool-versions` を再確認し、差分があれば最新に合わせる。
+   - `latest` 指定では `mise install` は導入済みの旧バージョンを使う。最新版への更新は `mise upgrade` で行う。
 
 2. `bin/link.sh`: TARGETS から `.asdfrc` を削除し `.config/mise/config.toml` を追加 (ファイル単位で link。dir ごと link すると mise の他ファイルが repo に入るため)。
 3. `.asdfrc` を削除。
@@ -140,11 +139,11 @@
 
    .PHONY: mise_infra
    mise_infra: ## Install infra tools
-   	mise install aws-cli gcloud kubectl kubectx kubeval terraform tflint
+   	mise install aws-cli gcloud aws-sam terraform tflint
 
    .PHONY: mise_upgrade
-   mise_upgrade: ## Upgrade mise tools and bump config versions
-   	mise upgrade --bump
+   mise_upgrade: ## Upgrade mise tools to latest
+   	mise upgrade
    ```
    <!-- markdownlint-enable MD010 -->
 
@@ -205,3 +204,5 @@
 
 5. python は attestation 検証を無効化せず、`3.12.6` から最新版 `3.14.7` に変更する (「移行ではバージョンを変えない」方針の例外)。ユーザーは最新版または LTS を使っているつもりだったため。
 6. `@inkdropapp/mcp-server` は利用していないため、npm 宣言から外して廃止する (週間ダウンロード数が mise の閾値未満で拒否されたことが発覚のきっかけ)。
+7. kubectl / kubectx / kubeval は利用していないため config.toml から外す。残りのツールはバージョンを固定せず、node は `lts`、それ以外は `latest` にする (決定事項 5 を全ツールに拡張)。更新は `mise upgrade` で行う。
+   - `mise upgrade --bump` は `node = "lts"` を LTS でない最新版 (26.x) に書き換えるため使わない。
