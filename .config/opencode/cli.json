@@ -29,5 +29,9 @@
   "cursor": {
     "style": "block",
     "blinking": true
+  },
+  "keybinds": {
+    "session.line.up": "alt+p",
+    "session.line.down": "alt+n"
   }
 }
