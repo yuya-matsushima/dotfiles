@@ -36,7 +36,9 @@ TARGETS=( \
          ".hammerspoon" \
          ".markdownlint.yml" \
          ".claude/hooks" \
+         ".claude/CLAUDE.md" \
          ".claude/statusline.sh" \
+         ".codex/AGENTS.md" \
          ".codex/hooks" \
          ".agents/hooks" \
          ".pi/agent/settings.json" \
