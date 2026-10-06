@@ -38,9 +38,12 @@ TMUX_SCRIPT="$HOME/.tmux/agent-status.sh"
 NOTIFY_SCRIPT="$HOME/.agents/hooks/notify-sound.sh"
 CODEX_GUARD_APPLY="$HOME/.codex/hooks/guard-protected-apply-patch.sh"
 CODEX_GUARD_BASH="$HOME/.codex/hooks/guard-force-push.sh"
+# Claude Code / Codex の guard-force-push が共用する判定ロジック。
+# 欠けていると guard が fail-open で無効化されるため install 時に検査する。
+FORCE_PUSH_VERDICT="$HOME/.agents/hooks/force-push-verdict.sh"
 
 if [ "$MODE" = "install" ]; then
-    for p in "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH"; do
+    for p in "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" "$FORCE_PUSH_VERDICT"; do
         if [ ! -e "$p" ]; then
             echo "error: $p not found. Run 'make link' first." >&2
             exit 1

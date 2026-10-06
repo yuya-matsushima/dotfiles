@@ -3,10 +3,12 @@
 # test-codex-hooks.sh
 #
 # 回帰テスト:
-#   1. Codex 用ガード (guard-protected-apply-patch.sh / guard-force-push.sh)
+#   1. Codex 用ガード (guard-protected-apply-patch.sh)
 #      - 保護対象 / 非保護対象、拒否パターン / 許可パターンの判定
 #      - 拒否時は hookSpecificOutput.permissionDecision == "deny" を返す
 #      - いずれの経路も終了コードは 0
+#      (guard-force-push.sh の判定は bin/tests/test-guard-force-push.sh で
+#       Claude 版との相互一致も含めて検証する)
 #   2. bin/agent_hooks.sh
 #      - 一時 HOME 上での install → reinstall → uninstall の冪等性
 #      - unrelated Hook の保持
@@ -114,136 +116,9 @@ assert_allow "$GUARD_APPLY" '{}'
 current_case="allow: no patch headers"
 assert_allow "$GUARD_APPLY" '{"tool_input":{"command":"echo hello"}}'
 
-# ------------------------------------------------------------------
 # 2. guard-force-push.sh
-# ------------------------------------------------------------------
-echo "# guard-force-push"
-
-current_case="deny: git push -f"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -f origin main"}}'
-
-current_case="deny: git push --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force origin main"}}'
-
-current_case="deny: git push --force=<val>"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force=v1 origin main"}}'
-
-current_case="deny: git -c foo=bar push --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git -c foo=bar push --force origin main"}}'
-
-current_case="deny: raw force + with-lease併記"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease --force origin main"}}'
-
-current_case="deny: git push --mirror"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --mirror origin"}}'
-
-current_case="deny: +refspec"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin +main"}}'
-
-current_case="deny: 短縮結合オプション -uf"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -uf origin main"}}'
-
-current_case="deny: 短縮結合オプション -fu"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -fu origin main"}}'
-
-current_case="deny: 複数コマンドの先頭が危険な +refspec"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin +main; echo push done"}}'
-
-current_case="deny: 複数コマンドの後段に危険な push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"echo start && git push --force origin main"}}'
-
-current_case="deny: 改行区切りの後段に危険な push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"echo ok\ngit push --force origin main"}}'
-
-current_case="deny: 環境変数付き git push --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"GIT_SSH_COMMAND=ssh git push --force origin main"}}'
-
-current_case="deny: env コマンド経由の git push -f"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"env git push -f origin main"}}'
-
-current_case="deny: env + 環境変数付き git push --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"env FOO=bar git push --force origin main"}}'
-
-current_case="deny: 引用符付き --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push \"--force\" origin main"}}'
-
-current_case="deny: シングル引用符付き +refspec"
-assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"git push origin '+main'\"}}"
-
-current_case="deny: refspec 名が push で --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push --force origin push"}}'
-
-current_case="deny: refspec 名が push で -f"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push -f origin push"}}'
-
-current_case="deny: 行継続の後段に --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git push origin main \\\n  --force"}}'
-
-current_case="deny: quote 込み空白の env var 後の force push"
-assert_deny "$GUARD_BASH" "{\"tool_input\":{\"command\":\"GIT_SSH_COMMAND='ssh -i key' git push --force origin main\"}}"
-
-current_case="deny: --git-dir DIR global option 後の --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git --git-dir /tmp/repo/.git push --force origin main"}}'
-
-current_case="deny: --work-tree DIR global option 後の -f"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"git --work-tree /tmp/tree push -f origin main"}}'
-
-current_case="deny: subshell 内の force push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"(git push --force origin main)"}}'
-
-current_case="deny: if...then 内の force push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"if true; then git push -f origin main; fi"}}'
-
-current_case="deny: { ... ; } 内の force push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"{ git push --force origin main; }"}}'
-
-current_case="deny: command wrapper 経由の git push --force"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"command git push --force origin main"}}'
-
-current_case="deny: exec wrapper 経由の git push -f"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"exec git push -f origin main"}}'
-
-current_case="deny: 絶対パス git 経由の force push"
-assert_deny "$GUARD_BASH" '{"tool_input":{"command":"/usr/bin/git push --force origin main"}}'
-
-current_case="allow: git checkout push --force (別 subcommand の arg が push)"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git checkout push --force"}}'
-
-current_case="allow: git --no-pager checkout push --force"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git --no-pager checkout push --force"}}'
-
-current_case="allow: git push -ofoo (push-option の値埋め込み、-f 結合形ではない)"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -ofoo origin main"}}'
-
-current_case="allow: git push -o key=value origin main"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -o key=value origin main"}}'
-
-current_case="allow: git push --force-with-lease"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main"}}'
-
-current_case="allow: git push --force-with-lease --force-if-includes"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease --force-if-includes origin main"}}'
-
-current_case="allow: git push --force-if-includes only"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-if-includes origin main"}}'
-
-current_case="allow: git push (no force)"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push origin main"}}'
-
-current_case="allow: 安全な push の後段に --force を含む別コマンド"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push --force-with-lease origin main; echo --force done"}}'
-
-current_case="allow: git push -u (upstream, no force)"
-assert_allow "$GUARD_BASH" '{"tool_input":{"command":"git push -u origin main"}}'
-
-current_case="allow: シングルクォート内の separator は分割しない (echo doc)"
-assert_allow "$GUARD_BASH" "{\"tool_input\":{\"command\":\"echo 'x;git push --force origin main'\"}}"
-
-current_case="allow: シングルクォート内の force 記述文字列"
-assert_allow "$GUARD_BASH" "{\"tool_input\":{\"command\":\"echo 'do not run git push --force'\"}}"
-
-current_case="allow: empty command"
-assert_allow "$GUARD_BASH" '{}'
+#   Claude 版 / Codex 版の判定と相互一致は bin/tests/test-guard-force-push.sh で
+#   同一ケース群に対して検証する（共通判定 .agents/hooks/force-push-verdict.sh）。
 
 # ------------------------------------------------------------------
 # 3. agent_hooks.sh install / reinstall / uninstall
@@ -254,6 +129,7 @@ HOME_DIR="$WORK/home"
 mkdir -p "$HOME_DIR/.tmux" "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$HOME_DIR/.claude"
 touch "$HOME_DIR/.tmux/agent-status.sh"
 cp "$REPO_ROOT/.agents/hooks/notify-sound.sh" "$HOME_DIR/.agents/hooks/"
+cp "$REPO_ROOT/.agents/hooks/force-push-verdict.sh" "$HOME_DIR/.agents/hooks/"
 cp "$GUARD_APPLY" "$HOME_DIR/.codex/hooks/"
 cp "$GUARD_BASH" "$HOME_DIR/.codex/hooks/"
 
