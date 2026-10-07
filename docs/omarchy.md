@@ -75,3 +75,6 @@ macOS 専用ターゲット (`.hammerspoon`, `.gvimrc`) は Linux では link �
   `*.bak.<timestamp>` へ退避してから symlink します。
 - `.gitconfig` は XDG 配置の `~/.config/git/config` へリンクします
   (omarchy 既定の git 設定を上書き)。
+- `.tmux.conf` は Linux では XDG 配置の `~/.config/tmux/tmux.conf` へリンクします。
+  tmux 3.7 は `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されるため,
+  omarchy 既定の tmux 設定を上書きするには XDG 側に置く必要があります。
