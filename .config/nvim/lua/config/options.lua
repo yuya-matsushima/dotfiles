@@ -149,8 +149,11 @@ opt.imsearch = 0
 -- ============================================================================
 
 g.keyboard_type = 'US'
-local external_keyboard = vim.fn.system('ioreg -n IOUSB -l | grep -E "(HHKB|Keychron Q11)"')
-g.has_external_us_keyboard = #external_keyboard > 0
+g.has_external_us_keyboard = false
+if jit.os == 'OSX' then
+  local external_keyboard = vim.fn.system('ioreg -n IOUSB -l | grep -E "(HHKB|Keychron Q11)"')
+  g.has_external_us_keyboard = #external_keyboard > 0
+end
 
 -- Automatically set keyboard type to US if external keyboard is detected
 if g.has_external_us_keyboard then

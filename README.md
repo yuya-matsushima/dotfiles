@@ -1,7 +1,10 @@
 ## dotfiles
 
 このリポジトリは Yuya MATSUSHIMA の個人用 dotfiles を管理しています。
-macOS 上での開発環境構築や設定の自動化を目的としています。
+macOS と Linux (Omarchy / Arch) の両方の開発環境構築や設定の自動化を目的としています。
+
+macOS と Linux で設定が本質的に異なるものだけを `omarchy/` 配下に OS 別定義として
+置き、それ以外は共通の 1 ファイルで管理します (`bin/link.sh` が `uname` で解決)。
 
 ## コーディングスタイル
 
@@ -32,12 +35,19 @@ git submodule update --init --recursive
 ## セットアップ
 
 ```sh
-# for Main Machine
+# for Main Machine (macOS)
 make setup
 
-# for Dev Machine
-make develop
+# for Dev Machine (macOS)
+make setup_develop
+
+# for Linux (Omarchy / Arch)
+make omarchy
 ```
+
+`make omarchy` は CLI ツールの導入とログインシェルの zsh 化を行い、その後
+`make link` を実行します。既に実体ファイルがある設定は `*.bak.<timestamp>` へ
+退避してから symlink します。
 
 ## コーディングエージェントの共通設定例
 
