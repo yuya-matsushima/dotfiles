@@ -1,11 +1,12 @@
 # Repository Guidelines
 
-このドキュメントは macOS 向け dotfiles リポジトリに貢献する際の指針です。作業前に各セクションを確認し, ローカル環境での検証結果を明記してください。
+このドキュメントは macOS および Linux (Omarchy / Arch) 向け dotfiles リポジトリに貢献する際の指針です。作業前に各セクションを確認し, ローカル環境での検証結果を明記してください。
 
 ## リポジトリ概要
 
-これは macOS 開発環境用の dotfiles リポジトリです。
+これは macOS と Linux (Omarchy) の開発環境用 dotfiles リポジトリです。
 Symbolic link を通じて各種ツールやアプリケーションの設定ファイルを管理し, 自動インストールスクリプトを提供しています。
+macOS と Linux で設定が本質的に異なるものだけを `omarchy/` 配下に OS 別定義として置き, それ以外は共通の 1 ファイルで管理します。
 
 ## Language Instruction
 - すべての回答は日本語で記述すること。
@@ -14,18 +15,22 @@ Symbolic link を通じて各種ツールやアプリケーションの設定フ
 
 ## プロジェクト構成とモジュール整理
 - ルートの `Makefile` がセットアップ全体を統括します。利用可能なターゲットは `make help` で確認します。
-- `bin/` には POSIX 準拠のシェルスクリプトを配置し, `homebrew.sh` や `link.sh` が初期構築を担当します。
+- `bin/` には POSIX 準拠のシェルスクリプトを配置し, `homebrew.sh` や `link.sh` が初期構築を担当します。Linux は `bin/omarchy.sh` が担当します。
+- `bin/link.sh` は `uname` で OS を判定し, Linux では `omarchy/` 配下に同名の OS 別定義があればそちらを優先します。リンク先に実体ファイルがある場合は `*.bak.<timestamp>` へ退避してから symlink します (macOS 専用ターゲットは Linux で skip)。
+- なぜ OS 別定義が必要か: macOS の Homebrew / GUI 前提の値 (Ghostty の Command キー, VimR, Hammerspoon 等) は Linux では成立しません。値が本質的に異なる設定だけを `omarchy/` に置き, それ以外は共通化します。
 - ランタイム・CLI ツールのバージョンは `.config/mise/config.toml` で宣言的に管理し, `$HOME/.config/mise/config.toml` へ symlink されます。`mise use -g` は symlink 先 (リポジトリ内の config.toml) を書き換えるため, `git status` に差分が出ます。
-- UI 設定は `iterm2/`, `KensingtonWorks/`, キーボードレイアウトは `via/` に置きます。
+- UI 設定は `iterm2/`, `KensingtonWorks/`, キーボードレイアウトは `via/` に置きます (いずれも macOS / GUI 前提)。
 - 環境変数テンプレートは `envrc.template` にあり, 機密値は Git 管理外のローカル `.envrc` へ記録します。
 - `tmp/` や `feature/` は作業用ディレクトリです。生成物や個人設定はコミット対象から除外してください。
 - それぞれのツールの設定ファイルは `$HOME` ディレクトリに配置した際のファイル名やディレクトリ構造に基づいて配置されています。
 - 例外として `_.gitignore` は Symbolic link 作成時に `.gitignore` としてリンクされます。
+- `.gitconfig` は XDG 配置の `$HOME/.config/git/config` へリンクされます (omarchy 既定の git 設定を上書き)。
 
 ## ビルド・テスト・開発コマンド
 - `make help` : サポートされるターゲットと概要を一覧表示します。
 - `make setup` : 本機用フルセットアップ (Homebrew, アプリ, シンボリックリンク, mise 一式) を実行します。
 - `make setup_develop` : 開発機向けの軽量構成を導入します。
+- `make omarchy` : Linux (Omarchy / Arch) 向けにパッケージ導入・zsh 化・シンボリックリンクを実行します。
 - `make link` / `make unlink` : `$HOME` 配下へシンボリックリンクを張る／解除します。
 - `make mise_upgrade` : mise 管理のツールを最新化します。(`--bump` は `node = "lts"` を LTS でない最新版に書き換えるため使いません)
 

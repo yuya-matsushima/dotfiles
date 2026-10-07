@@ -76,6 +76,12 @@ mise_upgrade: ## Upgrade mise tools to latest
 mac: ## Apply Macbook Setting
 	sh ./bin/mac.sh
 
+.PHONY: omarchy
+omarchy: ## Setup for Linux (omarchy / Arch) machine
+	sh ./bin/omarchy.sh
+	sh ./bin/zsh_plugin.sh
+	$(MAKE) link
+
 .PHONY: agent_hooks
 agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode)
 	sh ./bin/agent_hooks.sh

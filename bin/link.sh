@@ -15,6 +15,10 @@ if [ ! -d $HOME/.config ]; then
 fi
 
 CURRENT_DIR=`pwd`
+OS=`uname -s`
+# Linux (omarchy 等) では omarchy/ 配下の OS 別定義があればそちらを優先する
+OVERLAY_DIR=$CURRENT_DIR/omarchy
+
 TARGETS=( \
          ".gemrc" \
          ".config/mise/config.toml" \
@@ -45,30 +49,69 @@ TARGETS=( \
          ".pi/agent/keybindings.json" \
        )
 
-for TARGET in ${TARGETS[@]}
+# macOS 専用のターゲット (Linux では link しない)
+DARWIN_ONLY=( \
+              ".hammerspoon" \
+              ".gvimrc" \
+            )
+
+is_darwin_only() {
+  local target
+  for target in "${DARWIN_ONLY[@]}"; do
+    [ "$target" = "$1" ] && return 0
+  done
+  return 1
+}
+
+for TARGET in "${TARGETS[@]}"
 do
+  if [ "$OS" != "Darwin" ] && is_darwin_only "$TARGET"; then
+    echo "skip (macOS only): $TARGET"
+    continue
+  fi
+
   SOURCE=$CURRENT_DIR/$TARGET
+  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/ghostty)
+  if [ "$OS" != "Darwin" ] && [ -e "$OVERLAY_DIR/$TARGET" ]; then
+    SOURCE=$OVERLAY_DIR/$TARGET
+  fi
+
   DEST=$HOME/$TARGET
   # _. 始まりのファイルは . 始まりに変換
   if [[ ${TARGET:0:2} == "_." ]]; then
     DEST=$HOME/${TARGET:1}
   fi
 
+  # .gitconfig は XDG 配置 (~/.config/git/config) にリンクする
+  if [ "$TARGET" = ".gitconfig" ]; then
+    DEST=$HOME/.config/git/config
+  fi
+
+  # .tmux.conf は Linux では XDG 配置 (~/.config/tmux/tmux.conf) にリンクする。
+  # tmux 3.7 は ~/.tmux.conf と ~/.config/tmux/tmux.conf の両方を読み, XDG 側が
+  # 後に適用されるため, omarchy 既定を上書きするには XDG 側に置く必要がある。
+  if [ "$TARGET" = ".tmux.conf" ] && [ "$OS" != "Darwin" ]; then
+    DEST=$HOME/.config/tmux/tmux.conf
+  fi
+
   if [[ $MODE == "link" ]]; then
     if [ -L $DEST ]; then
       echo "exist: $DEST"
     elif [ -e $DEST ]; then
-      # 実ファイル / 実ディレクトリが既にある場合、そのまま `ln -s` すると
-      # `$DEST/<basename>` が作られてリンク構造が壊れる（例: 実ディレクトリの
-      # `~/.codex/hooks` 内に `hooks` symlink が生まれ、agent_hooks.sh の
-      # `-e` チェックが通らなくなる）。事故防止のため明示的に fail する。
-      echo "error: $DEST exists as a real file/directory. Move or delete it before running link." >&2
-      exit 1
+      # 実ファイル / 実ディレクトリが既にある場合は内容を失わないよう退避してから link する。
+      # 退避先は $DEST.bak.<timestamp>。
+      BACKUP="$DEST.bak.$(date +%Y%m%d%H%M%S)"
+      echo "backup: $DEST -> $BACKUP"
+      mv "$DEST" "$BACKUP"
+      DEST_PARENT=$(dirname "$DEST")
+      [ -d "$DEST_PARENT" ] || mkdir -p "$DEST_PARENT"
+      echo "link: $DEST -> $SOURCE"
+      ln -s "$SOURCE" "$DEST"
     else
       DEST_PARENT=$(dirname "$DEST")
       [ -d "$DEST_PARENT" ] || mkdir -p "$DEST_PARENT"
-      echo "link: $DEST"
-      ln -s $SOURCE $DEST
+      echo "link: $DEST -> $SOURCE"
+      ln -s "$SOURCE" "$DEST"
     fi
   else
     if [ -L $DEST ]; then

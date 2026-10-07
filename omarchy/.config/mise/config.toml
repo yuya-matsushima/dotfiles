@@ -1,0 +1,35 @@
+[settings]
+# asdf の legacy_version_file = yes 相当 + ASDF_GOLANG_MOD_VERSION_ENABLED 相当
+# .nvmrc / .node-version / .ruby-version / .python-version / go.mod を mise に読ませる設定。
+# .tool-versions と mise.toml は mise が標準で読むため、この設定とは無関係 (.tool-versions が無くなっても消せない)。
+# 削除できるのは、該当ファイルを使うプロジェクトがなくなった (mise.toml / .tool-versions に統一した) とき。
+idiomatic_version_file_enable_tools = ["node", "ruby", "python", "go"]
+
+[settings.upgrade]
+# 旧 OS 別 config (~/.config/mise/config.toml on omarchy) から引き継いだ設定
+auto_prune = false
+
+[tools]
+# node は LTS、それ以外は最新版を使う。kube 系は未使用のため宣言しない
+node = "lts"
+pnpm = "latest"
+ruby = "latest"
+python = "latest"
+go = "latest"
+golangci-lint = "latest"
+rust = "latest"
+aws-cli = "latest"
+gcloud = "latest"
+aws-sam = "latest"
+terraform = "latest"
+tflint = "latest"
+# AI / CLI ツール (omarchy 側 config から統合)
+codex = "latest"
+gh = "latest"
+# OpenCode は npm 配布の V2 を使う。registry の aqua 版 (anomalyco/opencode) は
+# V1 系 (1.18.x) のため宣言しない。`opencode` / `opencode2` の両バイナリが入る。
+"npm:@opencode/cli" = "latest"
+# global npm パッケージ (旧: asdf node lts への npm i -g)
+# @github/copilot は Homebrew cask copilot-cli に一本化
+"npm:ccusage" = "latest"
+"npm:@mermaid-lint/cli" = "latest"

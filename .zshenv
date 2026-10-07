@@ -33,8 +33,8 @@ elif [ -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
   eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   export HOMEBREW_PREFIX=$(/home/linuxbrew/.linuxbrew/bin/brew --prefix)
 else
-  # brew が無い環境 (Linux コンテナ等) では対話シェルのみ警告する
-  [[ -t 0 ]] && echo "Warning: Homebrew not found. Using system PATH." >&2
+  # Homebrew 前提の macOS のみ警告する。Linux (omarchy 等) では system PATH を使う
+  [[ "$(uname -s)" == "Darwin" && -t 0 ]] && echo "Warning: Homebrew not found. Using system PATH." >&2
 fi
 
 # additional path
