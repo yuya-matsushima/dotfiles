@@ -1,0 +1,7 @@
+#!/bin/sh
+# Ghostty 1.3.x (GTK4 / Wayland native) の GTK Wayland IM 経路にはバグがあり,
+# fcitx5 での日本語入力の確定が失われる (ghostty-org/ghostty#12679)。
+# fcitx5 の GTK IM モジュールを明示すると回避できる。
+# 対応: xdg-terminal-exec / uwsm 以外 (シェルから直接起動) 用のラッパー。
+export GTK_IM_MODULE=fcitx
+exec /usr/bin/ghostty "$@"

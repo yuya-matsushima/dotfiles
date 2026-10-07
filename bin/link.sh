@@ -36,6 +36,8 @@ TARGETS=( \
          ".psqlrc" \
          ".config/hypr/input.lua" \
          ".config/ghostty" \
+         ".local/bin/ghostty" \
+         ".local/share/applications/com.mitchellh.ghostty.desktop" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -56,9 +58,23 @@ DARWIN_ONLY=( \
               ".gvimrc" \
             )
 
+# Linux / Omarchy 専用のターゲット (macOS では link しない)
+LINUX_ONLY=( \
+              ".local/bin/ghostty" \
+              ".local/share/applications/com.mitchellh.ghostty.desktop" \
+            )
+
 is_darwin_only() {
   local target
   for target in "${DARWIN_ONLY[@]}"; do
+    [ "$target" = "$1" ] && return 0
+  done
+  return 1
+}
+
+is_linux_only() {
+  local target
+  for target in "${LINUX_ONLY[@]}"; do
     [ "$target" = "$1" ] && return 0
   done
   return 1
@@ -68,6 +84,11 @@ for TARGET in "${TARGETS[@]}"
 do
   if [ "$OS" != "Darwin" ] && is_darwin_only "$TARGET"; then
     echo "skip (macOS only): $TARGET"
+    continue
+  fi
+
+  if [ "$OS" = "Darwin" ] && is_linux_only "$TARGET"; then
+    echo "skip (Linux only): $TARGET"
     continue
   fi
 
