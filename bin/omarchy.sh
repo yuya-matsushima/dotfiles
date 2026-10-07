@@ -26,16 +26,21 @@ fi
 
 # ログインシェルを zsh に変更
 ZSH_PATH=$(command -v zsh || true)
-if [ -n "$ZSH_PATH" ]; then
-    if [ "$SHELL" != "$ZSH_PATH" ]; then
-        if grep -qx "$ZSH_PATH" /etc/shells; then
-            chsh -s "$ZSH_PATH"
-        else
-            echo "omarchy.sh: add $ZSH_PATH to /etc/shells before chsh" >&2
-        fi
-    fi
-else
+if [ -z "$ZSH_PATH" ]; then
     echo "omarchy.sh: zsh not found after install" >&2
+    exit 1
+fi
+
+CURRENT_LOGIN_SHELL=$(getent passwd "$USER" | cut -d: -f7)
+if [ "$CURRENT_LOGIN_SHELL" = "$ZSH_PATH" ]; then
+    echo "omarchy.sh: login shell is already $ZSH_PATH"
+elif ! grep -qx "$ZSH_PATH" /etc/shells; then
+    echo "omarchy.sh: add $ZSH_PATH to /etc/shells before chsh" >&2
+elif [ -t 0 ]; then
+    # chsh は PAM でパスワードを要求するため対話端末で実行する必要がある
+    chsh -s "$ZSH_PATH"
+else
+    echo "omarchy.sh: run 'chsh -s $ZSH_PATH' in an interactive shell to change the login shell" >&2
 fi
 
 echo "omarchy bootstrap done. Run 'make link' to create symlinks."
