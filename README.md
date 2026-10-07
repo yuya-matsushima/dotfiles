@@ -49,6 +49,8 @@ make omarchy
 `make link` を実行します。既に実体ファイルがある設定は `*.bak.<timestamp>` へ
 退避してから symlink します。
 
+詳細 (zsh 導入・`chsh` の注意点・OS 別オーバーレイ) は [docs/omarchy.md](docs/omarchy.md) を参照してください。
+
 ## コーディングエージェントの共通設定例
 
 Claude Code と Codex は、認証・端末固有パス・プロジェクト履歴などを実設定に
