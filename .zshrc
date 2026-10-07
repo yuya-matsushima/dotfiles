@@ -267,10 +267,15 @@ esac
 # report process
 REPORTTIME=3
 
-# git-prompt (zsh-git-prompt)
+# git-prompt
+# macOS: Homebrew の zsh-git-prompt (git_super_status) を使う
+# Linux (omarchy): bin/zsh_plugin.sh が取得する woefe 版 git-prompt.zsh (gitprompt) を使う
 if [[ -n "$HOMEBREW_PREFIX" && -f "$HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh" ]]; then
   source $HOMEBREW_PREFIX/opt/zsh-git-prompt/zshrc.sh
   [[ -f $HOME/.zsh/config/zsh-git-prompt.sh ]] && source $HOME/.zsh/config/zsh-git-prompt.sh
+elif [[ -f $HOME/.zsh/git-prompt.zsh ]]; then
+  [[ -f $HOME/.zsh/config/git-prompt.sh ]] && source $HOME/.zsh/config/git-prompt.sh
+  source $HOME/.zsh/git-prompt.zsh
 fi
 
 [ -f $HOME/.zsh/mise_completion.zsh ] && source $HOME/.zsh/mise_completion.zsh
