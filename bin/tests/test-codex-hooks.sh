@@ -293,17 +293,23 @@ if [ ! -L "$LINK_HOME/.agents/hooks" ]; then pass; else fail "still a symlink"; 
 current_case="unlink: ~/.codex/hooks symlink is removed"
 if [ ! -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "still a symlink"; fi
 
-# 既存の実ディレクトリがある場合 link.sh は fail-fast する
+# 既存の実ディレクトリがある場合 link.sh は *.bak.<timestamp> へ退避してから link する
 LINK_HOME_CONFLICT="$WORK/link_home_conflict"
 mkdir -p "$LINK_HOME_CONFLICT/.codex/hooks"
-current_case="link: 実ディレクトリが既にあると明示的に fail"
+current_case="link: 実ディレクトリがある場合は退避して link する"
 if (cd "$REPO_ROOT" && HOME="$LINK_HOME_CONFLICT" sh "$LINK_SH" >/dev/null 2>&1); then
-    fail "expected non-zero exit"
-else
     pass
+else
+    fail "expected zero exit"
 fi
 
-current_case="link: fail 後は既存ディレクトリ配下にネストした symlink を作らない"
+current_case="link: 実ディレクトリは *.bak.<timestamp> へ退避される"
+if ls "$LINK_HOME_CONFLICT/.codex/hooks.bak."* >/dev/null 2>&1; then pass; else fail "no backup created"; fi
+
+current_case="link: 退避後に .codex/hooks は symlink になる"
+if [ -L "$LINK_HOME_CONFLICT/.codex/hooks" ]; then pass; else fail "not a symlink"; fi
+
+current_case="link: 既存ディレクトリ配下にネストした symlink を作らない"
 if [ ! -L "$LINK_HOME_CONFLICT/.codex/hooks/hooks" ]; then pass; else fail "nested symlink created"; fi
 
 # ------------------------------------------------------------------
