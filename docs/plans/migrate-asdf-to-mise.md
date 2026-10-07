@@ -206,3 +206,11 @@
 7. kubectl / kubectx / kubeval は利用していないため config.toml から外す。残りのツールはバージョンを固定せず、node は `lts`、それ以外は `latest` にする (決定事項 5 を全ツールに拡張)。更新は `mise upgrade` で行う。
    - `mise upgrade --bump` は `node = "lts"` を LTS でない最新版 (26.x) に書き換えるため使わない。
 8. `@google/gemini-cli` は antigravity-cli に統合されたため、npm 宣言から外して mise 側からも削除する。
+
+## 実施記録
+
+- 2026-10-07: asdf 本体と `~/.asdf` を削除 (#247)。並行期間の満了予定は 2026-10-15 だったが、ユーザー判断で前倒しして実施した。
+  - `brew uninstall asdf`
+  - `~/.asdf` (約 31GB) を削除 (Go module cache 配下が読み取り専用ディレクトリのため `chmod -R u+w` 後に削除)
+  - `~/.tool-versions.asdf-backup` を削除
+  - 削除後の確認: `brew list asdf` が失敗し、`which node go ruby python terraform aws gcloud codex ccusage mermaid-lint` がすべて `~/.local/share/mise/shims/` を指し、`mise doctor` が "No problems found" を返す
