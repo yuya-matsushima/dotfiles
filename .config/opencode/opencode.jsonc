@@ -3,7 +3,7 @@
   "model": "opencode-go/deepseek-v4-flash",
   "small_model": "opencode-go/glm-5.3-flash",
   "lsp": false,
-  "autoupdate": false,
+  "autoupdate": true,
   "enabled_providers": [
     "opencode-go",
     "opencode"
