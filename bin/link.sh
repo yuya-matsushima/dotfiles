@@ -34,6 +34,7 @@ TARGETS=( \
          ".zshrc" \
          ".zshenv" \
          ".psqlrc" \
+         ".config/hypr/input.lua" \
          ".config/ghostty" \
          ".config/nvim" \
          ".config/opencode" \
