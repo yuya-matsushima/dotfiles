@@ -26,7 +26,9 @@ tflint = "latest"
 # AI / CLI ツール (omarchy 側 config から統合)
 codex = "latest"
 gh = "latest"
-opencode = "latest"
+# OpenCode は npm 配布の V2 を使う。registry の aqua 版 (anomalyco/opencode) は
+# V1 系 (1.18.x) のため宣言しない。`opencode` / `opencode2` の両バイナリが入る。
+"npm:@opencode/cli" = "latest"
 # global npm パッケージ (旧: asdf node lts への npm i -g)
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:ccusage" = "latest"
