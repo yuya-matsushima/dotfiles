@@ -61,9 +61,9 @@ getent passwd "$USER" | cut -d: -f7
 
 | 対象 | 扱い |
 |---|---|
+| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode` を含めない |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
 | `omarchy/.pi/agent/settings.json` | `theme: omarchy-system` を含む |
-| `.config/mise/config.toml` | macOS / Linux 共通 (統合) |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | macOS / Linux 共通 |
 
@@ -78,3 +78,5 @@ macOS 専用ターゲット (`.hammerspoon`, `.gvimrc`) は Linux では link �
 - `.tmux.conf` は Linux では XDG 配置の `~/.config/tmux/tmux.conf` へリンクします。
   tmux 3.7 は `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されるため,
   omarchy 既定の tmux 設定を上書きするには XDG 側に置く必要があります。
+- mise は symlink 先を新しいパスとして扱うため, 初回は `mise trust` が必要になる
+  ことがあります (`mise trust ~/Projects/Personal/dotfiles` など)。
