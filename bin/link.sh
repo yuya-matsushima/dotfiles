@@ -64,6 +64,10 @@ DARWIN_ONLY=( \
 
 # Linux / Omarchy 専用のターゲット (macOS では link しない)
 LINUX_ONLY=( \
+              ".config/hypr/input.lua" \
+              ".config/hypr/bindings.lua" \
+              ".config/hypr/autostart.lua" \
+              ".config/hypr/fcitx-sync.conf" \
               ".local/bin/ghostty" \
               ".local/bin/hypr-fcitx-sync" \
               ".local/share/applications/com.mitchellh.ghostty.desktop" \
