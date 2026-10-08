@@ -44,3 +44,7 @@ webdata-output/
 # Working directories
 tmp/
 feature/
+
+# Python
+__pycache__/
+*.py[cod]
