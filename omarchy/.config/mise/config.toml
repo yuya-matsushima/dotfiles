@@ -15,6 +15,8 @@ node = "lts"
 pnpm = "latest"
 ruby = "latest"
 python = "latest"
+# uv (Python パッケージマネージャ) はリリース頻度が高いため mise で管理
+uv = "latest"
 go = "latest"
 golangci-lint = "latest"
 rust = "latest"

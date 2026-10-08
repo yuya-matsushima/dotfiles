@@ -11,9 +11,29 @@ make omarchy
 
 `make omarchy` は次を実行します。
 
-1. `bin/omarchy.sh` : CLI ツール (`zsh`, `direnv`, `git-delta`, `colordiff`) の導入とログインシェルの zsh 化
+1. `bin/omarchy.sh` : `bin/omarchy/cli.sh` を呼び出して CLI ツールを導入し, ログインシェルを zsh 化
 2. `bin/zsh_plugin.sh` : zsh 用 git-prompt の取得
 3. `make link` : `$HOME` 配下への symlink 作成
+
+## CLI ツール (`bin/omarchy/cli.sh`)
+
+macOS 側 `bin/homebrew/cli.sh` で導入している CLI ツールのうち, omarchy で使うものを
+Arch パッケージとして導入します。パッケージ名は Arch 側に読み替えています。
+
+omarchy base (`/usr/share/omarchy/install/omarchy-base.packages`) が既に導入する
+パッケージ (`bat` / `eza` / `fd` / `fzf` / `imagemagick` / `jq` / `neovim` /
+`postgresql-libs` / `qrencode` / `ripgrep` / `tmux` / `tree-sitter-cli` / `zoxide` など)
+は二重管理を避けるため含めません。
+
+その他の除外:
+
+- `git` / `curl` / `make` / `grep` / `ncurses` などは base や base-devel で導入済み。
+- `mise` は omarchy の `mise-bin`, `gh` / `opencode` / `uv` は mise 管理のため含めません。
+- `direnv` は mise で代替するため含めません。
+- `htop` / `mariadb-clients` (`mysql-client` 相当) は未使用のため含めません。
+- `pngpaste` / `font-symbols-only-nerd-font` など macOS 専用ツールは含めません。
+- 公式リポジトリに無いツール (`diff-pdf-git`, `github-copilot-cli-bin`) は AUR から
+  導入します。AUR ヘルパー (`omarchy` / `yay`) が無い環境では自動的に skip されます。
 
 ## zsh の導入とログインシェル変更
 
@@ -61,7 +81,7 @@ getent passwd "$USER" | cut -d: -f7
 
 | 対象 | 扱い |
 |---|---|
-| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode` を含めない |
+| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode`/`uv` を含む |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
 | `omarchy/.pi/agent/settings.json` | `theme: omarchy-system` を含む |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |

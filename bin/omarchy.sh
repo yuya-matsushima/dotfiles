@@ -11,18 +11,10 @@ if [ "$(uname -s)" != "Linux" ]; then
     exit 1
 fi
 
-# .zshrc / .vimrc 等が必要とする CLI ツール
-# (go は mise 管理のためここには含めない)
-PACKAGES="zsh direnv git-delta colordiff"
-
-if command -v omarchy >/dev/null 2>&1; then
-    omarchy pkg add $PACKAGES
-elif command -v pacman >/dev/null 2>&1; then
-    sudo pacman -S --needed --noconfirm $PACKAGES
-else
-    echo "omarchy.sh: no supported package manager (omarchy/pacman) found" >&2
-    exit 1
-fi
+# .zshrc / .vimrc 等が必要とする CLI ツールを導入する
+# (go は mise 管理のため含めない)
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+sh "$SCRIPT_DIR/omarchy/cli.sh"
 
 # ログインシェルを zsh に変更
 ZSH_PATH=$(command -v zsh || true)
