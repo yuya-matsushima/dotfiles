@@ -35,8 +35,12 @@ TARGETS=( \
          ".zshenv" \
          ".psqlrc" \
          ".config/hypr/input.lua" \
+         ".config/hypr/bindings.lua" \
+         ".config/hypr/autostart.lua" \
+         ".config/hypr/fcitx-sync.conf" \
          ".config/ghostty" \
          ".local/bin/ghostty" \
+         ".local/bin/hypr-fcitx-sync" \
          ".local/share/applications/com.mitchellh.ghostty.desktop" \
          ".config/nvim" \
          ".config/opencode" \
@@ -61,6 +65,7 @@ DARWIN_ONLY=( \
 # Linux / Omarchy 専用のターゲット (macOS では link しない)
 LINUX_ONLY=( \
               ".local/bin/ghostty" \
+              ".local/bin/hypr-fcitx-sync" \
               ".local/share/applications/com.mitchellh.ghostty.desktop" \
             )
 
