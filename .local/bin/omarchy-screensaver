@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# omarchy-screensaver (user override)
+#
+# Omarchy 既定の /usr/bin/omarchy-screensaver は
+#   ttfx ... --random-effect --frame-rate 120
+# でランダムなエフェクトを回し続けるため, fireworks / blackhole / matrix などの
+# 高負荷な効果が選ばれるとファンが唸る。
+#
+# このユーザー上書きは「軽い効果を一度だけ描画して, そのまま静止表示」する。
+# ~/.local/bin は Hyprland の PATH で /usr/bin より先に解決されるため,
+# omarchy-launch-screensaver が起動する端末からはこちらが使われる。
+#
+# 環境変数で調整できる:
+#   OMARCHY_SCREENSAVER_EFFECT     使う ttfx エフェクト (既定: print)
+#   OMARCHY_SCREENSAVER_FRAME_RATE フレームレート (既定: 60)
+#
+# 軽い効果の例: print, wipe, slide, expand, middleout, sweep, highlight
+
+EFFECT="${OMARCHY_SCREENSAVER_EFFECT:-print}"
+FRAME_RATE="${OMARCHY_SCREENSAVER_FRAME_RATE:-60}"
+BRANDING="$HOME/.config/omarchy/branding/screensaver.txt"
+
+screensaver_in_focus() {
+  hyprctl activewindow -j | jq -e '.class == "org.omarchy.screensaver"' >/dev/null 2>&1
+}
+
+exit_screensaver() {
+  hyprctl eval 'hl.config({ cursor = { invisible = false } })' &>/dev/null || hyprctl keyword cursor:invisible false &>/dev/null || true
+  pkill -x ttfx 2>/dev/null
+  pkill -f '[o]rg.omarchy.screensaver' 2>/dev/null
+  exit 0
+}
+
+# Exit the screensaver on signals and input from keyboard and mouse
+trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
+
+printf '\033]11;rgb:00/00/00\007'  # Set background color to black
+
+hyprctl eval 'hl.config({ cursor = { invisible = true } })' &>/dev/null || hyprctl keyword cursor:invisible true &>/dev/null
+
+# Terminals allocate the pty at the default 80x24 and only resize it once the
+# compositor has told the window how big it is. ttfx measures the terminal once,
+# at startup, so wait for the resize to land before drawing.
+wait_for_terminal_resize() {
+  local deadline=$((SECONDS + 2))
+  while ((SECONDS < deadline)) && [[ $(stty size 2>/dev/null) == "24 80" ]]; do
+    sleep 0.02
+  done
+}
+wait_for_terminal_resize
+
+# Run the chosen effect once; when it finishes it leaves the final (static)
+# logo painted on the canvas, and --reuse-canvas keeps that canvas in place.
+ttfx -i "$BRANDING" \
+  --frame-rate "$FRAME_RATE" --canvas-width 0 --canvas-height 0 \
+  --reuse-canvas --anchor-canvas c --anchor-text c \
+  --no-eol --no-restore-cursor \
+  "$EFFECT" &
+
+# Hold the settled logo until the user comes back or the window loses focus.
+while true; do
+  if read -n1 -t 1 || ! screensaver_in_focus; then
+    exit_screensaver
+  fi
+done
