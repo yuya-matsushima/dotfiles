@@ -89,6 +89,24 @@ getent passwd "$USER" | cut -d: -f7
 
 macOS 専用ターゲット (`.hammerspoon`, `.gvimrc`) は Linux では link しません。
 
+## スクリーンセーバーの軽量化 (`.local/bin/omarchy-screensaver`)
+
+Omarchy 既定のスクリーンセーバー (`/usr/bin/omarchy-screensaver`) は
+`ttfx --random-effect --frame-rate 120` でエフェクトを回し続ける。`fireworks` /
+`blackhole` / `matrix` のような高負荷な効果が選ばれるとファンが唸る。
+
+設定でエフェクトを選ぶ公式オプションが無いため, `~/.local/bin/omarchy-screensaver`
+で `/usr/bin/omarchy-screensaver` をユーザー上書きする。`~/.local/bin` は Hyprland の
+PATH で `/usr/bin` より先に解決されるため, `omarchy-launch-screensaver` からは
+こちらが使われる (パッケージ本体は変更しない)。
+
+上書き版は**軽い効果を一度だけ描画して静止表示**する。環境変数で調整できる。
+
+| 環境変数 | 既定 | 説明 |
+|---|---|---|
+| `OMARCHY_SCREENSAVER_EFFECT` | `print` | 使う ttfx エフェクト。`wipe` / `slide` / `expand` / `middleout` / `sweep` / `highlight` も軽い |
+| `OMARCHY_SCREENSAVER_FRAME_RATE` | `60` | フレームレート |
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう

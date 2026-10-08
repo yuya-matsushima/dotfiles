@@ -41,6 +41,7 @@ TARGETS=( \
          ".config/ghostty" \
          ".local/bin/ghostty" \
          ".local/bin/hypr-fcitx-sync" \
+         ".local/bin/omarchy-screensaver" \
          ".local/share/applications/com.mitchellh.ghostty.desktop" \
          ".config/nvim" \
          ".config/opencode" \
@@ -70,6 +71,7 @@ LINUX_ONLY=( \
               ".config/hypr/fcitx-sync.conf" \
               ".local/bin/ghostty" \
               ".local/bin/hypr-fcitx-sync" \
+              ".local/bin/omarchy-screensaver" \
               ".local/share/applications/com.mitchellh.ghostty.desktop" \
             )
 
