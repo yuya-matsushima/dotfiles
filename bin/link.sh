@@ -35,6 +35,7 @@ TARGETS=( \
          ".zshenv" \
          ".psqlrc" \
          ".config/hypr/input.lua" \
+         ".config/hypr/bindings.lua" \
          ".config/ghostty" \
          ".local/bin/ghostty" \
          ".local/share/applications/com.mitchellh.ghostty.desktop" \
