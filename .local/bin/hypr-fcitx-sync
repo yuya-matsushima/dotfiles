@@ -149,12 +149,32 @@ def socket_path() -> str:
     return os.path.join(runtime, "hypr", signature, ".socket2.sock")
 
 
+def active_window() -> tuple[str, str]:
+    """現在フォーカス中のウィンドウの (class, address) を返す。"""
+    try:
+        out = subprocess.run(
+            ["hyprctl", "activewindow", "-j"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout
+        data = json.loads(out or "{}")
+        return str(data.get("class") or ""), str(data.get("address") or "")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return "", ""
+
+
 def handle_event(line: str, ctx: dict) -> None:
-    event, _, payload = line.partition(">>")
-    if event != "activewindow":
+    event, _, _payload = line.partition(">>")
+    if event not in ("activewindow", "activewindowv2"):
         return
 
-    window_class = payload.split(",", 1)[0].strip()
+    # Hyprland はタイトル変更でも activewindow を発火する。ウィンドウの address が
+    # 変わったときだけ処理し, タイトル更新のたびに状態を上書きしないようにする。
+    window_class, address = active_window()
+    if not address or address == ctx.get("address"):
+        return
+    ctx["address"] = address
     if not window_class:
         # デスクトップ (ウィンドウ無し) にフォーカスが戻った場合は何もしない。
         return
@@ -170,7 +190,7 @@ def handle_event(line: str, ctx: dict) -> None:
     )
     applied = apply(desired, ctx["heal"])
     log(
-        f"focus {previous!r} -> {window_class!r} desired={desired} "
+        f"focus {previous!r} -> {window_class!r} ({address}) desired={desired} "
         f"heal={ctx['heal']} applied={applied}"
     )
     ctx["state"][window_class] = mode_of(fcitx_state()) or desired
@@ -186,6 +206,7 @@ def run() -> None:
         "rules": rules,
         "state": load_state(),
         "current": None,
+        "address": None,
     }
     log(f"start pid={os.getpid()} default={default} heal={heal} rules={rules}")
 
