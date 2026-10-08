@@ -28,7 +28,7 @@ omarchy base (`/usr/share/omarchy/install/omarchy-base.packages`) が既に導�
 その他の除外:
 
 - `git` / `curl` / `make` / `grep` / `ncurses` などは base や base-devel で導入済み。
-- `mise` は omarchy の `mise-bin`, `gh` / `opencode` は mise 管理のため含めません。
+- `mise` は omarchy の `mise-bin`, `gh` / `opencode` / `uv` は mise 管理のため含めません。
 - `direnv` は mise で代替するため含めません。
 - `htop` / `mariadb-clients` (`mysql-client` 相当) は未使用のため含めません。
 - `pngpaste` / `font-symbols-only-nerd-font` など macOS 専用ツールは含めません。
@@ -81,7 +81,7 @@ getent passwd "$USER" | cut -d: -f7
 
 | 対象 | 扱い |
 |---|---|
-| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode` を含めない |
+| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode`/`uv` を含む |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
 | `omarchy/.pi/agent/settings.json` | `theme: omarchy-system` を含む |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |

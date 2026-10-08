@@ -54,7 +54,7 @@ install_aur() {
 #   gnu-sed: Linux の sed は GNU sed のため不要
 #   mise: omarchy の mise-bin で導入済み
 #   direnv: mise で代替するため不要
-#   gh opencode: mise (.config/mise/config.toml) で管理
+#   gh opencode uv: mise (.config/mise/config.toml) で管理
 #   htop mariadb-clients: 未使用のため不要
 #   zsh-git-prompt: bin/zsh_plugin.sh が woefe 版 git-prompt.zsh を取得
 #   pngpaste font-symbols-only-nerd-font: macOS 専用
@@ -70,7 +70,6 @@ install_official \
     resvg \
     sd \
     stern \
-    uv \
     wget \
     7zip
 
