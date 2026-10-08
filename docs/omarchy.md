@@ -96,9 +96,17 @@ Omarchy 既定のスクリーンセーバー (`/usr/bin/omarchy-screensaver`) �
 `blackhole` / `matrix` のような高負荷な効果が選ばれるとファンが唸る。
 
 設定でエフェクトを選ぶ公式オプションが無いため, `~/.local/bin/omarchy-screensaver`
-で `/usr/bin/omarchy-screensaver` をユーザー上書きする。`~/.local/bin` は Hyprland の
-PATH で `/usr/bin` より先に解決されるため, `omarchy-launch-screensaver` からは
-こちらが使われる (パッケージ本体は変更しない)。
+で `/usr/bin/omarchy-screensaver` をユーザー上書きする (パッケージ本体は変更しない)。
+
+ただし, `~/.local/bin` に置くだけでは有効にならない。Omarchy 既定
+(`default.hypr.envs`) が Hyprland の起動プロセスの PATH 先頭に
+`/usr/share/omarchy/bin` を挿入し, そこには `/usr/bin/omarchy-*` への symlink が
+あるため, `omarchy-screensaver` は常にパッケージ版に解決されてしまう。
+
+そこで `hypr/envs.lua` (`~/.config/hypr/envs.lua`) で冗長な
+`/usr/share/omarchy/bin` を PATH から取り除く。`omarchy-*` は引き続き `/usr/bin`
+から解決され, `~/.local/bin` (既に `/usr/bin` より前) の上書きが優先される。
+`envs.lua` は `hypr/autostart.lua` の先頭で `require("hypr.envs")` して読み込む。
 
 上書き版は**軽い効果を一度だけ描画して静止表示**する。環境変数で調整できる。
 

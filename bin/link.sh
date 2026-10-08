@@ -37,6 +37,7 @@ TARGETS=( \
          ".config/hypr/input.lua" \
          ".config/hypr/bindings.lua" \
          ".config/hypr/autostart.lua" \
+         ".config/hypr/envs.lua" \
          ".config/hypr/fcitx-sync.conf" \
          ".config/ghostty" \
          ".local/bin/ghostty" \
@@ -68,6 +69,7 @@ LINUX_ONLY=( \
               ".config/hypr/input.lua" \
               ".config/hypr/bindings.lua" \
               ".config/hypr/autostart.lua" \
+              ".config/hypr/envs.lua" \
               ".config/hypr/fcitx-sync.conf" \
               ".local/bin/ghostty" \
               ".local/bin/hypr-fcitx-sync" \
