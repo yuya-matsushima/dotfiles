@@ -29,8 +29,10 @@
 -- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
 
 -- IME (fcitx5/mozc) toggle.
--- Wayland (zwp_input_method_v2) では fcitx5 がアプリを特定できず, アプリ単位で
--- 入力切替が失敗することがある。compositor 側で fcitx5 の状態を直接トグルして,
--- どのアプリでも確実に切り替わるようにする。
+-- Hyprland の Wayland IME (zwp_input_method_v2) では fcitx5 から見える入力
+-- コンテキストが常に 1 つで, ON/OFF 状態はグローバルになる。アプリ単位の状態
+-- 保持は原理的にできないため行わない (詳細: docs/omarchy.md)。
+-- また fcitx5 は Hyprland ではトリガキーを直接受け取れないため, compositor 側で
+-- fcitx5-remote を叩いてトグルする。
 -- 注意: このキーは Hyprland が消費するため, アプリ側には Ctrl+Space は渡らない。
 o.bind("CTRL + SPACE", "IME toggle (fcitx5)", "/usr/bin/fcitx5-remote -t")
