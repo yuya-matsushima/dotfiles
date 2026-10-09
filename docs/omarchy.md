@@ -83,6 +83,7 @@ getent passwd "$USER" | cut -d: -f7
 |---|---|
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode`/`uv` を含む |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
+| `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
 | `omarchy/.pi/agent/settings.json` | `theme: omarchy-system` を含む |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | macOS / Linux 共通 |
@@ -114,6 +115,26 @@ Omarchy 既定のスクリーンセーバー (`/usr/bin/omarchy-screensaver`) �
 |---|---|---|
 | `OMARCHY_SCREENSAVER_EFFECT` | `print` | 使う ttfx エフェクト。`wipe` / `slide` / `expand` / `middleout` / `sweep` / `highlight` も軽い |
 | `OMARCHY_SCREENSAVER_FRAME_RATE` | `60` | フレームレート |
+
+## 日本語入力 (IME / fcitx5)
+
+IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバル状態**で運用する。
+アプリ / ウィンドウ単位の状態保持は行わない。
+
+- Hyprland は IME 連携に `zwp_input_method_v2` を使う。この経路では fcitx5 から
+  見える入力コンテキストが常に 1 つで, IME の ON/OFF 状態は**グローバル**になる。
+  したがって「アプリごとに入力状態を記憶する」ことは原理的にできない。これを
+  再現しようとする常駐スクリプト (旧 `hypr-fcitx-sync`) は, web app の window class
+  が URL 由来で不安定なこともあり破綻する (特定アプリが英語に固定される等) ため
+  撤去した。
+- IME の切替は `hypr/bindings.lua` の `CTRL + SPACE` (`fcitx5-remote -t`) で行う。
+  Hyprland では fcitx5 がトリガキーを直接受け取れないため, compositor 側で叩く。
+- 環境変数 (`INPUT_METHOD` / `QT_IM_MODULE` / `XMODIFIERS` / `SDL_IM_MODULE`) は
+  Omarchy 既定 (`default/environment.d/10-omarchy-fcitx.conf`) に任せる。fcitx5 は
+  同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。
+- Chromium 系は `omarchy/.config/chromium-flags.conf` で `--enable-wayland-ime` を
+  指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
+- Ghostty は GTK4 のネイティブ Wayland text-input 経路で入力する (旧ラッパー不要)。
 
 ## symlink とバックアップ
 

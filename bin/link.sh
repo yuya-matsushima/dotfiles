@@ -38,12 +38,9 @@ TARGETS=( \
          ".config/hypr/bindings.lua" \
          ".config/hypr/autostart.lua" \
          ".config/hypr/envs.lua" \
-         ".config/hypr/fcitx-sync.conf" \
+         ".config/chromium-flags.conf" \
          ".config/ghostty" \
-         ".local/bin/ghostty" \
-         ".local/bin/hypr-fcitx-sync" \
          ".local/bin/omarchy-screensaver" \
-         ".local/share/applications/com.mitchellh.ghostty.desktop" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -70,11 +67,8 @@ LINUX_ONLY=( \
               ".config/hypr/bindings.lua" \
               ".config/hypr/autostart.lua" \
               ".config/hypr/envs.lua" \
-              ".config/hypr/fcitx-sync.conf" \
-              ".local/bin/ghostty" \
-              ".local/bin/hypr-fcitx-sync" \
+              ".config/chromium-flags.conf" \
               ".local/bin/omarchy-screensaver" \
-              ".local/share/applications/com.mitchellh.ghostty.desktop" \
             )
 
 is_darwin_only() {
