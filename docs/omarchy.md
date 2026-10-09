@@ -136,6 +136,49 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
 - Ghostty は GTK4 のネイティブ Wayland text-input 経路で入力する (旧ラッパー不要)。
 
+## T2 MacBook トラックパッドの二本指タップが反応しない / 遅い
+
+MacBookPro16,2 (T2) で「二本指タップ (右クリック) でブラウザのメニューが出るのが遅い / 軽いタッチだと出ない」場合。
+
+### 切り分け
+
+- 1 本指タップは正常 / 二本指クリック (物理押し込み) は確実に動く → タップ認識の問題
+- **原因**: T2 の内蔵トラックパッドは HID レベルで `magicmouse` ドライバが処理する
+  (Magic Trackpad 2 と同じプロトコル)。しかし libinput の Apple クォーク
+  (`/usr/share/libinput/50-system-apple.quirks`) では旧世代 MacBook 用の
+  `[Apple Touchpads USB]` (`AttrTouchSizeRange=150:130`) が適用され, 軽いタッチの
+  接触サイズが閾値に届かずタップとして認識されない。
+- `hyprctl devices` でトラックパッドが `touch` ではなく `mice` に表示されるのは正常。
+
+### 修正
+
+`/etc/libinput/local-overrides.quirks` を作成し, このデバイスだけ
+Magic Trackpad v2 相当の緩い閾値にする。
+
+```sh
+# 1) オーバーライド作成
+sudo tee /etc/libinput/local-overrides.quirks > /dev/null <<'EOF'
+[Apple T2 Internal Trackpad override]
+MatchBus=usb
+MatchVendor=0x05AC
+MatchProduct=0x027E
+MatchUdevType=touchpad
+AttrTouchSizeRange=20:10
+AttrPalmSizeThreshold=900
+AttrThumbSizeThreshold=800
+EOF
+
+# 2) 反映 (デバイスの再列挙 or 再ログイン / Hyprland 再起動)
+sudo udevadm trigger
+```
+
+反映後は再ログインまたは `omarchy restart hyprland` 相当で libinput がクォークを
+再読み込みする。
+
+- 効果が薄い場合は実測して調整する: `sudo libinput measure touchpad-size /dev/input/event7`
+  (`libinput-tools` 導入が必要)。
+- 変更は `/etc` 配下のマシン固有設定のため, dotfiles リポジトリには含めない。
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
