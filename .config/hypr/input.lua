@@ -44,6 +44,13 @@
 --   },
 -- })
 
+-- External US-layout keyboards (HHKB Professional, Keychron Q11, ...).
+-- The built-in JIS keyboard stays on the global jp layout, while these use us.
+-- Device names come from `hyprctl devices` (lowercased libinput names).
+-- Hyprland matches by substring, so "keychron" covers all Keychron models.
+hl.device({ name = "topre-corporation-hhkb-professional", kb_layout = "us" })
+hl.device({ name = "keychron", kb_layout = "us" })
+
 -- Personal touchpad overrides (uncommented = replaces Omarchy defaults).
 hl.config({
   input = {

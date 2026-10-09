@@ -179,6 +179,30 @@ sudo udevadm trigger
   (`libinput-tools` 導入が必要)。
 - 変更は `/etc` 配下のマシン固有設定のため, dotfiles リポジトリには含めない。
 
+## 外付け英語キーボード (HHKB / Keychron) の US レイアウト
+
+日本語キーボード (JIS) の MacBook で外付けの英語配列キーボードを接続した場合、
+Omarchy のグローバル設定は `jp` のままなので、外付けキーボードにそのまま
+`jp` が適用されキーがずれる。
+
+`hypr/input.lua` でデバイス別に `us` レイアウトを適用する (内蔵 JIS キーボードは
+`jp` のまま)。
+
+```lua
+-- デバイス名は `hyprctl devices` の出力 (小文字化された libinput 名)。
+-- Hyprland は部分一致 (substring) でマッチするため "keychron" は全モデルをカバー。
+hl.device({ name = "topre-corporation-hhkb-professional", kb_layout = "us" })
+hl.device({ name = "keychron", kb_layout = "us" })
+```
+
+- 反映: 保存で自動再読み込み、または `hyprctl reload`。確認は
+  `hyprctl devices` の `layout` / `active_keymap`。
+- 新しい外付けキーボードを追加する場合は `hyprctl devices` で名前を確認して
+  設定を追記する。
+- per-device レイアウトは既定ではキーバインドのキーマップを変更しない
+  (キーバインドはグローバルの `jp` のまま解決される)。シンボル解決に切り替える
+  場合は `resolve_binds_by_sym = 1` を参照 (Hyprland wiki: Devices)。
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
