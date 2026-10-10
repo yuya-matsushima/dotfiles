@@ -190,15 +190,24 @@ Omarchy のグローバル設定は `jp` のままなので、外付けキーボ
 
 ```lua
 -- デバイス名は `hyprctl devices` の出力 (小文字化された libinput 名)。
--- Hyprland は部分一致 (substring) でマッチするため "keychron" は全モデルをカバー。
+-- IMPORTANT: Hyprland の hl.device は EXACT マッチ (部分一致・正規表現不可)。
+-- 接続してデバイス名を確認し、1 エントリずつ追加する。
 hl.device({ name = "topre-corporation-hhkb-professional", kb_layout = "us" })
-hl.device({ name = "keychron", kb_layout = "us" })
+
+-- HHKB Hybrid / Keychron は HID インターフェースが複数に分かれるため全部登録。
+hl.device({ name = "pfu-limited-hhkb-hybrid-keyboard", kb_layout = "us" })
+hl.device({ name = "pfu-limited-hhkb-hybrid-consumer-control", kb_layout = "us" })
+hl.device({ name = "pfu-limited-hhkb-hybrid", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11-keyboard", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11-consumer-control", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11-system-control", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 ```
 
 - 反映: 保存で自動再読み込み、または `hyprctl reload`。確認は
   `hyprctl devices` の `layout` / `active_keymap`。
 - 新しい外付けキーボードを追加する場合は `hyprctl devices` で名前を確認して
-  設定を追記する。
+  設定を追記する (**部分一致は不可。完全一致のみ**)。
 - per-device レイアウトは既定ではキーバインドのキーマップを変更しない
   (キーバインドはグローバルの `jp` のまま解決される)。シンボル解決に切り替える
   場合は `resolve_binds_by_sym = 1` を参照 (Hyprland wiki: Devices)。

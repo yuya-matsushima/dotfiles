@@ -44,12 +44,24 @@
 --   },
 -- })
 
--- External US-layout keyboards (HHKB Professional, Keychron Q11, ...).
--- The built-in JIS keyboard stays on the global jp layout, while these use us.
--- Device names come from `hyprctl devices` (lowercased libinput names).
--- Hyprland matches by substring, so "keychron" covers all Keychron models.
+-- External US-layout keyboards. The built-in JIS keyboard stays on the global
+-- jp layout, while these use us.
+--
+-- IMPORTANT: Hyprland's hl.device name is an EXACT match (no substring/regex).
+-- Add one entry per device name, obtained from `hyprctl devices` (lowercased
+-- libinput names). Connect the keyboard, read the name, then add it here.
 hl.device({ name = "topre-corporation-hhkb-professional", kb_layout = "us" })
-hl.device({ name = "keychron", kb_layout = "us" })
+
+-- HHKB Hybrid exposes multiple HID interfaces; register them all.
+hl.device({ name = "pfu-limited-hhkb-hybrid-keyboard", kb_layout = "us" })
+hl.device({ name = "pfu-limited-hhkb-hybrid-consumer-control", kb_layout = "us" })
+hl.device({ name = "pfu-limited-hhkb-hybrid", kb_layout = "us" })
+
+-- Keychron Q11 exposes multiple HID interfaces; register them all.
+hl.device({ name = "keychron-keychron-q11-keyboard", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11-consumer-control", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11-system-control", kb_layout = "us" })
+hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 
 -- Personal touchpad overrides (uncommented = replaces Omarchy defaults).
 hl.config({
