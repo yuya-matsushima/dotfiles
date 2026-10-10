@@ -127,8 +127,19 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   再現しようとする常駐スクリプト (旧 `hypr-fcitx-sync`) は, web app の window class
   が URL 由来で不安定なこともあり破綻する (特定アプリが英語に固定される等) ため
   撤去した。
-- IME の切替は `hypr/bindings.lua` の `CTRL + SPACE` (`fcitx5-remote -t`) で行う。
-  Hyprland では fcitx5 がトリガキーを直接受け取れないため, compositor 側で叩く。
+- IME の切替は `hypr/bindings.lua` の `CTRL + SPACE` で行う。実体は
+  `~/.local/bin/ime-toggle` (リポジトリ管理, `bin/link.sh` で symlink) で, current IM を
+  `mozc` <-> `keyboard-us` に**明示的に切り替える**。Hyprland では fcitx5 がトリガキーを
+  直接受け取れないため compositor 側で叩く。
+- 従来の `fcitx5-remote -t` (active/inactive トグル) は, keyboard-us を current IM にした
+  状態では mozc に戻れず, mozc が「直接入力」に取り残されて変換が効かなくなることが
+  あった (表示は「あ」のまま英語が入力される症状)。`ime-toggle` による IM 切替で
+  状態遷移を一意にしこれを防ぐ。それでも変換が効かない場合は `CTRL + SPACE` を
+  押し直すか `fcitx5-remote -r` で fcitx5 を再読込する。
+- mozc が「直接入力」に残ったときの保険として, mozc のキー設定
+  (`fcitx5-configtool` → mozc → プロパティ → キー設定) で「直接入力 →
+  ひらがな」に戻すキーを任意の組み合わせで割り当てられる。ただし
+  `CTRL + SPACE` は Hyprland が消費するため mozc 側には割り当てられない。
 - 環境変数 (`INPUT_METHOD` / `QT_IM_MODULE` / `XMODIFIERS` / `SDL_IM_MODULE`) は
   Omarchy 既定 (`default/environment.d/10-omarchy-fcitx.conf`) に任せる。fcitx5 は
   同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。

@@ -1,0 +1,24 @@
+#!/bin/sh
+# IME (fcitx5 / mozc) 日本語⇔英語トグル。
+#
+# 従来は fcitx の active/inactive を fcitx5-remote -t でトグルしていたが,
+# keyboard-us (英語) を current IM にしている状態ではトグルが mozc に届かず,
+# mozc が「直接入力」のまま取り残されて変換できなくなることがある。
+# ここでは current IM を mozc <-> keyboard-us で明示的に切り替え,
+# IME の状態遷移を一意にする。
+# 詳細: docs/omarchy.md の「日本語入力 (IME / fcitx5)」を参照。
+
+set -e
+
+# fcitx5 未起動なら何もしない (Hyprland のバインドからは通常起動済み)。
+if ! fcitx5-remote --check >/dev/null 2>&1; then
+    exit 0
+fi
+
+# 現在の IM を問い合わせ, mozc なら英語 (keyboard-us), それ以外なら日本語 (mozc) へ。
+current="$(fcitx5-remote -n 2>/dev/null || true)"
+if [ "$current" = "mozc" ]; then
+    fcitx5-remote -s keyboard-us
+else
+    fcitx5-remote -s mozc
+fi
