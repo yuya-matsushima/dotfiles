@@ -42,6 +42,7 @@ TARGETS=( \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
+         ".local/bin/ime-toggle" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -71,6 +72,7 @@ LINUX_ONLY=( \
               ".config/hypr/monitors.lua" \
               ".config/chromium-flags.conf" \
               ".local/bin/omarchy-screensaver" \
+              ".local/bin/ime-toggle" \
             )
 
 is_darwin_only() {

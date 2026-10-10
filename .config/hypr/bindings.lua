@@ -33,6 +33,9 @@
 -- コンテキストが常に 1 つで, ON/OFF 状態はグローバルになる。アプリ単位の状態
 -- 保持は原理的にできないため行わない (詳細: docs/omarchy.md)。
 -- また fcitx5 は Hyprland ではトリガキーを直接受け取れないため, compositor 側で
--- fcitx5-remote を叩いてトグルする。
+-- ~/.local/bin/ime-toggle を叩いて current IM を mozc <-> keyboard-us で切り替える。
+-- (従来の fcitx5-remote -t による active/inactive トグルは keyboard-us 上で
+-- mozc に戻せず「直接入力」に取り残される問題があった。ime-toggle は
+-- IM を明示的に切り替えることで状態遷移を一意にする)
 -- 注意: このキーは Hyprland が消費するため, アプリ側には Ctrl+Space は渡らない。
-o.bind("CTRL + SPACE", "IME toggle (fcitx5)", "/usr/bin/fcitx5-remote -t")
+o.bind("CTRL + SPACE", "IME toggle (fcitx5/mozc)", os.getenv("HOME") .. "/.local/bin/ime-toggle")
