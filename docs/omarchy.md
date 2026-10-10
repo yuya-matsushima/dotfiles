@@ -212,6 +212,21 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
   (キーバインドはグローバルの `jp` のまま解決される)。シンボル解決に切り替える
   場合は `resolve_binds_by_sym = 1` を参照 (Hyprland wiki: Devices)。
 
+## 外部ディスプレイ構成 (monitors.lua)
+
+`~/.config/hypr/monitors.lua` はリポジトリの `.config/hypr/monitors.lua` に symlink され、
+`bin/link.sh` で Linux 専用ターゲットとして管理される。
+
+- 外部ディスプレイ接続時: 外部 (DP-3) を上 (Display 1)、内蔵 (eDP-1) を下 (Display 2) に縦配置
+- SUPER+1..5 = 外部 / SUPER+6..0 = 内蔵 (workspace_rule で固定)
+- Mac 単体時: 内蔵のみ
+- 接続検知は `o.shell_succeeds("omarchy hw external monitors")` で設定読み込み時に行う。
+  起動後に外部を抜き挿しした場合は `hyprctl reload` で反映する。
+
+注意: `hl.workspace_rule` の selectors は**既存ワークスペースにのみマッチ**するため、
+範囲指定 (`workspace = "1-5"`) は無効で、1 つずつ `workspace = "1"` のように列挙する
+必要がある。設定変更前に存在するワークスペースには適用されない (再起動で有効)。
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
