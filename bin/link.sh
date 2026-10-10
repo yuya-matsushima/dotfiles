@@ -38,6 +38,7 @@ TARGETS=( \
          ".config/hypr/bindings.lua" \
          ".config/hypr/autostart.lua" \
          ".config/hypr/envs.lua" \
+         ".config/hypr/monitors.lua" \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
@@ -67,6 +68,7 @@ LINUX_ONLY=( \
               ".config/hypr/bindings.lua" \
               ".config/hypr/autostart.lua" \
               ".config/hypr/envs.lua" \
+              ".config/hypr/monitors.lua" \
               ".config/chromium-flags.conf" \
               ".local/bin/omarchy-screensaver" \
             )
