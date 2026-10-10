@@ -4,11 +4,15 @@
 -- GDK_SCALE は compositor の scale と揃える (食い違うと GTK/Chromium 系で
 -- IME 候補ウィンドウの座標がずれる)。
 local omarchy_gdk_scale = 2
--- IME (fcitx5/mozc) の候補ウィンドウは Wayland では compositor が位置決めする。
--- 分数スケールだと座標がずれて候補が入力中の文字にかぶるため整数スケールにする
--- (Hyprland #8117 / #16003, Omarchy #7559 参照)。読みやすさは
--- omarchy-display-text-size やフォントサイズで調整する。
-local omarchy_monitor_scale = 1.6
+-- モニター別スケール。同じ値に揃えると高 DPI の内蔵 (225 DPI) の文字が
+-- 外部 4K (162 DPI) より小さく見えるため、内蔵を高めに振る。
+-- 注意: Hyprland は「物理ピクセル ÷ scale が整数論理ピクセルになる」scale しか
+-- 受け付けず、指定値は最も近い許容値に丸められる。2560x1600 の許容値に 1.8 は
+-- 無く (隣は 5/3 と 2.0)、3840x2160 の許容値に 1.4 は無い (隣は 4/3 と 1.5)。
+-- そのため内蔵 5/3 (≒1.667) / 外部 4/3 (≒1.333) を使う
+-- (Hyprland #8117 / #16003, Omarchy #7559 参照)。
+local omarchy_monitor_scale = 4 / 3   -- 外部 (DP-3): 4K (≒1.333)
+local omarchy_internal_scale = 5 / 3  -- 内蔵 (eDP-1): 高 DPI (≒1.667)
 
 hl.env("GDK_SCALE", tostring(omarchy_gdk_scale))
 
@@ -21,9 +25,9 @@ local external_connected = o.shell_succeeds("omarchy hw external monitors")
 
 if external_connected then
   -- 縦配置: 外部 (DP-3) を上 (Display 1, 0x0)、内蔵 (eDP-1) をその真下 (Display 2)。
-  -- 外部の論理高さ = 2160 / 1.6 = 1350px なので内蔵は y=1350 に配置する。
+  -- 外部の論理高さ = 2160 / (4/3) = 1620px なので内蔵は y=1620 に配置する。
   hl.monitor({ output = "DP-3", mode = "preferred", position = "0x0", scale = omarchy_monitor_scale })
-  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1350", scale = omarchy_monitor_scale })
+  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1620", scale = omarchy_internal_scale })
 
   -- SUPER+1..0 が選ぶワークスペースをモニターに固定:
   --   SUPER+1..5 = 外部 (Display 1), SUPER+6..0 = 内蔵 (Display 2)
@@ -37,7 +41,7 @@ if external_connected then
   end
 else
   -- Mac 単体: 内蔵のみ
-  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = omarchy_monitor_scale })
+  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = omarchy_internal_scale })
 end
 
 -- Configure a specific monitor.
