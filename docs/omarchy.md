@@ -84,6 +84,7 @@ getent passwd "$USER" | cut -d: -f7
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode`/`uv` を含む |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
 | `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
+| `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
 | `omarchy/.pi/agent/settings.json` | `theme: omarchy-system` を含む |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | macOS / Linux 共通 |
@@ -151,6 +152,11 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。
 - Chromium 系は `omarchy/.config/chromium-flags.conf` で `--enable-wayland-ime` を
   指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
+- Obsidian (Electron) も同様に `omarchy/.config/obsidian/user-flags.conf` で
+  `--enable-wayland-ime` を指定する (Arch パッケージのラッパーが読む)。以前入れていた
+  `-disable-gpu` は MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認したため外した。
+- fcitx5 を再起動した場合, 起動中の Chromium は IME 接続が復帰しないことがあるため
+  Chromium も再起動する。
 - Ghostty は GTK4 のネイティブ Wayland text-input 経路で入力する (旧ラッパー不要)。
 
 ## 無効化している Omarchy 既定キーバインド

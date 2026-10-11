@@ -40,6 +40,7 @@ TARGETS=( \
          ".config/hypr/envs.lua" \
          ".config/hypr/monitors.lua" \
          ".config/chromium-flags.conf" \
+         ".config/obsidian/user-flags.conf" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
@@ -71,6 +72,7 @@ LINUX_ONLY=( \
               ".config/hypr/envs.lua" \
               ".config/hypr/monitors.lua" \
               ".config/chromium-flags.conf" \
+              ".config/obsidian/user-flags.conf" \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
             )
