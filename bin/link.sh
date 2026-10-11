@@ -10,12 +10,12 @@ elif [[ $MODE != "unlink" ]]; then
   exit 1
 fi
 
-if [ ! -d $HOME/.config ]; then
-  mkdir -p $HOME/.config
+if [ ! -d "$HOME/.config" ]; then
+  mkdir -p "$HOME/.config"
 fi
 
-CURRENT_DIR=`pwd`
-OS=`uname -s`
+CURRENT_DIR=$(pwd)
+OS=$(uname -s)
 # Linux (omarchy 等) では omarchy/ 配下の OS 別定義があればそちらを優先する
 OVERLAY_DIR=$CURRENT_DIR/omarchy
 
@@ -130,9 +130,9 @@ do
   fi
 
   if [[ $MODE == "link" ]]; then
-    if [ -L $DEST ]; then
+    if [ -L "$DEST" ]; then
       echo "exist: $DEST"
-    elif [ -e $DEST ]; then
+    elif [ -e "$DEST" ]; then
       # 実ファイル / 実ディレクトリが既にある場合は内容を失わないよう退避してから link する。
       # 退避先は $DEST.bak.<timestamp>。
       BACKUP="$DEST.bak.$(date +%Y%m%d%H%M%S)"
@@ -149,9 +149,9 @@ do
       ln -s "$SOURCE" "$DEST"
     fi
   else
-    if [ -L $DEST ]; then
+    if [ -L "$DEST" ]; then
       echo "unlink: $DEST"
-      unlink $DEST
+      unlink "$DEST"
     else
       echo "not-exist: $DEST"
     fi
