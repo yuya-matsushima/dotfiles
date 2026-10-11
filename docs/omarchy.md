@@ -263,6 +263,12 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 範囲指定 (`workspace = "1-5"`) は無効で、1 つずつ `workspace = "1"` のように列挙する
 必要がある。設定変更前に存在するワークスペースには適用されない (再起動で有効)。
 
+注意: scale 用の変数名を Omarchy 既定の `omarchy_monitor_scale` / `omarchy_gdk_scale` に
+しない。`omarchy-hyprland-monitor-scaling` (`SUPER + /` / `SUPER + ALT + /`) はこの行を
+見つけると `sed -i` で値を書き換え, symlink を実体ファイルに置き換えてしまう
+(実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
+ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
