@@ -61,3 +61,10 @@ o.bind("CTRL + SPACE", "IME toggle (fcitx5/mozc)", os.getenv("HOME") .. "/.local
 -- Hangul_Hanja になる (xkb pc シンボル由来)。US 配列の外付けキーボードには影響しない。
 o.bind("Hangul", "IME on (かな → mozc)", "fcitx5-remote -s mozc")
 o.bind("Hangul_Hanja", "IME off (英数 → keyboard-us)", "fcitx5-remote -s keyboard-us")
+
+-- macOS (.hammerspoon/init.lua) と同じく cmd (= SUPER) の単押しで IME をトグルする。
+-- release バインドは SUPER を押している間に他のキーが押されると発火しないため,
+-- SUPER + 1 等の既存ショートカットとは共存する。左右どちらの SUPER でも反応する。
+local ime_toggle = os.getenv("HOME") .. "/.local/bin/ime-toggle"
+o.bind("SUPER + Super_L", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })
+o.bind("SUPER + Super_R", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })

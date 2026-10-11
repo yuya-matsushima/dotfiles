@@ -143,6 +143,10 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   `Hangul` になる。これらのキーが mozc に届くと mozc 内部で「直接入力」へ遷移し,
   fcitx5 側は mozc 有効 (`fcitx5-remote` = 2) のまま英字しか入らなくなっていた。
   なお Lua の `o.bind` は `code:130` 形式の keycode 指定を解釈しない (keycode 0 になる)。
+- macOS (`.hammerspoon/init.lua`) と同じく **cmd (= `SUPER`) の単押し** でも IME をトグルする。
+  `hypr/bindings.lua` で `Super_L` / `Super_R` に release バインド (`{ release = true }`) を張り
+  `ime-toggle` を呼ぶ。`SUPER` を押している間に他のキーが押されると発火しないため,
+  `SUPER + 1` 等や `SUPER` + ドラッグとは共存する (誤発火しないことを確認済み)。
 - mozc が「直接入力」に残ったときの保険として, mozc のキー設定
   (`fcitx5-configtool` → mozc → プロパティ → キー設定) で「直接入力 →
   ひらがな」に戻すキーを任意の組み合わせで割り当てられる。ただし
