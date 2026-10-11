@@ -153,6 +153,19 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
 - Ghostty は GTK4 のネイティブ Wayland text-input 経路で入力する (旧ラッパー不要)。
 
+## 無効化している Omarchy 既定キーバインド
+
+`hypr/bindings.lua` で `hl.unbind` しているもの。復活させる場合は該当行を削除して
+`hyprctl reload` する。
+
+| キー | Omarchy 既定の動作 | 無効化の理由 |
+| --- | --- | --- |
+| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | IME 切替の `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
+
+バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
+`omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
+なる点に注意。
+
 ## T2 MacBook トラックパッドの二本指タップが反応しない / 遅い
 
 MacBookPro16,2 (T2) で「二本指タップ (右クリック) でブラウザのメニューが出るのが遅い / 軽いタッチだと出ない」場合。
