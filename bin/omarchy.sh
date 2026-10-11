@@ -16,6 +16,9 @@ fi
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 sh "$SCRIPT_DIR/omarchy/cli.sh"
 
+# fcitx5 の IM 構成 (keyboard-us + mozc) を配置
+sh "$SCRIPT_DIR/omarchy/fcitx5.sh"
+
 # ログインシェルを zsh に変更
 ZSH_PATH=$(command -v zsh || true)
 if [ -z "$ZSH_PATH" ]; then

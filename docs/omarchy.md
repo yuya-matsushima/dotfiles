@@ -147,6 +147,10 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   (`fcitx5-configtool` → mozc → プロパティ → キー設定) で「直接入力 →
   ひらがな」に戻すキーを任意の組み合わせで割り当てられる。ただし
   `CTRL + SPACE` は Hyprland が消費するため mozc 側には割り当てられない。
+- IM 構成 (`~/.config/fcitx5/profile`: `keyboard-us` + `mozc`, 既定 IM は mozc) は
+  `omarchy/.config/fcitx5/profile` をテンプレートとして `make omarchy`
+  (`bin/omarchy/fcitx5.sh`) が配置する。fcitx5 は終了時に profile を書き戻すため
+  symlink にはせず, mozc 未登録の場合だけコピーする (既存は `*.bak.<timestamp>` へ退避)。
 - 環境変数 (`INPUT_METHOD` / `QT_IM_MODULE` / `XMODIFIERS` / `SDL_IM_MODULE`) は
   Omarchy 既定 (`default/environment.d/10-omarchy-fcitx.conf`) に任せる。fcitx5 は
   同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。
