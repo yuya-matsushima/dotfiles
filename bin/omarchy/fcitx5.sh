@@ -7,7 +7,7 @@
 
 set -e
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 TEMPLATE="$SCRIPT_DIR/../../omarchy/.config/fcitx5/profile"
 PROFILE="${XDG_CONFIG_HOME:-$HOME/.config}/fcitx5/profile"
 

@@ -19,6 +19,7 @@ gcloud = "latest"
 aws-sam = "latest"
 terraform = "latest"
 tflint = "latest"
+shellcheck = "latest"
 # global npm パッケージ (旧: asdf node lts への npm i -g)
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:@openai/codex" = "latest"

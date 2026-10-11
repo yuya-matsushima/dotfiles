@@ -25,6 +25,7 @@ gcloud = "latest"
 aws-sam = "latest"
 terraform = "latest"
 tflint = "latest"
+shellcheck = "latest"
 # AI / CLI ツール (omarchy 側 config から統合)
 codex = "latest"
 gh = "latest"
