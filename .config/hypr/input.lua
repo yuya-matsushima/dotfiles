@@ -66,6 +66,12 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 -- Personal touchpad overrides (uncommented = replaces Omarchy defaults).
 hl.config({
   input = {
+    -- Key repeat matched to macOS (bin/mac.sh: InitialKeyRepeat 12 / KeyRepeat 2).
+    -- macOS units are 15ms: delay = 12 * 15 = 180ms, interval = 2 * 15 = 30ms (≒ 33/s).
+    -- Omarchy default is repeat_delay = 250, repeat_rate = 40.
+    repeat_delay = 180,
+    repeat_rate = 33,
+
     -- Pointer speed. Range -1.0..1.0, Omarchy default is 0.
     -- Higher = the cursor travels further for the same finger movement.
     -- Tune in small steps (~0.05) until it feels right.
