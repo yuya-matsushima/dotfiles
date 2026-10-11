@@ -23,6 +23,13 @@
 -- Disable a default binding without replacing it.
 -- hl.unbind("SUPER + SHIFT + B")
 
+-- Omarchy 既定の SUPER + SHIFT + SPACE (Toggle top bar) を無効化する。
+-- IME 切替の CTRL + SPACE と押し方が近く, 誤爆で bar-off フラグが立ったまま
+-- バーが画面外に隠れていたため (詳細: docs/omarchy.md)。
+-- バーを出し入れしたいときは `omarchy-toggle-bar` を直接実行する
+-- (off = 表示, on = 非表示。フラグ名が bar-off のため直感と逆)。
+hl.unbind("SUPER + SHIFT + SPACE")
+
 -- Logitech MX Keys examples:
 -- o.bind("SUPER + SHIFT + S", nil, "omarchy-capture-screenshot")
 -- o.bind("SUPER + H", nil, "voxtype record toggle")
