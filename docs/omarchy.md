@@ -136,6 +136,12 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   あった (表示は「あ」のまま英語が入力される症状)。`ime-toggle` による IM 切替で
   状態遷移を一意にしこれを防ぐ。それでも変換が効かない場合は `CTRL + SPACE` を
   押し直すか `fcitx5-remote -r` で fcitx5 を再読込する。
+- 内蔵 JIS キーボードの **英数 / かな** キーは `hypr/bindings.lua` で compositor が消費し,
+  英数 → `fcitx5-remote -s keyboard-us`, かな → `fcitx5-remote -s mozc` に固定する
+  (macOS と同じ「押せば必ずその状態」)。jp layout ではそれぞれ keysym `Hangul_Hanja` /
+  `Hangul` になる。これらのキーが mozc に届くと mozc 内部で「直接入力」へ遷移し,
+  fcitx5 側は mozc 有効 (`fcitx5-remote` = 2) のまま英字しか入らなくなっていた。
+  なお Lua の `o.bind` は `code:130` 形式の keycode 指定を解釈しない (keycode 0 になる)。
 - mozc が「直接入力」に残ったときの保険として, mozc のキー設定
   (`fcitx5-configtool` → mozc → プロパティ → キー設定) で「直接入力 →
   ひらがな」に戻すキーを任意の組み合わせで割り当てられる。ただし

@@ -39,3 +39,11 @@
 -- IM を明示的に切り替えることで状態遷移を一意にする)
 -- 注意: このキーは Hyprland が消費するため, アプリ側には Ctrl+Space は渡らない。
 o.bind("CTRL + SPACE", "IME toggle (fcitx5/mozc)", os.getenv("HOME") .. "/.local/bin/ime-toggle")
+
+-- 内蔵 JIS キーボードの 英数 / かな キーを macOS 同様の「英語へ」「日本語へ」に固定する。
+-- これらが mozc に届くと mozc 内部で「直接入力」へ遷移し, fcitx5 側は mozc 有効の
+-- まま英字しか入らなくなる。compositor 側で消費して IM の明示切替だけを行う。
+-- jp layout では LANG1 (かな, keycode 130) が Hangul, LANG2 (英数, keycode 131) が
+-- Hangul_Hanja になる (xkb pc シンボル由来)。US 配列の外付けキーボードには影響しない。
+o.bind("Hangul", "IME on (かな → mozc)", "fcitx5-remote -s mozc")
+o.bind("Hangul_Hanja", "IME off (英数 → keyboard-us)", "fcitx5-remote -s keyboard-us")
