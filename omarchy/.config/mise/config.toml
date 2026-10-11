@@ -35,3 +35,4 @@ gh = "latest"
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:ccusage" = "latest"
 "npm:@mermaid-lint/cli" = "latest"
+claude = "latest"
