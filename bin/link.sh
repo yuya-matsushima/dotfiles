@@ -39,6 +39,7 @@ TARGETS=( \
          ".config/hypr/autostart.lua" \
          ".config/hypr/envs.lua" \
          ".config/hypr/monitors.lua" \
+         ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/obsidian/user-flags.conf" \
          ".config/ghostty" \
@@ -71,6 +72,7 @@ LINUX_ONLY=( \
               ".config/hypr/autostart.lua" \
               ".config/hypr/envs.lua" \
               ".config/hypr/monitors.lua" \
+              ".config/hypr/looknfeel.lua" \
               ".config/chromium-flags.conf" \
               ".config/obsidian/user-flags.conf" \
               ".local/bin/omarchy-screensaver" \
