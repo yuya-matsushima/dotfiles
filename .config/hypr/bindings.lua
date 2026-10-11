@@ -30,6 +30,13 @@
 -- (off = 表示, on = 非表示。フラグ名が bar-off のため直感と逆)。
 hl.unbind("SUPER + SHIFT + SPACE")
 
+-- Omarchy 既定の SUPER + / , SUPER + ALT + / (Monitor scaling up / down) を無効化する。
+-- 誤爆で画面全体の scale が変わっていたため。アプリ内のズーム (CTRL + +/- 等) は影響しない。
+-- scale を一時的に変えたいときは `omarchy-hyprland-monitor-scaling up|down` を直接実行する
+-- (monitors.lua は書き換わらず, hyprctl reload で元に戻る)。
+hl.unbind("SUPER + SLASH")
+hl.unbind("SUPER + ALT + SLASH")
+
 -- Logitech MX Keys examples:
 -- o.bind("SUPER + SHIFT + S", nil, "omarchy-capture-screenshot")
 -- o.bind("SUPER + H", nil, "voxtype record toggle")

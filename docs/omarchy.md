@@ -171,6 +171,7 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 | キー | Omarchy 既定の動作 | 無効化の理由 |
 | --- | --- | --- |
 | `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | IME 切替の `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
+| `SUPER + /` / `SUPER + ALT + /` | Monitor scaling up / down (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし。一時的に変える場合は `omarchy-hyprland-monitor-scaling up\|down` を直接実行する |
 
 バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
 `omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
