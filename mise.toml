@@ -1,0 +1,4 @@
+# このリポジトリ内でだけ有効な開発ツール (グローバルの .config/mise/config.toml には入れない)。
+# スクリプトの静的解析: mise exec -- shellcheck bin/*.sh
+[tools]
+shellcheck = "latest"

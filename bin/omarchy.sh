@@ -13,7 +13,7 @@ fi
 
 # .zshrc / .vimrc 等が必要とする CLI ツールを導入する
 # (go は mise 管理のため含めない)
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 sh "$SCRIPT_DIR/omarchy/cli.sh"
 
 # fcitx5 の IM 構成 (keyboard-us + mozc) を配置
