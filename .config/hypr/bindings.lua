@@ -24,7 +24,7 @@
 -- hl.unbind("SUPER + SHIFT + B")
 
 -- Omarchy 既定の SUPER + SHIFT + SPACE (Toggle top bar) を無効化する。
--- IME 切替の CTRL + SPACE と押し方が近く, 誤爆で bar-off フラグが立ったまま
+-- 当時 IME 切替に使っていた CTRL + SPACE と押し方が近く, 誤爆で bar-off フラグが立ったまま
 -- バーが画面外に隠れていたため (詳細: docs/omarchy.md)。
 -- バーを出し入れしたいときは `omarchy-toggle-bar` を直接実行する
 -- (off = 表示, on = 非表示。フラグ名が bar-off のため直感と逆)。
@@ -42,17 +42,14 @@ hl.unbind("SUPER + ALT + SLASH")
 -- o.bind("SUPER + H", nil, "voxtype record toggle")
 -- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
 
--- IME (fcitx5/mozc) toggle.
+-- IME (fcitx5/mozc) の切替。
 -- Hyprland の Wayland IME (zwp_input_method_v2) では fcitx5 から見える入力
 -- コンテキストが常に 1 つで, ON/OFF 状態はグローバルになる。アプリ単位の状態
 -- 保持は原理的にできないため行わない (詳細: docs/omarchy.md)。
--- また fcitx5 は Hyprland ではトリガキーを直接受け取れないため, compositor 側で
--- ~/.local/bin/ime-toggle を叩いて current IM を mozc <-> keyboard-us で切り替える。
--- (従来の fcitx5-remote -t による active/inactive トグルは keyboard-us 上で
--- mozc に戻せず「直接入力」に取り残される問題があった。ime-toggle は
--- IM を明示的に切り替えることで状態遷移を一意にする)
--- 注意: このキーは Hyprland が消費するため, アプリ側には Ctrl+Space は渡らない。
-o.bind("CTRL + SPACE", "IME toggle (fcitx5/mozc)", os.getenv("HOME") .. "/.local/bin/ime-toggle")
+-- 切替は compositor 側で current IM を mozc <-> keyboard-us に明示的に切り替える
+-- (fcitx5-remote -t の active/inactive トグルは keyboard-us 上で mozc に戻せず
+-- 「直接入力」に取り残される問題があった)。
+-- CTRL + SPACE はアプリ (nvim の補完等) に渡すため IME 切替には使わない。
 
 -- 内蔵 JIS キーボードの 英数 / かな キーを macOS 同様の「英語へ」「日本語へ」に固定する。
 -- これらが mozc に届くと mozc 内部で「直接入力」へ遷移し, fcitx5 側は mozc 有効の

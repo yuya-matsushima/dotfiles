@@ -128,14 +128,19 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   再現しようとする常駐スクリプト (旧 `hypr-fcitx-sync`) は, web app の window class
   が URL 由来で不安定なこともあり破綻する (特定アプリが英語に固定される等) ため
   撤去した。
-- IME の切替は `hypr/bindings.lua` の `CTRL + SPACE` で行う。実体は
-  `~/.local/bin/ime-toggle` (リポジトリ管理, `bin/link.sh` で symlink) で, current IM を
-  `mozc` <-> `keyboard-us` に**明示的に切り替える**。Hyprland では fcitx5 がトリガキーを
-  直接受け取れないため compositor 側で叩く。
+- IME の切替はすべて `hypr/bindings.lua` で compositor 側から行う (かな / 英数キー,
+  `SUPER` 単押し)。トグルの実体は `~/.local/bin/ime-toggle` (リポジトリ管理,
+  `bin/link.sh` で symlink) で, current IM を `mozc` <-> `keyboard-us` に
+  **明示的に切り替える**。
+- `CTRL + SPACE` は IME 切替に使わず, アプリ (nvim の `<C-Space>` 補完等) に渡す。
+  fcitx5 は既定で `Control+space` をトリガキーに持ち, Hyprland のバインドを外しても
+  fcitx5 が先に受け取ってしまうため, `~/.config/fcitx5/config` の
+  `[Hotkey/TriggerKeys]` を空にしている (`make omarchy` の `bin/omarchy/fcitx5.sh` が
+  未設定時のみ追記する)。
 - 従来の `fcitx5-remote -t` (active/inactive トグル) は, keyboard-us を current IM にした
   状態では mozc に戻れず, mozc が「直接入力」に取り残されて変換が効かなくなることが
   あった (表示は「あ」のまま英語が入力される症状)。`ime-toggle` による IM 切替で
-  状態遷移を一意にしこれを防ぐ。それでも変換が効かない場合は `CTRL + SPACE` を
+  状態遷移を一意にしこれを防ぐ。それでも変換が効かない場合は `SUPER` 単押し / かなキーを
   押し直すか `fcitx5-remote -r` で fcitx5 を再読込する。
 - 内蔵 JIS キーボードの **英数 / かな** キーは `hypr/bindings.lua` で compositor が消費し,
   英数 → `fcitx5-remote -s keyboard-us`, かな → `fcitx5-remote -s mozc` に固定する
@@ -149,8 +154,7 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   `SUPER + 1` 等や `SUPER` + ドラッグとは共存する (誤発火しないことを確認済み)。
 - mozc が「直接入力」に残ったときの保険として, mozc のキー設定
   (`fcitx5-configtool` → mozc → プロパティ → キー設定) で「直接入力 →
-  ひらがな」に戻すキーを任意の組み合わせで割り当てられる。ただし
-  `CTRL + SPACE` は Hyprland が消費するため mozc 側には割り当てられない。
+  ひらがな」に戻すキーを任意の組み合わせで割り当てられる。
 - IM 構成 (`~/.config/fcitx5/profile`: `keyboard-us` + `mozc`, 既定 IM は mozc) は
   `omarchy/.config/fcitx5/profile` をテンプレートとして `make omarchy`
   (`bin/omarchy/fcitx5.sh`) が配置する。fcitx5 は終了時に profile を書き戻すため
@@ -174,7 +178,7 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 
 | キー | Omarchy 既定の動作 | 無効化の理由 |
 | --- | --- | --- |
-| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | IME 切替の `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
+| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | 当時 IME 切替に使っていた `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
 | `SUPER + /` / `SUPER + ALT + /` | Monitor scaling up / down (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし。一時的に変える場合は `omarchy-hyprland-monitor-scaling up\|down` を直接実行する |
 
 バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
