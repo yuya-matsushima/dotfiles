@@ -57,6 +57,9 @@ TARGETS=( \
          ".agents/hooks" \
          ".pi/agent/settings.json" \
          ".pi/agent/keybindings.json" \
+         ".pi/agent/extensions/tmux-status.ts" \
+         ".pi/agent/extensions/guard-force-push.ts" \
+         ".pi/agent/extensions/pi-permission-system/config.json" \
        )
 
 # macOS 専用のターゲット (Linux では link しない)

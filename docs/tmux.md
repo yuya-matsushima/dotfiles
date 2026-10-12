@@ -92,12 +92,14 @@ _ymt_tmux_window_sep="-"
 
 ## AI agent 実行中のステータスバー
 
-window 名の左端に付く色付きバー (`@agent_status`) は pane option で、agent hooks
-(`bin/agent_hooks.sh`) と OpenCode の tmux-status プラグインが設定します。
+window 名の左端に付く色付きバー (`@agent_status`) は pane option で、Claude Code /
+Codex の agent hooks (`bin/agent_hooks.sh`)、OpenCode の tmux-status プラグイン、
+Pi の `~/.pi/agent/extensions/tmux-status.ts` が設定します。
 
-Claude Code は `SessionEnd` hook で自分でクリアしますが、Codex / OpenCode には
-終了イベントに相当する hook がなく、`.zsh/extensions/window_repo_name.zsh` の
-`precmd` が終了時にクリアします。
+Claude Code (`SessionEnd`) と Pi (`session_shutdown`) は自分でクリアしますが、
+Codex / OpenCode には終了イベントに相当する hook がなく、
+`.zsh/extensions/window_repo_name.zsh` の `precmd` が終了時にクリアします。
+自前でクリアする CLI でも kill など異常終了時は `precmd` がクリアします。
 `@agent_status` はペイン単位なので、同じ window の他ペインで動いている agent のバーには影響しません。
 
 precmd は「agent の終了」ではなく「プロンプトの復帰」で走るため、対象 CLI のジョブが
@@ -117,10 +119,10 @@ precmd は「agent の終了」ではなく「プロンプトの復帰」で走�
 ### 対象コマンド
 
 対象コマンドは `YMT_TMUX_AGENT_COMMANDS` で上書きできます (既定は
-`claude` / `codex` / `opencode` / `agy` / `antigravity`)。
+`claude` / `codex` / `opencode` / `pi` / `agy` / `antigravity`)。
 `~/.zshrc_local` で配列を定義してください。
 
 ```zsh
 # ~/.zshrc_local
-YMT_TMUX_AGENT_COMMANDS=(claude codex opencode agy antigravity aider)
+YMT_TMUX_AGENT_COMMANDS=(claude codex opencode pi agy antigravity aider)
 ```

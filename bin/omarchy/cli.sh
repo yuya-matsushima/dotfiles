@@ -42,7 +42,7 @@ install_aur() {
 
 # Homebrew (bin/homebrew/cli.sh) のうち, omarchy base に無い Arch パッケージ。
 # Arch 名 (対応する Homebrew ツール):
-#   erdtree (erdtree)
+#   erdtree (erdtree) / ast-grep (ast-grep) / go-yq (yq)
 #
 # omarchy base が導入するため含めないもの:
 #   bat eza fd fzf imagemagick jq nvim(neovim) postgresql-libs(libpq)
@@ -64,9 +64,11 @@ install_official \
     colordiff \
     ctags \
     erdtree \
+    ast-grep \
     git-delta \
     gitleaks \
     jnv \
+    go-yq \
     resvg \
     sd \
     stern \

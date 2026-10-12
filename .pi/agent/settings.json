@@ -10,7 +10,10 @@
     "npm:cc-safety-net",
     "npm:@narumitw/pi-plan-mode",
     "npm:@narumitw/pi-usage",
-    "npm:@narumitw/pi-btw"
+    "npm:@narumitw/pi-btw",
+    "npm:pi-code",
+    "npm:pi-lens",
+    "npm:pi-web-access"
   ],
   "lastChangelogVersion": "0.85.1",
   "theme": "dark"
