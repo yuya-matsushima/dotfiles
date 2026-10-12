@@ -133,6 +133,7 @@ mkdir -p "$HOME_DIR/.tmux" "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$
 touch "$HOME_DIR/.tmux/agent-status.sh"
 cp "$REPO_ROOT/.agents/hooks/notify-sound.sh" "$HOME_DIR/.agents/hooks/"
 cp "$REPO_ROOT/.agents/hooks/force-push-verdict.sh" "$HOME_DIR/.agents/hooks/"
+cp "$REPO_ROOT/.agents/hooks/force-push-reason.sh" "$HOME_DIR/.agents/hooks/"
 cp "$GUARD_APPLY" "$HOME_DIR/.codex/hooks/"
 cp "$GUARD_BASH" "$HOME_DIR/.codex/hooks/"
 # Pi は hook JSON ではなく拡張で完結するため, agent_hooks は存在検査のみ行う。
