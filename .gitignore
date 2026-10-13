@@ -28,6 +28,8 @@
 /.pi/agent/*
 !/.pi/agent/settings.json
 !/.pi/agent/keybindings.json
+# グローバル指示 (日本語応答などの方針) は管理対象
+!/.pi/agent/AGENTS.md
 # 拡張 (tmux status / force-push guard / 権限ポリシー) は管理対象
 !/.pi/agent/extensions/
 /.pi/agent/extensions/*

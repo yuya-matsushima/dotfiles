@@ -72,6 +72,7 @@ Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セ
 
 - `.pi/agent/settings.json` (既定プロバイダー/モデル, `packages`)
 - `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
+- `.pi/agent/AGENTS.md` (グローバル指示。日本語で回答する方針など)
 - `.pi/agent/extensions/tmux-status.ts` (tmux ステータス + 通知音のブリッジ)
 - `.pi/agent/extensions/guard-force-push.ts` (共有ロジックを使う force-push ガード)
 - `.pi/agent/extensions/pi-permission-system/config.json` (権限ポリシー)
