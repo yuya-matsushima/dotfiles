@@ -294,6 +294,9 @@ if [ -L "$LINK_HOME/.pi/agent/extensions/guard-force-push.ts" ]; then pass; else
 current_case="link: Pi permission config is a symlink"
 if [ -L "$LINK_HOME/.pi/agent/extensions/pi-permission-system/config.json" ]; then pass; else fail "not a symlink"; fi
 
+current_case="link: Pi global instructions (AGENTS.md) is a symlink"
+if [ -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "not a symlink"; fi
+
 current_case="link: Claude settings.json is not symlinked"
 if [ ! -e "$LINK_HOME/.claude/settings.json" ]; then pass; else fail "unexpected settings.json"; fi
 
@@ -313,6 +316,9 @@ if [ ! -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "still a symlink"; f
 
 current_case="unlink: Pi tmux-status extension symlink is removed"
 if [ ! -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "still a symlink"; fi
+
+current_case="unlink: Pi global instructions (AGENTS.md) symlink is removed"
+if [ ! -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "still a symlink"; fi
 
 # 既存の実ディレクトリがある場合 link.sh は *.bak.<timestamp> へ退避してから link する
 LINK_HOME_CONFLICT="$WORK/link_home_conflict"
