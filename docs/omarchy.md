@@ -81,7 +81,7 @@ getent passwd "$USER" | cut -d: -f7
 
 | 対象 | 扱い |
 |---|---|
-| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`opencode`/`uv`/`pi` を含む |
+| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`uv`/`pi` と OpenCode (公式タップ `anomalyco/tap/opencode-v2`) を含む |
 | `omarchy/.config/ghostty/config` | Linux 用 Ghostty 設定 (omarchy theme 連動) |
 | `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
 | `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
