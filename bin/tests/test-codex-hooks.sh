@@ -13,11 +13,13 @@
 #      - 一時 HOME 上での install → reinstall → uninstall の冪等性
 #      - unrelated Hook の保持
 #      - 生成 JSON が jq empty を通る
+#      - Pi 拡張 (存在検査のみ) が欠けていると install が失敗する
 #   3. OpenCode V1 / V2 設定
 #      - V1 tui.json / V2 cli.json の JSON / schema
 #      - tmux status plugin の V1 / V2 export 形式
 #   4. bin/link.sh
 #      - クリーンな HOME にディレクトリを含む TARGETS を link できる
+#        (Pi 拡張ファイルを含む)
 #      - unlink で symlink のみ削除される
 #
 # 依存: sh (POSIX), jq, node
@@ -126,12 +128,19 @@ assert_allow "$GUARD_APPLY" '{"tool_input":{"command":"echo hello"}}'
 echo "# agent_hooks: install / reinstall / uninstall"
 
 HOME_DIR="$WORK/home"
-mkdir -p "$HOME_DIR/.tmux" "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$HOME_DIR/.claude"
+mkdir -p "$HOME_DIR/.tmux" "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$HOME_DIR/.claude" \
+         "$HOME_DIR/.pi/agent/extensions/pi-permission-system"
 touch "$HOME_DIR/.tmux/agent-status.sh"
 cp "$REPO_ROOT/.agents/hooks/notify-sound.sh" "$HOME_DIR/.agents/hooks/"
 cp "$REPO_ROOT/.agents/hooks/force-push-verdict.sh" "$HOME_DIR/.agents/hooks/"
+cp "$REPO_ROOT/.agents/hooks/force-push-reason.sh" "$HOME_DIR/.agents/hooks/"
 cp "$GUARD_APPLY" "$HOME_DIR/.codex/hooks/"
 cp "$GUARD_BASH" "$HOME_DIR/.codex/hooks/"
+# Pi は hook JSON ではなく拡張で完結するため, agent_hooks は存在検査のみ行う。
+# 空ファイルで十分 (内容は pi 側が読み込む)。
+touch "$HOME_DIR/.pi/agent/extensions/tmux-status.ts"
+touch "$HOME_DIR/.pi/agent/extensions/guard-force-push.ts"
+touch "$HOME_DIR/.pi/agent/extensions/pi-permission-system/config.json"
 
 # Seed unrelated Claude hooks (guard-* から notify-sound legacy まで含める)
 cat > "$HOME_DIR/.claude/settings.json" <<'JSON'
@@ -276,6 +285,15 @@ if [ -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "not a symlink"; fi
 current_case="link: ~/.claude/hooks is a symlink"
 if [ -L "$LINK_HOME/.claude/hooks" ]; then pass; else fail "not a symlink"; fi
 
+current_case="link: Pi tmux-status extension is a symlink"
+if [ -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "not a symlink"; fi
+
+current_case="link: Pi force-push guard extension is a symlink"
+if [ -L "$LINK_HOME/.pi/agent/extensions/guard-force-push.ts" ]; then pass; else fail "not a symlink"; fi
+
+current_case="link: Pi permission config is a symlink"
+if [ -L "$LINK_HOME/.pi/agent/extensions/pi-permission-system/config.json" ]; then pass; else fail "not a symlink"; fi
+
 current_case="link: Claude settings.json is not symlinked"
 if [ ! -e "$LINK_HOME/.claude/settings.json" ]; then pass; else fail "unexpected settings.json"; fi
 
@@ -292,6 +310,9 @@ if [ ! -L "$LINK_HOME/.agents/hooks" ]; then pass; else fail "still a symlink"; 
 
 current_case="unlink: ~/.codex/hooks symlink is removed"
 if [ ! -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "still a symlink"; fi
+
+current_case="unlink: Pi tmux-status extension symlink is removed"
+if [ ! -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "still a symlink"; fi
 
 # 既存の実ディレクトリがある場合 link.sh は *.bak.<timestamp> へ退避してから link する
 LINK_HOME_CONFLICT="$WORK/link_home_conflict"

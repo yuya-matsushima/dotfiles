@@ -1,14 +1,17 @@
 #!/bin/sh
 
-# Install / uninstall AI agent hooks for Claude Code, Codex, and OpenCode.
+# Install / uninstall AI agent hooks for Claude Code, Codex, OpenCode, and Pi.
 #
 # Manages:
-#   - tmux status hooks (agent-status.sh) for both CLIs
+#   - tmux status hooks (agent-status.sh) for Claude Code / Codex
 #   - shared notification sound (~/.agents/hooks/notify-sound.sh)
 #   - Codex-only protected-file and force-push guards
 #   - OpenCode tmux status plugins (.config/opencode/plugins/tmux-status.js and
 #     .config/opencode/plugins/tui/tmux-status.js) are self-contained and
 #     auto-loaded; no registration step needed.
+#   - Pi is self-contained as well: the tmux status / notification bridge and the
+#     force-push guard live in ~/.pi/agent/extensions/*.ts (linked by bin/link.sh)
+#     and are auto-loaded. This script only verifies they exist after `make link`.
 #
 # Unrelated hook entries (e.g. Claude Code's existing guard-protected-files.sh
 # / guard-force-push.sh under ~/.claude/hooks/) are preserved on both install
@@ -38,12 +41,19 @@ TMUX_SCRIPT="$HOME/.tmux/agent-status.sh"
 NOTIFY_SCRIPT="$HOME/.agents/hooks/notify-sound.sh"
 CODEX_GUARD_APPLY="$HOME/.codex/hooks/guard-protected-apply-patch.sh"
 CODEX_GUARD_BASH="$HOME/.codex/hooks/guard-force-push.sh"
-# Claude Code / Codex の guard-force-push が共用する判定ロジック。
-# 欠けていると guard が fail-open で無効化されるため install 時に検査する。
+# Claude Code / Codex / Pi の guard-force-push が共用する判定ロジックと理由文言。
+# どちらも欠けていると guard が fail-open で無効化されるため install 時に検査する。
 FORCE_PUSH_VERDICT="$HOME/.agents/hooks/force-push-verdict.sh"
+FORCE_PUSH_REASON="$HOME/.agents/hooks/force-push-reason.sh"
+# Pi は hook JSON ではなく拡張で完結する。存在検査のみ行う。
+PI_TMUX_STATUS="$HOME/.pi/agent/extensions/tmux-status.ts"
+PI_GUARD_FORCE_PUSH="$HOME/.pi/agent/extensions/guard-force-push.ts"
+PI_PERMISSION_CONFIG="$HOME/.pi/agent/extensions/pi-permission-system/config.json"
 
 if [ "$MODE" = "install" ]; then
-    for p in "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" "$FORCE_PUSH_VERDICT"; do
+    for p in "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" \
+             "$FORCE_PUSH_VERDICT" "$FORCE_PUSH_REASON" \
+             "$PI_TMUX_STATUS" "$PI_GUARD_FORCE_PUSH" "$PI_PERMISSION_CONFIG"; do
         if [ ! -e "$p" ]; then
             echo "error: $p not found. Run 'make link' first." >&2
             exit 1
@@ -159,6 +169,8 @@ if [ "$MODE" = "install" ]; then
 
 Note: Codex will not run the new hooks until you trust them.
       Run 'codex' and execute '/hooks' to review and trust the entries.
+Note: Pi needs no registration; the checked extensions under
+      ~/.pi/agent/extensions/ load on the next 'pi' launch.
 MSG
 else
     update "$HOME/.claude/settings.json" "$CLAUDE_MARKERS" ""

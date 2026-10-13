@@ -28,6 +28,14 @@
 /.pi/agent/*
 !/.pi/agent/settings.json
 !/.pi/agent/keybindings.json
+# 拡張 (tmux status / force-push guard / 権限ポリシー) は管理対象
+!/.pi/agent/extensions/
+/.pi/agent/extensions/*
+!/.pi/agent/extensions/tmux-status.ts
+!/.pi/agent/extensions/guard-force-push.ts
+!/.pi/agent/extensions/pi-permission-system/
+/.pi/agent/extensions/pi-permission-system/*
+!/.pi/agent/extensions/pi-permission-system/config.json
 
 # webdata-node dependencies
 .zsh/bin/webdata-node/node_modules/

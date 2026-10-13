@@ -6,6 +6,7 @@ brew tap gjbae1212/gossm
 
 brew install \
           mise \
+          ast-grep \
           awsume \
           bat \
           colordiff \
@@ -31,6 +32,7 @@ brew install \
           pngpaste \
           jq \
           jnv \
+          yq \
           libpq \
           opencode \
           pi-coding-agent \

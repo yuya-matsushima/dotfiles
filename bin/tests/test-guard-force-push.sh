@@ -11,6 +11,9 @@
 #   判定ロジックは .agents/hooks/force-push-verdict.sh に集約されているため、
 #   ここでは両 hook の入出力アダプタと共通判定の回帰をまとめて確認する。
 #
+#   3. 理由文言が共通スクリプト (.agents/hooks/force-push-reason.sh) と一致し、
+#      Claude 版 / Codex 版 (および Pi 版) で同一であること
+#
 # 依存: sh (POSIX), jq
 # 実行: sh bin/tests/test-guard-force-push.sh
 # ============================================================================
@@ -208,6 +211,50 @@ check allow 'sudo git push origin main'
 check allow "echo 'x;git push --force origin main'"
 check allow "echo 'x; git push --force'"
 check allow "echo 'do not run git push --force'"
+
+# ------------------------------------------------------------------
+# 理由文言は共通スクリプト (.agents/hooks/force-push-reason.sh) が唯一の出所。
+# Claude 版 / Codex 版 (および Pi 版) が同じ文言を relay することを確認する。
+# ------------------------------------------------------------------
+REASON_SH="$REPO_ROOT/.agents/hooks/force-push-reason.sh"
+
+# reason_of <hook> <command>: block JSON から理由文言を取り出す
+reason_of() {
+    hook="$1"
+    cmd="$2"
+    input=$(jq -cn --arg c "$cmd" '{tool_input:{command:$c}}')
+    out=$(printf '%s' "$input" | sh "$hook")
+    printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // .reason // empty'
+}
+
+current_case="reason: 既知 verdict はすべて文言を持つ"
+missing=""
+for v in combined raw mirror plus; do
+    [ -n "$(sh "$REASON_SH" "$v")" ] || missing="$missing $v"
+done
+if [ -z "$missing" ]; then pass; else fail "empty reason for:$missing"; fi
+
+current_case="reason: 未知 verdict も fail-closed で文言を返す"
+if [ -n "$(sh "$REASON_SH" unknown-verdict)" ]; then pass; else fail "empty reason"; fi
+
+current_case="reason: Claude 版は共有スクリプトと一致"
+expected="guard-force-push: $(sh "$REASON_SH" raw)"
+got=$(reason_of "$CLAUDE_HOOK" 'git push --force origin main')
+if [ "$got" = "$expected" ]; then pass; else fail "claude='$got' expected='$expected'"; fi
+
+current_case="reason: Codex 版は共有スクリプトと一致"
+expected="guard-force-push: $(sh "$REASON_SH" mirror)"
+got=$(reason_of "$CODEX_HOOK" 'git push --mirror origin')
+if [ "$got" = "$expected" ]; then pass; else fail "codex='$got' expected='$expected'"; fi
+
+current_case="reason: Claude と Codex の文言が一致 (combined)"
+claude_reason=$(reason_of "$CLAUDE_HOOK" 'git push --force-with-lease --force origin main')
+codex_reason=$(reason_of "$CODEX_HOOK" 'git push --force-with-lease --force origin main')
+if [ -n "$claude_reason" ] && [ "$claude_reason" = "$codex_reason" ]; then
+    pass
+else
+    fail "claude='$claude_reason' codex='$codex_reason'"
+fi
 
 # ------------------------------------------------------------------
 # 集計

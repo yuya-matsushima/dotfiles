@@ -20,9 +20,10 @@
 # リポジトリ名と worktree 名の区切り文字は _ymt_tmux_window_sep (既定 `:`)。
 #
 # あわせて、agent CLI 終了時にステータスバーのバー (pane option @agent_status) を
-# クリアする。Claude Code は SessionEnd hook で自前でクリアするが、Codex /
-# OpenCode には終了イベントに相当する hook がなく、この precmd がないとバーが
-# 残り続ける (bin/agent_hooks.sh 参照)。
+# クリアする。Claude Code (SessionEnd hook) と Pi (session_shutdown) は自前で
+# クリアするが、Codex / OpenCode には終了イベントに相当する hook がなく、この
+# precmd がないとバーが残り続ける (bin/agent_hooks.sh 参照)。
+# 自前でクリアする CLI でも kill など異常終了時はここでクリアされる。
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
@@ -37,6 +38,7 @@ typeset -ga YMT_TMUX_AGENT_COMMANDS
   claude
   codex
   opencode
+  pi
   agy
   antigravity
 )

@@ -15,6 +15,7 @@
 #   `~/.agents/hooks/force-push-verdict.sh` に集約している。
 #   本スクリプトは Codex の hook JSON の入出力だけを担う薄いアダプタで、
 #   verdict を Codex の拒否 JSON に変換する。
+#   理由文言も `~/.agents/hooks/force-push-reason.sh` に集約している。
 #
 #   拒否する verdict:
 #     - combined : raw --force と --force-with-lease を併記
@@ -35,7 +36,7 @@
 #   stdin に Codex の hook JSON。.tool_input.command を参照。
 # ============================================================================
 
-# shellcheck disable=SC2016  # deny メッセージ内の backtick は markdown 装飾で意図的
+# shellcheck disable=SC2016  # jq プログラム内の $reason はシェル展開させない
 set -eu
 
 cmd=$(jq -r '.tool_input.command // empty')
@@ -53,31 +54,21 @@ verdict_sh="$script_dir/../../.agents/hooks/force-push-verdict.sh"
 
 verdict=$(printf '%s' "$cmd" | sh "$verdict_sh")
 
-emit_deny() {
-    reason="guard-force-push: $1"
-    jq -n --arg reason "$reason" '{
-        hookSpecificOutput: {
-            hookEventName: "PreToolUse",
-            permissionDecision: "deny",
-            permissionDecisionReason: $reason
-        }
-    }'
-    exit 0
-}
+# 該当なし (通常の push 等) は素通し
+[ -z "$verdict" ] && exit 0
 
-case "$verdict" in
-    combined)
-        emit_deny 'raw --force と --force-with-lease の併記は意図が矛盾するため拒否します。--force-with-lease 単独に絞ってください。'
-        ;;
-    raw)
-        emit_deny '`git push --force` (or -f / -uf など短縮結合形) is blocked. Prefer `git push --force-with-lease` after confirming with the user, or update the branch via rebase + PR review instead.'
-        ;;
-    mirror)
-        emit_deny '`git push --mirror` は全 ref を上書きするため拒否します。個別 branch を明示的に push してください。'
-        ;;
-    plus)
-        emit_deny '`+<refspec>` による強制更新は拒否します。lease 付きで push するか, rebase + PR review を経由してください。'
-        ;;
-esac
+# 理由文言は共通スクリプトに集約 (Claude Code / Codex / Pi で drift させない)。
+# 欠けている場合は素通し (defense-in-depth のため fail-open)。
+reason_sh="$script_dir/../../.agents/hooks/force-push-reason.sh"
+[ -f "$reason_sh" ] || exit 0
 
+reason="guard-force-push: $(sh "$reason_sh" "$verdict")"
+
+jq -n --arg reason "$reason" '{
+    hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: $reason
+    }
+}'
 exit 0

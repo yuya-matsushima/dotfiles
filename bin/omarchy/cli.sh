@@ -42,7 +42,7 @@ install_aur() {
 
 # Homebrew (bin/homebrew/cli.sh) のうち, omarchy base に無い Arch パッケージ。
 # Arch 名 (対応する Homebrew ツール):
-#   erdtree (erdtree)
+#   erdtree (erdtree) / ast-grep (ast-grep) / go-yq (yq)
 #
 # omarchy base が導入するため含めないもの:
 #   bat eza fd fzf imagemagick jq nvim(neovim) postgresql-libs(libpq)
@@ -54,7 +54,7 @@ install_aur() {
 #   gnu-sed: Linux の sed は GNU sed のため不要
 #   mise: omarchy の mise-bin で導入済み
 #   direnv: mise で代替するため不要
-#   gh opencode uv: mise (.config/mise/config.toml) で管理
+#   gh opencode uv と AI CLI (claude / codex / pi): mise (.config/mise/config.toml) で管理
 #   htop mariadb-clients: 未使用のため不要
 #   zsh-git-prompt: bin/zsh_plugin.sh が woefe 版 git-prompt.zsh を取得
 #   pngpaste font-symbols-only-nerd-font: macOS 専用
@@ -64,9 +64,11 @@ install_official \
     colordiff \
     ctags \
     erdtree \
+    ast-grep \
     git-delta \
     gitleaks \
     jnv \
+    go-yq \
     resvg \
     sd \
     stern \

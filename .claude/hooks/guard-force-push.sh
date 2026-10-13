@@ -16,6 +16,7 @@
 #   `~/.agents/hooks/force-push-verdict.sh` に集約している（Codex 版と同一）。
 #   本スクリプトは Claude Code の hook JSON の入出力だけを担う薄いアダプタで、
 #   verdict を Claude Code の block JSON に変換する。
+#   理由文言も `~/.agents/hooks/force-push-reason.sh` に集約している。
 #   これにより、コマンド文字列全体への grep ではなく、subcommand 分割・
 #   クォート内区切りの無害化・push 以降のトークン単位判定で細かく制御する。
 #
@@ -38,7 +39,7 @@
 #   stdin に Claude Code の hook JSON。tool_input.command を参照。
 # ============================================================================
 
-# shellcheck disable=SC2016  # block メッセージ内の backtick は markdown 装飾で意図的
+# shellcheck disable=SC2016  # jq プログラム内の $reason はシェル展開させない
 set -eu
 
 cmd=$(jq -r '.tool_input.command // empty')
@@ -56,24 +57,15 @@ verdict_sh="$script_dir/../../.agents/hooks/force-push-verdict.sh"
 
 verdict=$(printf '%s' "$cmd" | sh "$verdict_sh")
 
-emit_block() {
-    jq -n --arg reason "guard-force-push: $1" '{decision:"block",reason:$reason}'
-    exit 0
-}
+# 該当なし (通常の push 等) は素通し
+[ -z "$verdict" ] && exit 0
 
-case "$verdict" in
-    combined)
-        emit_block 'raw --force と --force-with-lease の併記は意図が矛盾するためブロックします。--force-with-lease 単独に絞ってください。'
-        ;;
-    raw)
-        emit_block '`git push --force` (or -f / -uf など短縮結合形) is blocked. Prefer `git push --force-with-lease` after confirming with the user, or update the branch via rebase + PR review instead.'
-        ;;
-    mirror)
-        emit_block '`git push --mirror` は全 ref を上書きするためブロックします。個別 branch を明示的に push してください。'
-        ;;
-    plus)
-        emit_block '`+<refspec>` による強制更新はブロックします。lease 付きで push するか, rebase + PR review を経由してください。'
-        ;;
-esac
+# 理由文言は共通スクリプトに集約 (Claude Code / Codex / Pi で drift させない)。
+# 欠けている場合は素通し (defense-in-depth のため fail-open)。
+reason_sh="$script_dir/../../.agents/hooks/force-push-reason.sh"
+[ -f "$reason_sh" ] || exit 0
 
+reason=$(sh "$reason_sh" "$verdict")
+
+jq -n --arg reason "guard-force-push: $reason" '{decision:"block",reason:$reason}'
 exit 0

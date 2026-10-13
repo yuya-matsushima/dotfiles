@@ -72,8 +72,15 @@ Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セ
 
 - `.pi/agent/settings.json` (既定プロバイダー/モデル, `packages`)
 - `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
+- `.pi/agent/extensions/tmux-status.ts` (tmux ステータス + 通知音のブリッジ)
+- `.pi/agent/extensions/guard-force-push.ts` (共有ロジックを使う force-push ガード)
+- `.pi/agent/extensions/pi-permission-system/config.json` (権限ポリシー)
 
-`pi` 本体は Homebrew (`pi-coding-agent`) で導入し、`make cli` に含まれます。
+`pi` 本体は macOS では Homebrew (`pi-coding-agent`) で導入し `make cli` に含まれ、
+Linux では mise (`omarchy/.config/mise/config.toml` の `pi = "latest"`) で管理します。
 認証は `OPENCODE_API_KEY` 環境変数か、`pi` 内の `/login` で設定します。
 `settings.json` の `packages` で宣言した拡張 (`pi-vim`, `pi-web-search`,
 `pi-mcp-adapter` など) は初回起動時に自動導入されます。
+
+tmux ステータスと通知音は `make agent_hooks` の対象に含まれます。Pi 側は
+`~/.pi/agent/extensions/*.ts` が自動で読み込まれるため、登録作業は不要です。
