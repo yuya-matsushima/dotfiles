@@ -11,10 +11,20 @@
     "npm:@narumitw/pi-plan-mode",
     "npm:@narumitw/pi-usage",
     "npm:@narumitw/pi-btw",
-    "npm:pi-code",
-    "npm:pi-lens",
-    "npm:pi-web-access"
+    {
+      "source": "npm:pi-code",
+      "extensions": [
+        "!extensions/subagent/**",
+        "!extensions/plan-mode/**",
+        "!extensions/settings-flags.ts",
+        "!extensions/web.ts"
+      ]
+    },
+    "npm:pi-lens"
   ],
   "lastChangelogVersion": "0.85.1",
-  "theme": "omarchy-system"
+  "theme": "omarchy-system",
+  "extensions": [
+    "-builtin:mcp"
+  ]
 }

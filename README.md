@@ -82,5 +82,10 @@ Linux では mise (`omarchy/.config/mise/config.toml` の `pi = "latest"`) で�
 `settings.json` の `packages` で宣言した拡張 (`pi-vim`, `pi-web-search`,
 `pi-mcp-adapter` など) は初回起動時に自動導入されます。
 
+`pi-code` は内包する subagent / plan-mode / MCP flag / web search が既存拡張
+(`pi-subagents` / `@narumitw/pi-plan-mode` / `pi-mcp-adapter` / `pi-web-search`) と
+衝突するため, `packages` の object 形式で該当 extension だけ除外して読み込みます。
+`pi-web-access` は `pi-web-search` と `web_search` が重複するため導入しません。
+
 tmux ステータスと通知音は `make agent_hooks` の対象に含まれます。Pi 側は
 `~/.pi/agent/extensions/*.ts` が自動で読み込まれるため、登録作業は不要です。
