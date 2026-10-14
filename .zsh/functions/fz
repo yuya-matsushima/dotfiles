@@ -107,8 +107,8 @@ _ymt_fz_check_dependencies() {
     optional_deps+=("bat (syntax highlighting)")
   fi
 
-  if ! (( $+commands[pbcopy] )) && [[ "$OSTYPE" == "darwin"* ]]; then
-    optional_deps+=("pbcopy (clipboard support)")
+  if ! (( $+commands[clip] )); then
+    optional_deps+=("clip (clipboard support; ~/.local/bin/clip)")
   fi
 
   # 必須コマンドが不足している場合はエラー
@@ -208,12 +208,12 @@ _ymt_fz_log() {
     enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
   fi
 
-  if (( $+commands[pbcopy] )); then
+  if (( $+commands[clip] )); then
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
       --bind=ctrl-s:toggle-sort \
-      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | pbcopy)+abort' \
+      --bind='ctrl-y:execute(echo {} | grep -o "[a-f0-9]\{7\}" | head -1 | clip copy)+abort' \
       --header "Press CTRL-Y to copy commit hash" \
       --preview "$preview_cmd" \
       --height=100% \
@@ -472,12 +472,12 @@ _ymt_fz_history() {
 # 環境変数検索・表示
 _ymt_fz_env() {
   local selected_env
-  if (( $+commands[pbcopy] )); then
+  if (( $+commands[clip] )); then
     selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
       --preview 'echo {} | cut -d= -f2-' \
       --preview-window=right:50%:wrap \
       --header "Environment variables (Press CTRL-Y to copy)" \
-      --bind='ctrl-y:execute(echo {} | pbcopy)')
+      --bind='ctrl-y:execute(echo {} | clip copy)')
   else
     selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
       --preview 'echo {} | cut -d= -f2-' \
@@ -637,7 +637,7 @@ Usage: fz find
 
 Behavior:
   fd -t f でファイル一覧を取得し fzf で選択.
-  選択したパスを stdout に出力 + pbcopy が存在すればクリップボードにコピー.
+  選択したパスを stdout に出力 + clip が存在すればクリップボードにコピー.
   .gitignore は尊重される.
 
 Examples:
@@ -671,8 +671,8 @@ EOF
   if [ -n "$selected_file" ]; then
     echo "$selected_file"
     # クリップボードにコピー
-    if (( $+commands[pbcopy] )); then
-      echo -n "$selected_file" | pbcopy
+    if (( $+commands[clip] )); then
+      echo -n "$selected_file" | clip copy
       echo "Copied to clipboard!"
     fi
   fi
@@ -699,7 +699,7 @@ _ymt_fz_view() {
   selected_file=$(echo "$files" | fzf \
     --preview 'if (( $+commands[bat] )); then bat --style=full --color=always -- {}; else cat -- {}; fi' \
     --preview-window=right:60% \
-    --bind='ctrl-y:execute(printf "%s" {} | pbcopy)+abort' \
+    --bind='ctrl-y:execute(printf "%s" {} | clip copy)+abort' \
     --header "Select file to view (Ctrl-Y to copy path)")
 
   if [ -n "$selected_file" ]; then

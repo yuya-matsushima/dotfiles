@@ -2,7 +2,7 @@
 #
 # apple-container — Apple Container 上のコーディングエージェント隔離環境を扱う。
 #
-# ~/Project/Personal/containers が提供するコーディングエージェント用コンテナを、
+# ~/Projects/Personal/containers が提供するコーディングエージェント用コンテナを、
 # Makefile を介さず container CLI を直接呼んで操作する。既定ではローカルビルドした
 # イメージ (agent:latest) を使う。GHCR の private イメージを使う場合は
 # `IMAGE=ghcr.io/<GH_USER>/containers:latest` のように指定して `up` する。
@@ -25,7 +25,7 @@ typeset -g APPLE_CONTAINER_NAME="${NAME:-containers-agent}"
 typeset -g APPLE_CONTAINER_CPUS="${CPUS:-4}"
 typeset -g APPLE_CONTAINER_MEMORY="${MEMORY:-8g}"
 typeset -g APPLE_CONTAINER_READY_TIMEOUT="${READY_TIMEOUT:-60}"
-typeset -g APPLE_CONTAINER_DOTFILES="${DOTFILES:-$HOME/Project/Personal/dotfiles}"
+typeset -g APPLE_CONTAINER_DOTFILES="${DOTFILES:-$HOME/Projects/Personal/dotfiles}"
 typeset -g APPLE_CONTAINER_REPO="${CONT_REPO:-${APPLE_CONTAINER_DOTFILES:h}/containers}"
 typeset -g APPLE_CONTAINER_SSH_SOCKET="${SSH_AGENT_SOCKET:-$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock}"
 typeset -g APPLE_CONTAINER_UID="${USER_UID:-$(id -u)}"
@@ -73,7 +73,7 @@ apple-container: Apple Container 上のコーディングエージェント隔�
     MEMORY             メモリ上限 (既定: 8g)
     INCLUDE_OPENCODE   OpenCode 入りバリアントを使う (既定: false)
     READY_TIMEOUT      初期化完了の待ち秒数 (既定: 60)
-    DOTFILES           dotfiles リポジトリのパス (既定: ~/Project/Personal/dotfiles)
+    DOTFILES           dotfiles リポジトリのパス (既定: ~/Projects/Personal/dotfiles)
     CONT_REPO          containers リポジトリのパス (既定: <DOTFILES dir>/containers)
     SSH_AGENT_SOCKET   ホストの 1Password SSH agent ソケット
     GH_USER            GHCR の GitHub アカウント (既定: yuya-matsushima)

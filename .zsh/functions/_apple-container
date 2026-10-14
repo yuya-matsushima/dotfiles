@@ -29,7 +29,7 @@ _apple_container() {
         _files -/
       fi
       ;;
-    exec|status|logs|down)
+    exec|status|down)
       if [[ $words[CURRENT] == -* ]]; then
         _values 'option' '--name[container name]'
       fi

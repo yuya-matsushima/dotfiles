@@ -2,13 +2,13 @@ local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 
 vim.filetype.add({
-  extension = {
-    ["md.erb"] = "markdown",
-    ["envrc"] = "sh",
-    ["scss.css"] = "scss",
+  filename = {
+    [".envrc"] = "sh",
   },
   pattern = {
     [".*%.sql"] = "mysql",
+    [".*%.md%.erb"] = "markdown",
+    [".*%.scss%.css"] = "scss",
   },
 })
 
@@ -80,11 +80,13 @@ autocmd('BufEnter', {
 })
 
 -- Disable saving files with forbidden names like ":" or ";"
-autocmd('BufWritePre', {
+-- BufWriteCmd の callback が書き込みを行わない場合 Neovim はファイルを書かない。
+-- そのため BufWriteCmd で保存自体をブロックする。
+-- (BufWritePre で error() を投げても nvim 0.12 では保存は中断されないことを確認済み)
+autocmd('BufWriteCmd', {
   group = buffer_group,
   pattern = { ':*', ';*' },
   callback = function()
-    vim.api.nvim_err_writeln('Forbidden file name: ' .. vim.fn.expand('<afile>'))
-    return true -- 保存を中断させたい場合はここで制御を検討
+    vim.notify('Forbidden file name: ' .. vim.fn.expand('<afile>'), vim.log.levels.ERROR)
   end,
 })

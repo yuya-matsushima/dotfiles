@@ -32,6 +32,7 @@ brew install \
           font-symbols-only-nerd-font \
           fzf \
           htop \
+          lazygit \
           imagemagick \
           pngpaste \
           jq \
@@ -57,6 +58,7 @@ brew install \
           tree-sitter-cli \
           uv \
           wget \
+          yazi \
           zsh \
           zsh-completions \
           zsh-git-prompt \

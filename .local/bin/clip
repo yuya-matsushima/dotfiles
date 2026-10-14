@@ -1,0 +1,90 @@
+#!/bin/sh
+# clip - クロスプラットフォームなクリップボード操作ヘルパー
+#
+# macOS (pbcopy/pbpaste/pngpaste) と Linux (Wayland: wl-copy/wl-paste,
+# X11: xclip/xsel) の差を吸収する。fzf の bind や zsh 関数から共通で使う。
+#
+# Usage:
+#   clip copy              標準入力をクリップボードへコピー
+#   clip paste             クリップボードの内容を標準出力へ
+#   clip paste-image [FILE] クリップボードの画像を FILE へ保存 (FILE 省略時は標準出力)
+#   clip -h | --help       ヘルプ
+
+set -eu
+
+has() { command -v "$1" >/dev/null 2>&1; }
+on_macos() { [ "$(uname -s)" = "Darwin" ]; }
+on_wayland() { [ -n "${WAYLAND_DISPLAY:-}" ] && has wl-copy; }
+
+_usage() {
+  cat <<'EOF'
+clip - cross-platform clipboard helper
+
+Usage:
+    clip copy                 copy stdin to the clipboard
+    clip paste                print the clipboard to stdout
+    clip paste-image [FILE]   save a clipboard image to FILE (or stdout)
+    clip -h | --help          print this help
+
+Backends:
+    macOS : pbcopy / pbpaste / pngpaste
+    Wayland: wl-copy / wl-paste
+    X11   : xclip / xsel
+EOF
+}
+
+_copy() {
+  if on_macos && has pbcopy; then
+    pbcopy
+  elif on_wayland; then
+    wl-copy
+  elif has xclip; then
+    xclip -selection clipboard
+  elif has xsel; then
+    xsel --clipboard --input
+  else
+    echo "clip: no clipboard copy tool found (pbcopy/wl-copy/xclip/xsel)" >&2
+    return 1
+  fi
+}
+
+_paste() {
+  if on_macos && has pbpaste; then
+    pbpaste
+  elif [ -n "${WAYLAND_DISPLAY:-}" ] && has wl-paste; then
+    wl-paste --no-newline
+  elif has xclip; then
+    xclip -selection clipboard -o
+  elif has xsel; then
+    xsel --clipboard --output
+  else
+    echo "clip: no clipboard paste tool found (pbpaste/wl-paste/xclip/xsel)" >&2
+    return 1
+  fi
+}
+
+_paste_image() {
+  _dest="${1:-}"
+  if on_macos && has pngpaste; then
+    if [ -n "$_dest" ]; then pngpaste "$_dest"; else pngpaste -; fi
+  elif [ -n "${WAYLAND_DISPLAY:-}" ] && has wl-paste; then
+    if [ -n "$_dest" ]; then wl-paste --type image/png > "$_dest"; else wl-paste --type image/png; fi
+  elif has xclip; then
+    if [ -n "$_dest" ]; then xclip -selection clipboard -t image/png -o > "$_dest"; else xclip -selection clipboard -t image/png -o; fi
+  else
+    echo "clip: no clipboard image tool found (pngpaste/wl-paste/xclip)" >&2
+    return 1
+  fi
+}
+
+case "${1:-}" in
+  copy)        shift; _copy "$@" ;;
+  paste)       shift; _paste "$@" ;;
+  paste-image) shift; _paste_image "$@" ;;
+  -h|--help|help|'') _usage ;;
+  *)
+    echo "clip: unknown subcommand '$1'" >&2
+    _usage >&2
+    exit 1
+    ;;
+esac

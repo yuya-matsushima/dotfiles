@@ -70,7 +70,7 @@ _ymt_prompt_left_on() {
   local hostname_prefix=""
   hostname_prefix="$(_ymt_prompt_get_hostname)"
 
-  PROMPT="${hostname_prefix}%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
+  PROMPT="${ZSH_CONTAINER_BADGE}${hostname_prefix}%{${fg[cyan]}%}%30<~<%/%%%{${reset_color}%} "
   PROMPT2="%{${fg[red]}%}%_%%%{${reset_color}%} "
   SPROMPT="%{${fg[red]}%}%r is correct? [n,y,a,e]:%{${reset_color}%} "
 
@@ -94,7 +94,7 @@ _ymt_prompt_left_toggle() {
 }
 
 _ymt_prompt_right_status() {
-  if [[ "$RPROMPT" == *'git_super_status'* ]]; then
+  if [[ "$RPROMPT" == *'git_super_status'* || "$RPROMPT" == *'gitprompt'* ]]; then
     echo "Right prompt: enabled"
     return 0
   else
@@ -103,8 +103,26 @@ _ymt_prompt_right_status() {
   fi
 }
 
+# git プロンプト関数名を返す (macOS: git_super_status / Linux: gitprompt)
+_ymt_prompt_git_fn() {
+  if (( $+functions[gitprompt] )); then
+    echo "gitprompt"
+  elif (( $+functions[git_super_status] )); then
+    echo "git_super_status"
+  else
+    echo ""
+  fi
+}
+
 _ymt_prompt_right_on() {
-  RPROMPT='$(git_super_status 2>/dev/null || echo "")${AWSUME_PROFILE:+[awss:$AWSUME_PROFILE]}${AWS_PROFILE:+[awsp:$AWS_PROFILE]}'
+  local git_fn
+  git_fn="$(_ymt_prompt_git_fn)"
+  if [[ -n "$git_fn" ]]; then
+    RPROMPT="\$(${git_fn} 2>/dev/null || echo \"\")"
+  else
+    RPROMPT=""
+  fi
+  RPROMPT="${RPROMPT}\${AWSUME_PROFILE:+[awss:\$AWSUME_PROFILE]}\${AWS_PROFILE:+[awsp:\$AWS_PROFILE]}"
   echo "Right prompt enabled"
 }
 

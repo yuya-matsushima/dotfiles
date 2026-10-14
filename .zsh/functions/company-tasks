@@ -1,13 +1,28 @@
 #!/bin/zsh
 
 # Check dependencies
-for _ymt_ct_cmd in gh jq date awk; do
+for _ymt_ct_cmd in gh jq awk; do
   if ! command -v "$_ymt_ct_cmd" >/dev/null 2>&1; then
     echo "Error: $_ymt_ct_cmd command not found. Please install $_ymt_ct_cmd." >&2
     return 1
   fi
 done
 unset _ymt_ct_cmd
+
+# OS 非依存の日付ユーティリティ (BSD date -v / GNU date -d の差を吸収)
+zmodload zsh/datetime 2>/dev/null
+zmodload -F zsh/stat b:zstat 2>/dev/null
+
+# $1: 日数オフセット (省略時 0) -> YYYY-MM-DD
+_ymt_ct_date() {
+  local offset="${1:-0}"
+  strftime '%Y-%m-%d' $(( EPOCHSECONDS + offset * 86400 ))
+}
+
+# $1: file -> epoch 秒 (取得不可時は終了コード 1)
+_ymt_ct_mtime() {
+  zstat +mtime -- "$1" 2>/dev/null
+}
 
 _ymt_ct_usage() {
   cat <<'EOF'
@@ -57,7 +72,6 @@ Environment (--project 未指定時は必須):
 Dependencies:
   gh (with 'project' scope, and read access to issue custom fields)
   jq
-  date
   awk
 
 Target Date は Issue Custom Field (2025 GA) から GraphQL で取得する。
@@ -84,8 +98,8 @@ _ymt_ct_me() {
   cache="$dir/me"
 
   if (( ! refresh )) && [[ -f "$cache" ]]; then
-    mtime=$(stat -f %m "$cache" 2>/dev/null) || mtime=0
-    now=$(date +%s)
+    mtime=$(_ymt_ct_mtime "$cache") || mtime=0
+    now=$EPOCHSECONDS
     age=$(( now - mtime ))
     if (( age < 86400 )); then
       login=$(<"$cache")
@@ -302,11 +316,11 @@ _ymt_ct_filter_assignee() {
 _ymt_ct_bucket_split() {
   local json="$1" bucket="$2" exclude_week="${3:-0}"
   local today tomorrow week_to month_from month_to since
-  today=$(date +%Y-%m-%d)
-  tomorrow=$(date -v+1d +%Y-%m-%d)
-  week_to=$(date -v+7d +%Y-%m-%d)
-  month_from=$(date -v+8d +%Y-%m-%d)
-  month_to=$(date -v+30d +%Y-%m-%d)
+  today=$(_ymt_ct_date)
+  tomorrow=$(_ymt_ct_date 1)
+  week_to=$(_ymt_ct_date 7)
+  month_from=$(_ymt_ct_date 8)
+  month_to=$(_ymt_ct_date 30)
   since="$tomorrow"
   (( exclude_week )) && since="$month_from"
 
@@ -328,13 +342,13 @@ _ymt_ct_bucket_split() {
 _ymt_ct_bucket_title() {
   local bucket="$1" exclude_week="${2:-0}"
   case "$bucket" in
-    today) printf '今日中 (期限 <= %s)' "$(date +%Y-%m-%d)" ;;
-    week)  printf '7 日以内 (~ %s)' "$(date -v+7d +%Y-%m-%d)" ;;
+    today) printf '今日中 (期限 <= %s)' "$(_ymt_ct_date)" ;;
+    week)  printf '7 日以内 (~ %s)' "$(_ymt_ct_date 7)" ;;
     month)
       if (( exclude_week )); then
-        printf '30 日以内 (%s 〜 %s)' "$(date -v+8d +%Y-%m-%d)" "$(date -v+30d +%Y-%m-%d)"
+        printf '30 日以内 (%s 〜 %s)' "$(_ymt_ct_date 8)" "$(_ymt_ct_date 30)"
       else
-        printf '30 日以内 (~ %s)' "$(date -v+30d +%Y-%m-%d)"
+        printf '30 日以内 (~ %s)' "$(_ymt_ct_date 30)"
       fi ;;
     nodue) printf '期限未設定' ;;
   esac
@@ -423,8 +437,8 @@ _ymt_ct_render() {
   local title="$1" json="$2" me="$3"
   local count today_date d7_date
   count=$(printf '%s' "$json" | jq 'length')
-  today_date=$(date +%Y-%m-%d)
-  d7_date=$(date -v+7d +%Y-%m-%d)
+  today_date=$(_ymt_ct_date)
+  d7_date=$(_ymt_ct_date 7)
 
   echo "## ${title} — ${count} 件"
   if (( count == 0 )); then
@@ -689,7 +703,7 @@ _ymt_ct_iteration_cmd() {
 
   local me today
   me=$(_ymt_ct_me "$opt_refresh_me") || return $?
-  today=$(date +%Y-%m-%d)
+  today=$(_ymt_ct_date)
 
   local json_all json_scoped
   json_all=$(_ymt_ct_fetch_all "$owner" "$number") || return $?
