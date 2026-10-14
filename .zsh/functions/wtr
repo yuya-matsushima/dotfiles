@@ -30,7 +30,7 @@ Worktree layout:
     New worktrees are created under the repository's git directory:
         <git-common-dir>/wtr/<name>
     Example:
-        ~/Projects/Personal/dotfiles/.git/wtr/feat-x
+        $DOTFILES/.git/wtr/feat-x
 
     Living inside .git keeps worktrees out of the parent directory and
     invisible to git status / git clean / ripgrep without any .gitignore.

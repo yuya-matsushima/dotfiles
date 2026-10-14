@@ -211,9 +211,8 @@ main() {
     return 1
   fi
 
-  # Get the directory where this script is located
-  local script_dir="${0:A:h}"
-  local dotfiles_dir="${script_dir:h:h}"
+  # dotfiles リポジトリのルート (実配置の差異は DOTFILES が吸収)
+  local dotfiles_dir="${DOTFILES:-${${(%):-%x}:A:h:h:h}}"
   local node_project_dir="${dotfiles_dir}/.zsh/bin/webdata-node"
 
   # Check if Node.js project exists
