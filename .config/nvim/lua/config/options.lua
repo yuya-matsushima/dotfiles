@@ -57,8 +57,20 @@ opt.formatoptions:append('mM')
 -- CLIPBOARD
 -- ============================================================================
 
-if jit.os == 'OSX' or jit.os == 'Windows' then
-  opt.clipboard:append('unnamed')
+-- クリップボードプロバイダがある環境では + レジスタをシステムクリップボードに
+-- 同期する (unnamedplus)。Linux は Wayland (wl-copy) / X11 (xclip/xsel) を検出する。
+local function has_clipboard_provider()
+  if jit.os == 'Windows' then
+    return true
+  end
+  return vim.fn.executable('pbcopy') == 1
+    or vim.fn.executable('wl-copy') == 1
+    or vim.fn.executable('xclip') == 1
+    or vim.fn.executable('xsel') == 1
+end
+
+if has_clipboard_provider() then
+  opt.clipboard:append('unnamedplus')
 end
 
 -- ============================================================================

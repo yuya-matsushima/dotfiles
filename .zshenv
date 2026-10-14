@@ -23,6 +23,10 @@ fi
 # XDG Base Directory
 export XDG_CONFIG_HOME="$HOME/.config"
 
+# dotfiles リポジトリのルート。環境ごとの配置差異を ~/.zsh の symlink から
+# 動的に解決して吸収する (env で上書き可能)。
+export DOTFILES="${DOTFILES:-${${:-$HOME/.zsh}:A:h}}"
+
 if [ -f /opt/homebrew/bin/brew ]; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   export HOMEBREW_PREFIX=$(/opt/homebrew/bin/brew --prefix)
@@ -67,3 +71,8 @@ local add_fpath_dirs=(
 for dir in $add_fpath_dirs; do
   [[ -d "$dir" ]] && fpath=("$dir" $fpath)
 done
+
+# 非対話 zsh (fzf の execute など $SHELL -c) でも使う関数を autoload する。
+# .zshrc は非対話シェルで読まれないため, ここで fpath と autoload を用意する。
+fpath=($HOME/.zsh/functions $fpath)
+autoload -Uz clip

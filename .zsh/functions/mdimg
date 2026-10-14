@@ -20,7 +20,7 @@ Configurable Environment Variables:
     MDIMG_DIR=path/to/default/image/dir
 
 Dependencies:
-    pngpaste
+    clip (clipboard helper; needs pngpaste on macOS or wl-paste/xclip on Linux)
     imagemagick (optional, for -w)
 EOF
 }
@@ -62,8 +62,8 @@ _ymt_mdimg() {
   done
 
   # Check dependencies
-  if ! command -v pngpaste >/dev/null 2>&1; then
-    echo "Error: pngpaste is not installed. Run: brew install pngpaste" >&2
+  if ! command -v clip >/dev/null 2>&1; then
+    echo "Error: clip function is not available (expected in ~/.zsh/functions/clip). Run: make link" >&2
     return 1
   fi
 
@@ -94,7 +94,7 @@ _ymt_mdimg() {
 
   # Save clipboard image as PNG
   local png_path="${dir}/${filename}.png"
-  if ! pngpaste "$png_path" 2>/dev/null; then
+  if ! clip paste-image "$png_path" 2>/dev/null; then
     echo "Error: No image found in clipboard" >&2
     return 1
   fi
@@ -115,7 +115,7 @@ _ymt_mdimg() {
   # Generate Markdown reference
   local md="![${alt}](${final_path})"
   echo "$md"
-  echo -n "$md" | pbcopy
+  echo -n "$md" | clip copy
   echo "(copied to clipboard)" >&2
 }
 

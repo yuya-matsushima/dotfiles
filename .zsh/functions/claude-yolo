@@ -30,6 +30,12 @@ _ymt_claude_yolo_exec() {
     return 1
   fi
 
+  # sandbox-exec は macOS 専用
+  if ! command -v sandbox-exec &>/dev/null; then
+    echo "Error: sandbox-exec is not available (macOS only)." >&2
+    return 1
+  fi
+
   # Check if sandbox profile exists
   if [[ ! -f "$sandbox_profile" ]]; then
     echo "Error: Sandbox profile not found: $sandbox_profile" >&2

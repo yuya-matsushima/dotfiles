@@ -19,8 +19,10 @@ gcloud = "latest"
 aws-sam = "latest"
 terraform = "latest"
 tflint = "latest"
+# AI CLI (omarchy 側 config と揃える。codex は mise registry 経由で aqua 版を取得)
+codex = "latest"
+claude = "latest"
 # global npm パッケージ (旧: asdf node lts への npm i -g)
 # @github/copilot は Homebrew cask copilot-cli に一本化
-"npm:@openai/codex" = "latest"
 "npm:ccusage" = "latest"
 "npm:@mermaid-lint/cli" = "latest"

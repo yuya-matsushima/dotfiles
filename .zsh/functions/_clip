@@ -1,0 +1,41 @@
+#compdef clip
+
+# clip コマンドの補完定義
+
+_clip() {
+  local context state line
+  typeset -A opt_args
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[print help]' \
+    '1: :_clip_subcommands' \
+    '*::arg:->args'
+
+  case $state in
+    args)
+      case $line[1] in
+        paste-image)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]' \
+            '::output file:_files'
+          ;;
+        copy|paste)
+          _arguments \
+            '(-h --help)'{-h,--help}'[print help]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_clip_subcommands() {
+  local -a subcommands
+  subcommands=(
+    'copy:標準入力をクリップボードへコピー'
+    'paste:クリップボードの内容を標準出力へ'
+    'paste-image:クリップボードの画像をファイル (省略時は標準出力) へ保存'
+  )
+  _describe -t subcommands 'clip subcommand' subcommands
+}
+
+_clip "$@"

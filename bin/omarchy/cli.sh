@@ -56,8 +56,12 @@ install_aur() {
 #   direnv: mise で代替するため不要
 #   gh opencode uv と AI CLI (claude / codex / pi): mise (.config/mise/config.toml) で管理
 #   htop mariadb-clients: 未使用のため不要
+#   lazygit: omarchy base が導入済み
 #   zsh-git-prompt: bin/zsh_plugin.sh が woefe 版 git-prompt.zsh を取得
 #   pngpaste font-symbols-only-nerd-font: macOS 専用
+#   mo (k1LoW/tap/mo): Arch 公式/AUR にパッケージが無い。必要なら GitHub Releases の
+#     バイナリ (https://github.com/k1LoW/mo/releases) か `go install github.com/k1LoW/mo@latest`
+#     で個別導入する (未導入でも fz skills / mog 以外に影響しない)
 install_official \
     zsh \
     zsh-completions \
@@ -73,6 +77,7 @@ install_official \
     sd \
     stern \
     wget \
+    bind \
     7zip
 
 # 公式リポジトリに無いツールは AUR から導入する。

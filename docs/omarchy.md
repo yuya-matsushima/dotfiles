@@ -263,7 +263,7 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 
 ## 外部ディスプレイ構成 (monitors.lua)
 
-`~/.config/hypr/monitors.lua` はリポジトリの `.config/hypr/monitors.lua` に symlink され、
+`~/.config/hypr/monitors.lua` はリポジトリの `omarchy/.config/hypr/monitors.lua` に symlink され、
 `bin/link.sh` で Linux 専用ターゲットとして管理される。
 
 - 外部ディスプレイ接続時: 外部 (DP-3) を上 (Display 1)、内蔵 (eDP-1) を下 (Display 2) に縦配置

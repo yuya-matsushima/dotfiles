@@ -38,7 +38,7 @@ export FZF_COMPLETION_OPTS="--preview '${FZF_PREVIEW_COMMAND}'"
 export FZF_CTRL_R_OPTS="
   --preview 'echo {} | sed \"s/^ *[0-9]* *//\" | head -1'
   --preview-window=down:3:wrap
-  --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
+  --bind 'ctrl-y:execute-silent(echo -n {2..} | clip copy)+abort'
   --color header:italic
   --header 'Press CTRL-Y to copy command into clipboard'"
 

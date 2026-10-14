@@ -3,12 +3,6 @@
 # 設定ファイルのパス
 DISPLAY_CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/display/config.json"
 
-# 初期化: 設定ファイルが存在しない場合に作成
-if [[ ! -f "$DISPLAY_CONFIG_FILE" ]]; then
-  mkdir -p "$(dirname "$DISPLAY_CONFIG_FILE")"
-  echo '{"configs":[]}' > "$DISPLAY_CONFIG_FILE"
-fi
-
 # ヘルプを表示
 _ymt_display_usage() {
   cat <<EOF
@@ -154,6 +148,20 @@ _ymt_display_current() {
     echo "$current_config"
   fi
 }
+
+# displayplacer は macOS 専用。存在しない環境では設定ファイルを生成せず終了する。
+if ! command -v displayplacer >/dev/null 2>&1; then
+  case "${1:-}" in
+    --help|-h) _ymt_display_usage; return 0 ;;
+    *) echo "Error: displayplacer is not available (macOS only)." >&2; return 1 ;;
+  esac
+fi
+
+# 初期化: 設定ファイルが存在しない場合に作成
+if [[ ! -f "$DISPLAY_CONFIG_FILE" ]]; then
+  mkdir -p "$(dirname "$DISPLAY_CONFIG_FILE")"
+  echo '{"configs":[]}' > "$DISPLAY_CONFIG_FILE"
+fi
 
 case ${1} in
   save)

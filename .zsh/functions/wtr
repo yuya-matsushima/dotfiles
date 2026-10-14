@@ -30,7 +30,7 @@ Worktree layout:
     New worktrees are created under the repository's git directory:
         <git-common-dir>/wtr/<name>
     Example:
-        ~/Project/Personal/dotfiles/.git/wtr/feat-x
+        $DOTFILES/.git/wtr/feat-x
 
     Living inside .git keeps worktrees out of the parent directory and
     invisible to git status / git clean / ripgrep without any .gitignore.
@@ -714,7 +714,7 @@ _ymt_wtr_copy() {
   fi
 
   local copied_count=0
-  echo "$copy_files" | while IFS= read -r file; do
+  while IFS= read -r file; do
     local filename
     filename="$(basename "$file")"
     local target_file="$target_worktree/$filename"
@@ -725,7 +725,7 @@ _ymt_wtr_copy() {
     else
       echo "  Failed to copy: $filename" >&2
     fi
-  done
+  done <<< "$copy_files"
 
   echo "Copy completed"
   return 0

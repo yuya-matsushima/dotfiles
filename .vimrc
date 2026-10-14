@@ -115,8 +115,8 @@ set whichwrap=b,s,h,l,<,>,[,]
 set formatoptions+=mM
 
 set browsedir=buffer
-if has('win32') || has('win64') || has('mac')
-  set clipboard+=unnamed
+if has('clipboard') && (has('win32') || has('win64') || executable('pbcopy') || executable('wl-copy') || executable('xclip') || executable('xsel'))
+  set clipboard+=unnamedplus
 endif
 
 set mouse=a

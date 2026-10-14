@@ -15,16 +15,16 @@ Options:
     --help, -h         print help
 
 Dependencies:
-    pbcopy (macOS)
+    clip (or pbcopy / wl-copy / xclip via ~/.zsh/functions/clip)
 EOF
 }
 
 _ymt_teecopy() {
-  if ! command -v pbcopy >/dev/null 2>&1; then
-    echo "Error: pbcopy is not available (macOS required)" >&2
+  if ! command -v clip >/dev/null 2>&1; then
+    echo "Error: clip function is not available (expected in ~/.zsh/functions/clip). Run: make link" >&2
     return 1
   fi
-  tee >(sed $'s/\x1b\\[[0-9;]*m//g' | pbcopy)
+  tee >(sed $'s/\x1b\\[[0-9;]*m//g' | clip copy)
 }
 
 case ${1} in

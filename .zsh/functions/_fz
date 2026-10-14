@@ -31,6 +31,10 @@ _fz() {
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
           ;;
+        devkill)
+          _arguments \
+            '(-h --help)'{-h,--help}'[Show help]'
+          ;;
         history)
           _arguments \
             '(-h --help)'{-h,--help}'[Show help]'
@@ -80,6 +84,7 @@ _fz_subcommands() {
     'branch:Git branch切り替え'
     'cd:ディレクトリ履歴から移動（fdで拡張検索）'
     'docker:Docker container接続'
+    'devkill:dev サーバプロセス (pnpm/npm/vite/next 等) を検索して子孫ごと kill'
     'env:環境変数検索・表示'
     'find:ファイル検索（fdを使用）'
     'history:コマンド履歴検索・実行'

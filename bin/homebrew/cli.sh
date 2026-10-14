@@ -32,6 +32,7 @@ brew install \
           font-symbols-only-nerd-font \
           fzf \
           htop \
+          lazygit \
           imagemagick \
           pngpaste \
           jq \
