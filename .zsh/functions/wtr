@@ -55,8 +55,7 @@ Examples:
     wtr add feat/x --base develop
     wtr add feat/x --base
     wtr add feat/x --agent claude
-    wtr add feat/x --agent claude-yolo
-    wtr add feat/x --base develop --agent claude-yolo
+    wtr add feat/x --base develop --agent claude
     wtr add feat/x --no-copy
 EOF
 }
