@@ -58,7 +58,6 @@ brew install \
           tree-sitter-cli \
           uv \
           wget \
-          yazi \
           zsh \
           zsh-completions \
           zsh-git-prompt \

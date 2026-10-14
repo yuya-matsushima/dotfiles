@@ -77,7 +77,6 @@ install_official \
     sd \
     stern \
     wget \
-    yazi \
     bind \
     7zip
 
