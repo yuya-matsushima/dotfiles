@@ -45,7 +45,6 @@ TARGETS=( \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
-         ".local/bin/clip" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \

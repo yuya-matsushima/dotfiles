@@ -1,0 +1,88 @@
+#!/bin/zsh
+# clip - クロスプラットフォームなクリップボード操作ヘルパー
+#
+# macOS (pbcopy/pbpaste/pngpaste) と Linux (Wayland: wl-copy/wl-paste,
+# X11: xclip/xsel) の差を吸収する。fzf の bind や zsh 関数から共通で使う。
+#
+# 注意: fzf の execute(...) は非対話 zsh ($SHELL -c) で実行されるため,
+# この関数は .zshenv 側でも fpath + autoload されている (bin/link.sh 経由で
+# ~/.zsh/functions に配置される)。
+#
+# Usage:
+#   clip copy               標準入力をクリップボードへコピー
+#   clip paste              クリップボードの内容を標準出力へ
+#   clip paste-image [FILE] クリップボードの画像を FILE へ保存 (FILE 省略時は標準出力)
+#   clip -h | --help        ヘルプ
+
+_ymt_clip_usage() {
+  cat <<'EOF'
+clip - cross-platform clipboard helper
+
+Usage:
+    clip copy                 copy stdin to the clipboard
+    clip paste                print the clipboard to stdout
+    clip paste-image [FILE]   save a clipboard image to FILE (or stdout)
+    clip -h | --help          print this help
+
+Backends:
+    macOS : pbcopy / pbpaste / pngpaste
+    Wayland: wl-copy / wl-paste
+    X11   : xclip / xsel
+EOF
+}
+
+_ymt_clip_copy() {
+  if [[ "$OSTYPE" == darwin* ]] && (( $+commands[pbcopy] )); then
+    pbcopy
+  elif [[ -n "$WAYLAND_DISPLAY" ]] && (( $+commands[wl-copy] )); then
+    wl-copy
+  elif (( $+commands[xclip] )); then
+    xclip -selection clipboard
+  elif (( $+commands[xsel] )); then
+    xsel --clipboard --input
+  else
+    print -u2 "clip: no clipboard copy tool found (pbcopy/wl-copy/xclip/xsel)"
+    return 1
+  fi
+}
+
+_ymt_clip_paste() {
+  if [[ "$OSTYPE" == darwin* ]] && (( $+commands[pbpaste] )); then
+    pbpaste
+  elif [[ -n "$WAYLAND_DISPLAY" ]] && (( $+commands[wl-paste] )); then
+    wl-paste --no-newline
+  elif (( $+commands[xclip] )); then
+    xclip -selection clipboard -o
+  elif (( $+commands[xsel] )); then
+    xsel --clipboard --output
+  else
+    print -u2 "clip: no clipboard paste tool found (pbpaste/wl-paste/xclip/xsel)"
+    return 1
+  fi
+}
+
+_ymt_clip_paste_image() {
+  local dest="${1:-}"
+  if [[ "$OSTYPE" == darwin* ]] && (( $+commands[pngpaste] )); then
+    if [[ -n "$dest" ]]; then pngpaste "$dest"; else pngpaste -; fi
+  elif [[ -n "$WAYLAND_DISPLAY" ]] && (( $+commands[wl-paste] )); then
+    if [[ -n "$dest" ]]; then wl-paste --type image/png > "$dest"; else wl-paste --type image/png; fi
+  elif (( $+commands[xclip] )); then
+    if [[ -n "$dest" ]]; then xclip -selection clipboard -t image/png -o > "$dest"; else xclip -selection clipboard -t image/png -o; fi
+  else
+    print -u2 "clip: no clipboard image tool found (pngpaste/wl-paste/xclip)"
+    return 1
+  fi
+}
+
+case "${1:-}" in
+  copy)        shift; _ymt_clip_copy "$@" ;;
+  paste)       shift; _ymt_clip_paste "$@" ;;
+  paste-image) shift; _ymt_clip_paste_image "$@" ;;
+  -h|--help|help|'') _ymt_clip_usage ;;
+  *)
+    print -u2 "clip: unknown subcommand '$1'"
+    _ymt_clip_usage >&2
+    return 1
+    ;;
+esac

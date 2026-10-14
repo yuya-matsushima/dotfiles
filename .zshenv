@@ -67,3 +67,8 @@ local add_fpath_dirs=(
 for dir in $add_fpath_dirs; do
   [[ -d "$dir" ]] && fpath=("$dir" $fpath)
 done
+
+# 非対話 zsh (fzf の execute など $SHELL -c) でも使う関数を autoload する。
+# .zshrc は非対話シェルで読まれないため, ここで fpath と autoload を用意する。
+fpath=($HOME/.zsh/functions $fpath)
+autoload -Uz clip

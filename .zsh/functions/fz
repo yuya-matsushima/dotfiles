@@ -107,8 +107,8 @@ _ymt_fz_check_dependencies() {
     optional_deps+=("bat (syntax highlighting)")
   fi
 
-  if ! (( $+commands[clip] )); then
-    optional_deps+=("clip (clipboard support; ~/.local/bin/clip)")
+  if ! (( $+functions[clip] )); then
+    optional_deps+=("clip (clipboard support; ~/.zsh/functions/clip)")
   fi
 
   # 必須コマンドが不足している場合はエラー
@@ -208,7 +208,7 @@ _ymt_fz_log() {
     enter_cmd="enter:become(printf '%s' {} | grep -o '[a-f0-9]\\{7\\}' | head -1 | xargs -r git show | less -R)"
   fi
 
-  if (( $+commands[clip] )); then
+  if (( $+functions[clip] )); then
     git log --graph --color=always \
       --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
     fzf --ansi --no-sort --reverse --tiebreak=index \
@@ -472,7 +472,7 @@ _ymt_fz_history() {
 # 環境変数検索・表示
 _ymt_fz_env() {
   local selected_env
-  if (( $+commands[clip] )); then
+  if (( $+functions[clip] )); then
     selected_env=$(env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' | sort | fzf \
       --preview 'echo {} | cut -d= -f2-' \
       --preview-window=right:50%:wrap \
@@ -671,7 +671,7 @@ EOF
   if [ -n "$selected_file" ]; then
     echo "$selected_file"
     # クリップボードにコピー
-    if (( $+commands[clip] )); then
+    if (( $+functions[clip] )); then
       echo -n "$selected_file" | clip copy
       echo "Copied to clipboard!"
     fi

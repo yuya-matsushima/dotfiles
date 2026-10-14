@@ -15,13 +15,13 @@ Options:
     --help, -h         print help
 
 Dependencies:
-    clip (or pbcopy / wl-copy / xclip via ~/.local/bin/clip)
+    clip (or pbcopy / wl-copy / xclip via ~/.zsh/functions/clip)
 EOF
 }
 
 _ymt_teecopy() {
   if ! command -v clip >/dev/null 2>&1; then
-    echo "Error: clip command is not available (expected in ~/.local/bin/clip). Run: make link" >&2
+    echo "Error: clip function is not available (expected in ~/.zsh/functions/clip). Run: make link" >&2
     return 1
   fi
   tee >(sed $'s/\x1b\\[[0-9;]*m//g' | clip copy)
