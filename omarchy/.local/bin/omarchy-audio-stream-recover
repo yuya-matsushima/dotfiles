@@ -1,15 +1,50 @@
 #!/bin/sh
-# Re-link application streams whose sink node vanished.
+# Keep the wired headphones preferred over every other output, and re-link
+# application streams whose sink node vanished.
 #
 # On Apple T2 Macs the wired-headphone node is torn down when the jack is
-# unplugged. WirePlumber switches the default sink to the speakers at the same
-# moment, but the streams are sometimes left attached to the destroyed sink
-# (sink id invalid), so playback goes silent until an output is selected
-# manually.
+# unplugged. WirePlumber switches the default sink back to the speakers (or to
+# the HDMI output) at that moment, but the streams are sometimes left attached
+# to the destroyed sink (sink id invalid), so playback goes silent until an
+# output is selected manually.
 #
-# This watches card / node / stream changes and moves such dangling streams to
-# the current default sink. Streams without an application.name (filter chain
-# and loopback internals) are never moved.
+# The other way round, an external HDMI output keeps the default sink because
+# it is higher priority and still available, so plugging the headphones does not
+# switch to them on its own. This script switches to the headphones whenever the
+# jack becomes available.
+#
+# Streams without an application.name (filter chain and loopback internals) are
+# never moved.
+
+headphones_state() {
+    pactl list cards 2>/dev/null | awk '
+        /\[Out\] Headphones:/ { print (/not available/ ? "off" : "on"); exit }'
+}
+
+app_stream_ids() {
+    pactl list sink-inputs 2>/dev/null | awk '
+        /^Sink Input #/ {
+            if (id != "" && app != "") print id
+            id = substr($3, 2)
+            app = ""
+        }
+        /application\.name = "/ {
+            app = $0
+            sub(/.*application\.name = "/, "", app)
+            sub(/".*/, "", app)
+        }
+        END { if (id != "" && app != "") print id }'
+}
+
+move_to() {
+    target=$1
+    [ -n "$target" ] || return 0
+
+    pactl set-default-sink "$target" 2>/dev/null || true
+    app_stream_ids | while read -r sid; do
+        pactl move-sink-input "$sid" "$target" 2>/dev/null || true
+    done
+}
 
 move_dangling() {
     default=$(pactl get-default-sink 2>/dev/null) || return 0
@@ -40,16 +75,36 @@ move_dangling() {
     done
 }
 
-# Watch for card / node / stream changes and also sweep periodically: the
-# dangling state can be produced by a node removal ("on sink" event) that does
-# not emit any sink-input event, so an event-only trigger misses it.
+prefer_headphones() {
+    hp=$(headphones_state)
+    [ -n "$hp" ] || return 0
 
-( while :; do sleep 5; move_dangling; done ) &
+    if [ "$hp" = "on" ] && [ "$last_hp" = "off" ]; then
+        hp_sink=$(pactl list short sinks 2>/dev/null |
+            awk 'tolower($2) ~ /headphone/ {print $2; exit}')
+        move_to "$hp_sink"
+    fi
+    last_hp=$hp
+}
+
+# Start from "off" so the first check also prefers the headphones when they are
+# already plugged in at login ("always prefer headphones").
+last_hp="off"
+
+# Sweep periodically: an event-only trigger misses node removals (which do not
+# emit sink-input events) and jack changes that are reported only as card
+# changes.
+( while :; do sleep 5; move_dangling; prefer_headphones; done ) &
 
 while :; do
     pactl subscribe 2>/dev/null | while IFS= read -r event; do
         case $event in
-            *"on card"* | *"on sink"* | *"on sink-input"*)
+            *"on card"*)
+                sleep 0.3
+                prefer_headphones
+                move_dangling
+                ;;
+            *"on sink"* | *"on sink-input"*)
                 sleep 0.3
                 move_dangling
                 ;;
