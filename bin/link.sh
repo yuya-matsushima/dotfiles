@@ -46,6 +46,7 @@ TARGETS=( \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \
+         ".local/bin/omarchy-hyprland-monitor-resume" \
          ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
          ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
@@ -96,6 +97,7 @@ LINUX_ONLY=( \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
               ".local/bin/omarchy-audio-stream-recover" \
+              ".local/bin/omarchy-hyprland-monitor-resume" \
               ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
               ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )

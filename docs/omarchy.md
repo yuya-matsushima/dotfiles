@@ -269,15 +269,18 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 `~/.config/hypr/monitors.lua` はリポジトリの `omarchy/.config/hypr/monitors.lua` に symlink され、
 `bin/link.sh` で Linux 専用ターゲットとして管理される。
 
-- 外部ディスプレイ接続時: 外部 (DP-3) を上 (Display 1)、内蔵 (eDP-1) を下 (Display 2) に縦配置
+- 外部ディスプレイ (DP-3) を上 (Display 1)、内蔵 (eDP-1) を下 (Display 2) に縦配置
 - SUPER+1..5 = 外部 / SUPER+6..0 = 内蔵 (workspace_rule で固定)
-- Mac 単体時: 内蔵のみ
-- 接続検知は `o.shell_succeeds("omarchy hw external monitors")` で設定読み込み時に行う。
-  起動後に外部を抜き挿しした場合は `hyprctl reload` で反映する。
+- 配置とワークスペースの割り当ては接続状態にかかわらず常に宣言する。Hyprland は
+  未接続出力のルールを保持し、接続時に自動適用する (該当ワークスペースも移動する)
+  ため、起動後に外部を抜き挿ししても画面順は崩れない
+- 長時間サスペンドからの復帰後に外部が認識されない場合に備え、
+  `omarchy-hyprland-monitor-resume` がログイン時に常駐し、復帰時に必要なら
+  `hyprctl reload` でモニター状態を再適用する
+  (手動実行: `omarchy-hyprland-monitor-resume --now`)
 
-注意: `hl.workspace_rule` の selectors は**既存ワークスペースにのみマッチ**するため、
-範囲指定 (`workspace = "1-5"`) は無効で、1 つずつ `workspace = "1"` のように列挙する
-必要がある。設定変更前に存在するワークスペースには適用されない (再起動で有効)。
+注意: `hl.workspace_rule` の範囲指定 (`workspace = "1-5"`) は使えないため、
+`workspace = "1"` のように 1 つずつ列挙する必要がある。
 
 注意: scale 用の変数名を Omarchy 既定の `omarchy_monitor_scale` / `omarchy_gdk_scale` に
 しない。`omarchy-hyprland-monitor-scaling` (`SUPER + /` / `SUPER + ALT + /`) はこの行を

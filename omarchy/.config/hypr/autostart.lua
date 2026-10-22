@@ -8,3 +8,7 @@ require("hypr.envs")
 -- Apple T2: re-link streams that are left attached to a vanished sink after
 -- the headphone jack is unplugged.
 o.exec_on_start("omarchy-audio-stream-recover")
+
+-- 長時間サスペンドからの復帰後, 外部ディスプレイが Hyprland のモニター一覧から
+-- 消える / mode を失うことがあるため, 復帰時にモニター状態を再適用する。
+o.exec_on_start("omarchy-hyprland-monitor-resume")
