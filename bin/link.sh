@@ -94,6 +94,11 @@ LINUX_ONLY=( \
               ".local/bin/ime-toggle" \
             )
 
+# Linux では使わないターゲット (macOS では link する)
+LINUX_EXCLUDE=( \
+                ".config/ghostty" \
+              )
+
 is_darwin_only() {
   local target
   for target in "${DARWIN_ONLY[@]}"; do
@@ -118,6 +123,14 @@ is_darwin_excluded() {
   return 1
 }
 
+is_linux_excluded() {
+  local target
+  for target in "${LINUX_EXCLUDE[@]}"; do
+    [ "$target" = "$1" ] && return 0
+  done
+  return 1
+}
+
 for TARGET in "${TARGETS[@]}"
 do
   if [ "$OS" != "Darwin" ] && is_darwin_only "$TARGET"; then
@@ -136,8 +149,14 @@ do
     continue
   fi
 
+  # Linux では使わないターゲット。unlink は残存リンクの掃除のため実行する。
+  if [ "$OS" != "Darwin" ] && [ "$MODE" = "link" ] && is_linux_excluded "$TARGET"; then
+    echo "skip (not used on Linux): $TARGET"
+    continue
+  fi
+
   SOURCE=$CURRENT_DIR/$TARGET
-  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/ghostty)
+  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/obsidian/user-flags.conf)
   if [ "$OS" != "Darwin" ] && [ -e "$OVERLAY_DIR/$TARGET" ]; then
     SOURCE=$OVERLAY_DIR/$TARGET
   fi
