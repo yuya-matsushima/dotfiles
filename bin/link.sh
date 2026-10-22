@@ -47,6 +47,7 @@ TARGETS=( \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \
          ".local/bin/omarchy-hyprland-monitor-resume" \
+         ".local/bin/omarchy-1password-focus-guard" \
          ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
          ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
@@ -98,6 +99,7 @@ LINUX_ONLY=( \
               ".local/bin/ime-toggle" \
               ".local/bin/omarchy-audio-stream-recover" \
               ".local/bin/omarchy-hyprland-monitor-resume" \
+              ".local/bin/omarchy-1password-focus-guard" \
               ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
               ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )

@@ -12,3 +12,6 @@ o.exec_on_start("omarchy-audio-stream-recover")
 -- 長時間サスペンドからの復帰後, 外部ディスプレイが Hyprland のモニター一覧から
 -- 消える / mode を失うことがあるため, 復帰時にモニター状態を再適用する。
 o.exec_on_start("omarchy-hyprland-monitor-resume")
+
+-- 1Password がパスワード入力を求める画面を出している間, フォーカスを固定する。
+o.exec_on_start("omarchy-1password-focus-guard")

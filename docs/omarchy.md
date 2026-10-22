@@ -282,6 +282,22 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 注意: `hl.workspace_rule` の範囲指定 (`workspace = "1-5"`) は使えないため、
 `workspace = "1"` のように 1 つずつ列挙する必要がある。
 
+## 1Password の SSH 承認ダイアログ
+
+`ssh` などで 1Password の SSH キーを使うと「1Password アクセスリクエスト」
+ダイアログが開く。これがフォーカスを失うと SSH がタイムアウトし,
+`agent refused operation` になるため, `omarchy-1password-focus-guard` が
+ダイアログ表示中はフォーカスを固定する。`autostart.lua` からログイン時に起動する。
+
+- 対象: class が `com.onepassword.OnePassword`, title が `1Password` の
+  floating ウィンドウで, サイズが 650x550 以下 (Quick Access はこれより大きい)
+- 承認 / 拒否 / タイムアウトでダイアログが閉じれば自動的に解除される
+- ログ: `journalctl -t omarchy-1password-focus-guard -f`
+- 一時停止: `pkill -f omarchy-1password-focus-guard`
+
+1Password のアップデートで class やダイアログのサイズが変わった場合は,
+スクリプト内の判定を合わせる。
+
 注意: scale 用の変数名を Omarchy 既定の `omarchy_monitor_scale` / `omarchy_gdk_scale` に
 しない。`omarchy-hyprland-monitor-scaling` (`SUPER + /` / `SUPER + ALT + /`) はこの行を
 見つけると `sed -i` で値を書き換え, symlink を実体ファイルに置き換えてしまう
