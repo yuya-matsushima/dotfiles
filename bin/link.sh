@@ -45,6 +45,9 @@ TARGETS=( \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
+         ".local/bin/omarchy-audio-stream-recover" \
+         ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
+         ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -92,6 +95,9 @@ LINUX_ONLY=( \
               ".config/obsidian/user-flags.conf" \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
+              ".local/bin/omarchy-audio-stream-recover" \
+              ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
+              ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )
 
 # Linux では使わないターゲット (macOS では link する)

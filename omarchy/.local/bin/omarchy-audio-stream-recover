@@ -1,0 +1,59 @@
+#!/bin/sh
+# Re-link application streams whose sink node vanished.
+#
+# On Apple T2 Macs the wired-headphone node is torn down when the jack is
+# unplugged. WirePlumber switches the default sink to the speakers at the same
+# moment, but the streams are sometimes left attached to the destroyed sink
+# (sink id invalid), so playback goes silent until an output is selected
+# manually.
+#
+# This watches card / node / stream changes and moves such dangling streams to
+# the current default sink. Streams without an application.name (filter chain
+# and loopback internals) are never moved.
+
+move_dangling() {
+    default=$(pactl get-default-sink 2>/dev/null) || return 0
+    [ -n "$default" ] || return 0
+
+    valid=$(pactl list short sinks 2>/dev/null | awk '{print $1}')
+    [ -n "$valid" ] || return 0
+
+    pactl list sink-inputs 2>/dev/null | awk '
+        /^Sink Input #/ {
+            if (id != "" && app != "") print id " " sink
+            id = substr($3, 2)
+            sink = ""
+            app = ""
+        }
+        /^\tSink: / { sink = $2 }
+        /application\.name = "/ {
+            app = $0
+            sub(/.*application\.name = "/, "", app)
+            sub(/".*/, "", app)
+        }
+        END { if (id != "" && app != "") print id " " sink }
+    ' | while read -r sid sinkid; do
+        case " $valid " in
+            *" $sinkid "*) ;;
+            *) pactl move-sink-input "$sid" "$default" 2>/dev/null || true ;;
+        esac
+    done
+}
+
+# Watch for card / node / stream changes and also sweep periodically: the
+# dangling state can be produced by a node removal ("on sink" event) that does
+# not emit any sink-input event, so an event-only trigger misses it.
+
+( while :; do sleep 5; move_dangling; done ) &
+
+while :; do
+    pactl subscribe 2>/dev/null | while IFS= read -r event; do
+        case $event in
+            *"on card"* | *"on sink"* | *"on sink-input"*)
+                sleep 0.3
+                move_dangling
+                ;;
+        esac
+    done
+    sleep 1
+done

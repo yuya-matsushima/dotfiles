@@ -4,3 +4,7 @@ require("hypr.envs")
 
 -- Extra autostart processes.
 -- o.launch_on_start("my-service")
+
+-- Apple T2: re-link streams that are left attached to a vanished sink after
+-- the headphone jack is unplugged.
+o.exec_on_start("omarchy-audio-stream-recover")
