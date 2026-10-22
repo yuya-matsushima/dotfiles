@@ -69,6 +69,17 @@ DARWIN_ONLY=( \
               ".gvimrc" \
             )
 
+# macOS では使わないが Linux では使うターゲット (macOS では link しない)
+DARWIN_EXCLUDE=( \
+                 ".config/opencode" \
+                 ".pi/agent/settings.json" \
+                 ".pi/agent/keybindings.json" \
+                 ".pi/agent/AGENTS.md" \
+                 ".pi/agent/extensions/tmux-status.ts" \
+                 ".pi/agent/extensions/guard-force-push.ts" \
+                 ".pi/agent/extensions/pi-permission-system/config.json" \
+               )
+
 # Linux / Omarchy 専用のターゲット (macOS では link しない)
 LINUX_ONLY=( \
               ".config/hypr/input.lua" \
@@ -99,6 +110,14 @@ is_linux_only() {
   return 1
 }
 
+is_darwin_excluded() {
+  local target
+  for target in "${DARWIN_EXCLUDE[@]}"; do
+    [ "$target" = "$1" ] && return 0
+  done
+  return 1
+}
+
 for TARGET in "${TARGETS[@]}"
 do
   if [ "$OS" != "Darwin" ] && is_darwin_only "$TARGET"; then
@@ -108,6 +127,12 @@ do
 
   if [ "$OS" = "Darwin" ] && is_linux_only "$TARGET"; then
     echo "skip (Linux only): $TARGET"
+    continue
+  fi
+
+  # macOS では使わないターゲット。unlink は残存リンクの掃除のため実行する。
+  if [ "$OS" = "Darwin" ] && [ "$MODE" = "link" ] && is_darwin_excluded "$TARGET"; then
+    echo "skip (not used on macOS): $TARGET"
     continue
   fi
 

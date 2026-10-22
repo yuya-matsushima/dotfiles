@@ -13,7 +13,7 @@
 #      - 一時 HOME 上での install → reinstall → uninstall の冪等性
 #      - unrelated Hook の保持
 #      - 生成 JSON が jq empty を通る
-#      - Pi 拡張 (存在検査のみ) が欠けていると install が失敗する
+#      - Pi 拡張 (存在検査のみ, Linux のみ) が欠けていると install が失敗する
 #   3. OpenCode V1 / V2 設定
 #      - V1 tui.json / V2 cli.json の JSON / schema
 #      - tmux status plugin の V1 / V2 export 形式
@@ -285,17 +285,23 @@ if [ -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "not a symlink"; fi
 current_case="link: ~/.claude/hooks is a symlink"
 if [ -L "$LINK_HOME/.claude/hooks" ]; then pass; else fail "not a symlink"; fi
 
-current_case="link: Pi tmux-status extension is a symlink"
-if [ -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "not a symlink"; fi
+# macOS では Pi を使わないため, 共通設定は link しない。
+if [ "$(uname -s)" = "Darwin" ]; then
+    current_case="link: Pi config is not linked on macOS"
+    if [ ! -e "$LINK_HOME/.pi" ]; then pass; else fail "unexpected ~/.pi"; fi
+else
+    current_case="link: Pi tmux-status extension is a symlink"
+    if [ -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "not a symlink"; fi
 
-current_case="link: Pi force-push guard extension is a symlink"
-if [ -L "$LINK_HOME/.pi/agent/extensions/guard-force-push.ts" ]; then pass; else fail "not a symlink"; fi
+    current_case="link: Pi force-push guard extension is a symlink"
+    if [ -L "$LINK_HOME/.pi/agent/extensions/guard-force-push.ts" ]; then pass; else fail "not a symlink"; fi
 
-current_case="link: Pi permission config is a symlink"
-if [ -L "$LINK_HOME/.pi/agent/extensions/pi-permission-system/config.json" ]; then pass; else fail "not a symlink"; fi
+    current_case="link: Pi permission config is a symlink"
+    if [ -L "$LINK_HOME/.pi/agent/extensions/pi-permission-system/config.json" ]; then pass; else fail "not a symlink"; fi
 
-current_case="link: Pi global instructions (AGENTS.md) is a symlink"
-if [ -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "not a symlink"; fi
+    current_case="link: Pi global instructions (AGENTS.md) is a symlink"
+    if [ -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "not a symlink"; fi
+fi
 
 current_case="link: Claude settings.json is not symlinked"
 if [ ! -e "$LINK_HOME/.claude/settings.json" ]; then pass; else fail "unexpected settings.json"; fi
@@ -303,8 +309,14 @@ if [ ! -e "$LINK_HOME/.claude/settings.json" ]; then pass; else fail "unexpected
 current_case="link: Codex config.toml is not symlinked"
 if [ ! -e "$LINK_HOME/.codex/config.toml" ]; then pass; else fail "unexpected config.toml"; fi
 
-current_case="link: portable OpenCode config remains a symlink"
-if [ -L "$LINK_HOME/.config/opencode" ]; then pass; else fail "not a symlink"; fi
+current_case="link: portable OpenCode config is linked only on Linux"
+if [ "$(uname -s)" = "Darwin" ]; then
+    if [ ! -e "$LINK_HOME/.config/opencode" ]; then pass; else fail "unexpected OpenCode config on macOS"; fi
+elif [ -L "$LINK_HOME/.config/opencode" ]; then
+    pass
+else
+    fail "not a symlink"
+fi
 
 (cd "$REPO_ROOT" && HOME="$LINK_HOME" sh "$LINK_SH" unlink >/dev/null)
 
@@ -319,6 +331,37 @@ if [ ! -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fa
 
 current_case="unlink: Pi global instructions (AGENTS.md) symlink is removed"
 if [ ! -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "still a symlink"; fi
+
+# macOS 相当 (uname -s が Darwin) では OpenCode / Pi の設定を link せず,
+# 既存リンクは unlink で掃除する。
+LINK_HOME_MAC="$WORK/link_home_mac"
+FAKEBIN="$WORK/fakebin"
+mkdir -p "$LINK_HOME_MAC" "$FAKEBIN"
+cat > "$FAKEBIN/uname" <<'EOF'
+#!/bin/sh
+[ "$1" = "-s" ] && { echo Darwin; exit 0; }
+exec /usr/bin/uname "$@"
+EOF
+chmod +x "$FAKEBIN/uname"
+
+(cd "$REPO_ROOT" && PATH="$FAKEBIN:$PATH" HOME="$LINK_HOME_MAC" sh "$LINK_SH" >/dev/null)
+
+current_case="link (macOS): OpenCode config is not linked"
+if [ ! -e "$LINK_HOME_MAC/.config/opencode" ]; then pass; else fail "unexpected OpenCode config"; fi
+
+current_case="link (macOS): Pi config is not linked"
+if [ ! -e "$LINK_HOME_MAC/.pi" ]; then pass; else fail "unexpected ~/.pi"; fi
+
+mkdir -p "$LINK_HOME_MAC/.config" "$LINK_HOME_MAC/.pi/agent"
+ln -s "$REPO_ROOT/.config/opencode" "$LINK_HOME_MAC/.config/opencode"
+ln -s "$REPO_ROOT/.pi/agent/AGENTS.md" "$LINK_HOME_MAC/.pi/agent/AGENTS.md"
+(cd "$REPO_ROOT" && PATH="$FAKEBIN:$PATH" HOME="$LINK_HOME_MAC" sh "$LINK_SH" unlink >/dev/null)
+
+current_case="unlink (macOS): stale OpenCode link is removed"
+if [ ! -L "$LINK_HOME_MAC/.config/opencode" ]; then pass; else fail "still a symlink"; fi
+
+current_case="unlink (macOS): stale Pi link is removed"
+if [ ! -L "$LINK_HOME_MAC/.pi/agent/AGENTS.md" ]; then pass; else fail "still a symlink"; fi
 
 # 既存の実ディレクトリがある場合 link.sh は *.bak.<timestamp> へ退避してから link する
 LINK_HOME_CONFLICT="$WORK/link_home_conflict"

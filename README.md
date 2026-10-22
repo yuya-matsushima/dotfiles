@@ -63,12 +63,14 @@ Claude Code と Codex は、認証・端末固有パス・プロジェクト履�
 
 これらは `bin/link.sh` の対象外です。ホストの `~/.claude/settings.json` と
 `~/.codex/config.toml` は各マシンの実ファイルとして維持します。hooks や
-statusline、OpenCode のように端末固有情報を含まない既存設定は、従来どおり
-symlink します。
+statusline のように端末固有情報を含まない既存設定は、従来どおり symlink します。
+OpenCode は Linux でのみ使い, 共通設定 (`.config/opencode`) の symlink も
+Linux に限ります (macOS では link せず, Homebrew でも導入しません)。
 
-Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セッション
-(`sessions/`)、導入済みパッケージ (`npm/`) は端末固有のため各マシンの実
-ファイルとして維持し、共通部分だけを symlink します。
+Pi も Linux でのみ使います。`~/.pi/agent` 全体は symlink せず、認証 (`auth.json`)、
+セッション (`sessions/`)、導入済みパッケージ (`npm/`) は端末固有のため各マシンの実
+ファイルとして維持し、共通部分だけを symlink します。Pi を使わない macOS では
+これらも link しません。
 
 - `.pi/agent/settings.json` (既定プロバイダー/モデル, `packages`)
 - `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
@@ -77,8 +79,8 @@ Pi も `~/.pi/agent` 全体は symlink しません。認証 (`auth.json`)、セ
 - `.pi/agent/extensions/guard-force-push.ts` (共有ロジックを使う force-push ガード)
 - `.pi/agent/extensions/pi-permission-system/config.json` (権限ポリシー)
 
-`pi` 本体は macOS では Homebrew (`pi-coding-agent`) で導入し `make cli` に含まれ、
-Linux では mise (`omarchy/.config/mise/config.toml` の `pi = "latest"`) で管理します。
+`pi` 本体は Linux では mise (`omarchy/.config/mise/config.toml` の `pi = "latest"`)
+で管理します (macOS では使いません)。
 認証は `OPENCODE_API_KEY` 環境変数か、`pi` 内の `/login` で設定します。
 `settings.json` の `packages` で宣言した拡張 (`pi-vim`, `pi-web-search`,
 `pi-mcp-adapter` など) は初回起動時に自動導入されます。
