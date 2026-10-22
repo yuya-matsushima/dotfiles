@@ -1,0 +1,95 @@
+#!/bin/sh
+# サスペンド復帰後に外部ディスプレイの状態を再適用する。
+#
+# 長時間の deep suspend から戻ると, カーネル (DRM) は外部出力を connected と
+# 報告しているのに Hyprland 側のモニター一覧から消える, あるいは mode の無い
+# 状態で残ることがある。Hyprland は復帰時に monitor ルールを再評価しないため,
+# そのままでは外部が黒い/認識されないままになる。
+#
+# ここでは logind の PrepareForSleep(false) を待ち, カーネルが外部出力を
+# 検出しているのに Hyprland が有効化していない場合だけ `hyprctl reload` を
+# 数回試す。reload は Omarchy の monitor-watch が拾って modeless の復旧ループも
+# 起動する。外部が繋がっていない通常の復帰では何もしない。
+#
+# 手動で今すぐ再適用する場合: omarchy-hyprland-monitor-resume --now
+
+TAG=omarchy-hyprland-monitor-resume
+
+log() {
+    logger -t "$TAG" "$*" 2>/dev/null || true
+}
+
+# カーネルから見て外部出力が connected か (内蔵 eDP/LVDS/DSI は除く)。
+kernel_external_connected() {
+    for status in /sys/class/drm/card*-*/status; do
+        case $status in
+            *-eDP-*/status | *-LVDS-*/status | *-DSI-*/status) continue ;;
+        esac
+        read -r state <"$status" 2>/dev/null || continue
+        [ "$state" = "connected" ] && return 0
+    done
+    return 1
+}
+
+# Hyprland 側で外部出力が有効かつ mode を持っているか。
+hyprland_external_ok() {
+    omarchy-hyprland-monitor-external-active || return 1
+    # modeless (width/height 0) なら復旧が必要。
+    ! omarchy-hyprland-monitor-modeless
+}
+
+needs_recovery() {
+    kernel_external_connected || return 1
+    hyprland_external_ok && return 1
+    return 0
+}
+
+recover() {
+    # DRM のリンク再確立と udev の反映を待つ。
+    sleep 2
+
+    attempt=0
+    while [ "$attempt" -lt 4 ]; do
+        if ! needs_recovery; then
+            [ "$attempt" -gt 0 ] && log "recovered after ${attempt} reload(s)"
+            return 0
+        fi
+
+        attempt=$((attempt + 1))
+        log "external display not active in Hyprland; reloading (attempt ${attempt})"
+        hyprctl reload >/dev/null 2>&1 || true
+        sleep 3
+    done
+
+    log "external display still not active after ${attempt} reload(s); check /sys/class/drm/*/status"
+}
+
+listen_resume() {
+    while :; do
+        dbus-monitor --system \
+            "type='signal',sender='org.freedesktop.login1',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'" |
+            while IFS= read -r line; do
+                case $line in
+                    *"boolean false"*) recover ;;
+                esac
+            done
+        sleep 2
+    done
+}
+
+case ${1:-} in
+    --now)
+        if needs_recovery; then
+            recover
+        else
+            echo "external display is already active (or not connected)" >&2
+        fi
+        ;;
+    "")
+        listen_resume
+        ;;
+    *)
+        echo "Usage: omarchy-hyprland-monitor-resume [--now]" >&2
+        exit 1
+        ;;
+esac

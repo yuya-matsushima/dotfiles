@@ -20,32 +20,25 @@ local internal_scale = 5 / 3  -- 内蔵 (eDP-1): 高 DPI (≒1.667)
 
 hl.env("GDK_SCALE", tostring(gdk_scale))
 
--- 外部ディスプレイ検知 (exit 0 = 外部モニター接続あり)。
--- 接続時: 外部 (DP-3) を Display 1 (0x0)、内蔵 (eDP-1) を Display 2。
--- 単体時: 内蔵のみ auto。
--- 注意: 設定読み込み時点で判定するため、起動後に外部を抜き挿しした場合は
--- hyprctl reload or omarchy hyprland monitor laptop などで反映する。
-local external_connected = o.shell_succeeds("omarchy hw external monitors")
+-- 外部 (DP-3) と内蔵 (eDP-1) の monitor / workspace ルールは接続状態に
+-- かかわらず常に宣言する。Hyprland は未接続出力のルールを保持し、接続時に
+-- 自動で適用する (該当ワークスペースもそのモニターへ移動する)。
+-- 読み込み時点の検出に頼ると、起動後に外部を挿したときレイアウトと
+-- SUPER+1..0 の割り当てが内蔵基準のままになり、画面順が崩れる。
+--
+-- 縦配置: 外部 (DP-3) を上 (Display 1, 0x0)、内蔵 (eDP-1) をその真下
+-- (Display 2)。外部の論理高さ = 2160 / (4/3) = 1620px なので y=1620。
+hl.monitor({ output = "DP-3", mode = "preferred", position = "0x0", scale = external_scale })
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1620", scale = internal_scale })
 
-if external_connected then
-  -- 縦配置: 外部 (DP-3) を上 (Display 1, 0x0)、内蔵 (eDP-1) をその真下 (Display 2)。
-  -- 外部の論理高さ = 2160 / (4/3) = 1620px なので内蔵は y=1620 に配置する。
-  hl.monitor({ output = "DP-3", mode = "preferred", position = "0x0", scale = external_scale })
-  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1620", scale = internal_scale })
-
-  -- SUPER+1..0 が選ぶワークスペースをモニターに固定:
-  --   SUPER+1..5 = 外部 (Display 1), SUPER+6..0 = 内蔵 (Display 2)
-  -- 注意: workspace_rule の selectors は既存ワークスペースにのみマッチするため
-  -- 範囲指定 (1-5) は使えず、個別に列挙する。
-  for ws = 1, 5 do
-    hl.workspace_rule({ workspace = tostring(ws), monitor = "DP-3" })
-  end
-  for ws = 6, 10 do
-    hl.workspace_rule({ workspace = tostring(ws), monitor = "eDP-1" })
-  end
-else
-  -- Mac 単体: 内蔵のみ
-  hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = internal_scale })
+-- SUPER+1..0 が選ぶワークスペースをモニターに固定:
+--   SUPER+1..5 = 外部 (Display 1), SUPER+6..0 = 内蔵 (Display 2)
+-- 注意: 範囲指定 (1-5) は使えないため、個別に列挙する。
+for ws = 1, 5 do
+  hl.workspace_rule({ workspace = tostring(ws), monitor = "DP-3" })
+end
+for ws = 6, 10 do
+  hl.workspace_rule({ workspace = tostring(ws), monitor = "eDP-1" })
 end
 
 -- Configure a specific monitor.
