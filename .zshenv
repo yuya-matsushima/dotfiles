@@ -53,7 +53,6 @@ local add_path_dirs=(
   $HOME/.lmstudio/bin
   $HOME/.local/bin
   $HOME/.codex/bin
-  $HOME/.opencode/bin
   ${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims
 )
 # Add GOPATH/bin only if GOPATH is defined

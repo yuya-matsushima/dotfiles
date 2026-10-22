@@ -51,9 +51,13 @@ PI_GUARD_FORCE_PUSH="$HOME/.pi/agent/extensions/guard-force-push.ts"
 PI_PERMISSION_CONFIG="$HOME/.pi/agent/extensions/pi-permission-system/config.json"
 
 if [ "$MODE" = "install" ]; then
-    for p in "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" \
-             "$FORCE_PUSH_VERDICT" "$FORCE_PUSH_REASON" \
-             "$PI_TMUX_STATUS" "$PI_GUARD_FORCE_PUSH" "$PI_PERMISSION_CONFIG"; do
+    # Pi は macOS では使わない (bin/link.sh が link しない) ため存在検査も行わない。
+    set -- "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" \
+           "$FORCE_PUSH_VERDICT" "$FORCE_PUSH_REASON"
+    if [ "$(uname -s)" != "Darwin" ]; then
+        set -- "$@" "$PI_TMUX_STATUS" "$PI_GUARD_FORCE_PUSH" "$PI_PERMISSION_CONFIG"
+    fi
+    for p in "$@"; do
         if [ ! -e "$p" ]; then
             echo "error: $p not found. Run 'make link' first." >&2
             exit 1
@@ -169,9 +173,13 @@ if [ "$MODE" = "install" ]; then
 
 Note: Codex will not run the new hooks until you trust them.
       Run 'codex' and execute '/hooks' to review and trust the entries.
+MSG
+    if [ "$(uname -s)" != "Darwin" ]; then
+        cat >&2 <<'MSG'
 Note: Pi needs no registration; the checked extensions under
       ~/.pi/agent/extensions/ load on the next 'pi' launch.
 MSG
+    fi
 else
     update "$HOME/.claude/settings.json" "$CLAUDE_MARKERS" ""
     update "$HOME/.codex/hooks.json"     "$CODEX_MARKERS"  ""
