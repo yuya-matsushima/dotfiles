@@ -283,7 +283,7 @@ which less > /dev/null && source $HOME/.zsh/config/less.zsh
 
 [ -f $HOME/.zshrc_local ] && source $HOME/.zshrc_local
 
-# start tmux via tmx for Alacritty and Ghostty
+# start tmux via tmx for Alacritty, Ghostty and Foot
 if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]]; then
   if [[ "$TERM" == alacritty* ]]; then
     if ! tmux has-session -t alacritty 2>/dev/null; then
@@ -292,6 +292,12 @@ if command -v tmx >/dev/null 2>&1 && [[ -z "$TMUX" ]]; then
   elif [[ "$TERM" == xterm-ghostty ]]; then
     if ! tmux has-session -t ghostty 2>/dev/null; then
       tmx ghostty
+    fi
+  # Omarchy の foot.ini は term=xterm-256color のため $TERM では判別できない。
+  # foot はシェルを直接 spawn するので親プロセス名で判定する (footclient を含む)。
+  elif [[ "$(ps -o comm= -p $PPID 2>/dev/null)" == foot* ]]; then
+    if ! tmux has-session -t foot 2>/dev/null; then
+      tmx foot
     fi
   fi
 fi
