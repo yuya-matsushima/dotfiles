@@ -7,6 +7,9 @@
     "claude-sonnet-5"
   ],
   "effortLevel": "high",
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(rg:*)",
