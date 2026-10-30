@@ -126,3 +126,55 @@ precmd は「agent の終了」ではなく「プロンプトの復帰」で走�
 # ~/.zshrc_local
 YMT_TMUX_AGENT_COMMANDS=(claude codex opencode pi agy antigravity aider)
 ```
+
+## tmux-agent-sidebar
+
+[hiroppy/tmux-agent-sidebar](https://github.com/hiroppy/tmux-agent-sidebar) を導入しています。
+全 session / window の Claude Code / Codex / OpenCode を 1 つのサイドバーに一覧し,
+状態・プロンプト・Git 情報・worktree などを window を切り替えずに確認できます。
+
+`~/.tmux` はリポジトリ内 `.tmux/` への symlink のため, プラグインの実体は
+`.tmux/plugins/tmux-agent-sidebar/` に clone されます (git 管理外)。
+
+### 導入・更新
+
+```sh
+make tmux_plugin            # clone + バイナリ取得 + エージェント配線
+make tmux_plugin_update     # git pull + 最新バイナリ取得
+make tmux_plugin_uninstall  # 追加した agent hooks / OpenCode bridge を削除
+```
+
+- バイナリは GitHub Releases の prebuilt を取得し, 失敗した場合は
+  `cargo build --release` にフォールバックします。
+- 導入手順は `bin/tmux_plugin.sh` にまとまっており, 何度実行しても冪等です。
+- 設定の再読み込みは `Prefix` + `r` です。
+
+### キーバインド
+
+| キー操作 | 動作 |
+|---|---|
+| `Prefix` + `e` | 現在の window でサイドバーの表示を切り替え |
+| `Prefix` + `E` | 全 window でサイドバーの表示を切り替え |
+
+`.tmux.conf` で `@sidebar_auto_create off` を設定しているため, 新しい window を
+開いただけではサイドバーは表示されません。必要になったときだけ `Prefix` + `e` で開きます。
+
+### エージェント連携
+
+`make tmux_plugin` は `opencode` / `claude` / `codex` を `command -v` で判定し,
+**インストールされているものだけ**配線します。無いものは skip します。
+
+| エージェント | 配線内容 |
+|---|---|
+| OpenCode | `~/.config/opencode/plugins/tmux-agent-sidebar.js` を同梱 bridge への symlink として作成 |
+| Claude Code | `tmux-agent-sidebar setup claude` の hooks を `~/.claude/settings.json` へマージ |
+| Codex | `~/.codex/config.toml` の `[features]` に `codex_hooks = true` を追加し, hooks を `~/.codex/hooks.json` へマージ |
+
+- 追加した hooks は `tmux-agent-sidebar/hook.sh` を含む command で識別し,
+  再実行時に一度削除してからマージします (`bin/agent_hooks.sh` が管理する
+  `agent-status.sh` などの hooks には触れません)。
+- Codex は設定変更後に `codex` を再起動し, `/hooks` で新しい hooks を trust する
+  必要があります。
+- Claude Code の plugin 経由インストール (`/plugin marketplace add ...`) は
+  このスクリプトと同等の hooks を追加するため, 併用しないでください。
+- 既存の `@agent_status` による window 名左端のバーはそのまま併用できます。

@@ -51,6 +51,10 @@
 **/markdown/
 webdata-output/
 
+# tmux-agent-sidebar (~/.tmux is a symlink to .tmux/, cloned by make tmux_plugin)
+.tmux/plugins/
+.config/opencode/plugins/tmux-agent-sidebar.js
+
 # Working directories
 tmp/
 feature/
