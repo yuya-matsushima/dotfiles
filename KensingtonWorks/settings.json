@@ -34,9 +34,9 @@
                 {
                   "command": "keyboard_shortcut",
                   "params": {
-                    "keyCode": 43,
-                    "label": "<",
-                    "modifiers": "shift"
+                    "keyCode": 97,
+                    "label": "F6",
+                    "modifiers": ""
                   }
                 }
               ],
@@ -54,12 +54,8 @@
               [
                 8,
                 {
-                  "command": "keyboard_shortcut",
-                  "params": {
-                    "keyCode": 47,
-                    "label": ">",
-                    "modifiers": "shift"
-                  }
+                  "command": "disable",
+                  "params": {}
                 }
               ],
               [
@@ -164,7 +160,7 @@
     ]
   ],
   "platform": "darwin",
-  "timestamp": 1713569958,
+  "timestamp": 1793372943,
   "trayIcon": true,
   "versionMajor": 2,
   "versionMinor": 0
