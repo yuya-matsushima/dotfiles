@@ -23,9 +23,9 @@
 
 set -eu
 
-# macOS: システム音を極小音量で再生
+# macOS: システム音を控えめな音量で再生
 if command -v afplay >/dev/null 2>&1 && [ -f /System/Library/Sounds/Ping.aiff ]; then
-  afplay -v 0.05 /System/Library/Sounds/Ping.aiff >/dev/null 2>&1 &
+  afplay -v 0.3 /System/Library/Sounds/Ping.aiff >/dev/null 2>&1 &
   exit 0
 fi
 
