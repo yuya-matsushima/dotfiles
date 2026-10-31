@@ -311,17 +311,23 @@ Omarchy 4.5 では dictation がバックエンド選択式になり, **Superwhi
 選択を確認, `omarchy default dictation voxtype` で切り替え)。既定キーは
 **F9 長押し / 右 Alt 長押し (push-to-talk)** と **SUPER + CTRL + X (トグル)** で,
 F6 ではない (4.5.0-rc2 の `default/hypr/bindings/dictation.lua` で確認)。
-`SUPER + CTRL + ESCAPE` でキャンセルする (キャンセルだけ `hypr/bindings.lua` で追加)。
+dotfiles 側で `SUPER + CTRL + ESCAPE` (キャンセル) と
+`SUPER + CTRL + SHIFT + X` (精度優先のトグル) を追加している。
 
 - 設定は `omarchy/.config/voxtype/config.toml` を `~/.config/voxtype/config.toml` へ
   symlink する。Omarchy 既定の設定をそのまま使わず, 日本語向けに変更している。
   4.5 のインストーラは設定が**存在しないときだけ**既定をコピーするため, symlink は
   上書きされない。
-- モデルは `whisper` エンジンの `small` (多言語)。`base.en` (既定) は英語専用のため,
-  日本語を喋ると英語として書き起こされる。CPU 推論 (AVX-512) の実測では 8 秒の音声で
-  約 5.5 秒かかる (約 0.7 倍速)。`threads = 4` が最も効率的で, 8 にしても速度は変わらなかった。
-  精度を上げたい場合は `medium` (約 1.5GB) に変える。`large-v3-turbo` は CPU では
-  リアルタイムを大きく下回る。速さを優先するなら `base` (多言語) に下げる。
+- モデルは速度優先の `base` を既定にし, 精度が必要なときだけ `small` を使う 2 段構え。
+  `base.en` (Omarchy 既定) は英語専用のため, 日本語を喋ると英語として書き起こされる。
+  CPU 推論 (AVX-512 / 4 スレッド) の実測値 (8 秒の日本語音声):
+  - `base`: 約 1.6 秒。通常の `F9` / `SUPER + CTRL + X` はこちら。
+  - `small`: 約 5.5 秒。`SUPER + CTRL + SHIFT + X` で `--model small` を明示指定する。
+  `--model` で上書きしたモデルはデーモンが保持するため, 2 回目以降はロード待ちが無い
+  (メモリは `small` の分だけ増える)。`medium` (約 1.5GB) はさらに遅く, CPU では
+  実用的な待ち時間に収まらない。`threads = 4` が最も効率的で, 8 にしても
+  速度は変わらず消費電力だけ増えた。GPU (Vulkan) は Iris Plus ではかえって遅く,
+  量子化モデルはこの AVX-512 ビルドで SIGILL になるため採用していない。
 - `initial_prompt` に日本語の口述であることと固有名詞を書いて, 句読点と表記を安定させる。
   固有名詞を増やしすぎると出力がプロンプトに引っ張られるため, よく使う語だけにする。
 - 出力は `wtype` 経由の `type` モード (CJK 対応)。失敗時はクリップボードに退避する。

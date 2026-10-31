@@ -35,9 +35,12 @@ volume = 0.6
 
 [whisper]
 # base.en は英語専用のため, 日本語も扱える多言語モデルを使う。
-# 精度と速度の目安: tiny < base < small < medium < large-v3-turbo
-# CPU 推論 (AVX-512 / 8 スレッド) では small が待ち時間なしで使える下限。
-model = "small"
+# 実測 (8 秒の日本語音声, AVX-512 / 4 スレッド):
+#   base  = 1.6 秒 (通常の dictation 用)
+#   small = 5.5 秒 (精度優先。SUPER + CTRL + SHIFT + X で明示指定)
+# 録音ごとの指定は `voxtype record toggle --model small`。上書きしたモデルは
+# デーモンが保持するため, 2 回目以降はロード待ちが無い。
+model = "base"
 
 # 日本語で口述する (英語の技術用語は混ざってよい)。
 # 日英を切り替えて使う場合は "ja,en" のように制約付き自動判定も指定できる。
