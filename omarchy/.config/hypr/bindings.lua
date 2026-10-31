@@ -65,3 +65,24 @@ o.bind("Hangul_Hanja", "IME off (英数 → keyboard-us)", "fcitx5-remote -s key
 local ime_toggle = os.getenv("HOME") .. "/.local/bin/ime-toggle"
 o.bind("SUPER + Super_L", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })
 o.bind("SUPER + Super_R", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })
+
+-- 音声入力のキャンセル。
+-- トグル (SUPER + CTRL + X) と push-to-talk (F9 / 右 Alt) は Omarchy 4.5 の既定に任せる。
+-- 4.5 の `omarchy dictation` には cancel が無いため, バックエンドが Voxtype のときだけ
+-- `voxtype record cancel` を直接叩く。ESC 単体はアプリへ渡す必要があるため,
+-- SUPER + CTRL + ESCAPE に割り当てる。
+local dictation_backend
+if o.cmd_present("omarchy-default-dictation") then
+  local pipe = io.popen("omarchy-default-dictation 2>/dev/null")
+  if pipe then
+    dictation_backend = pipe:read("*l")
+    pipe:close()
+  end
+elseif o.cmd_present("voxtype") then
+  -- 4.5 より前はバックエンド選択が無く Voxtype 固定だった
+  dictation_backend = "voxtype"
+end
+
+if dictation_backend == "voxtype" and o.cmd_present("voxtype") then
+  o.bind("SUPER + CTRL + ESCAPE", "Cancel dictation", "voxtype record cancel")
+end
