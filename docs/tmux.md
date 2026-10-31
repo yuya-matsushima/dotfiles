@@ -156,8 +156,10 @@ make tmux_plugin_uninstall  # 追加した agent hooks / OpenCode bridge を削�
 | `Prefix` + `e` | 現在の window でサイドバーの表示を切り替え |
 | `Prefix` + `E` | 全 window でサイドバーの表示を切り替え |
 
-`.tmux.conf` で `@sidebar_auto_create off` を設定しているため, 新しい window を
-開いただけではサイドバーは表示されません。必要になったときだけ `Prefix` + `e` で開きます。
+`.tmux.conf` で `@sidebar_auto_create on` を設定しているため, 新しく作った window には
+サイドバーが自動で表示されます。`Prefix` + `e` で現在の window だけ閉じることができ,
+もう一度押すと開きます(自動表示は新規 window 作成時のみのため, 閉じたままになります)。
+すべてまとめて切り替えたいときは `Prefix` + `E` を使います。
 
 ### エージェント連携
 
