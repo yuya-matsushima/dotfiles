@@ -1,0 +1,19 @@
+# Omarchy のシェルプラグイン (third-party) を宣言する。
+# 形式: <plugin-id> <git-url> [placement]
+#   - placement はバーウィジェットの初期位置 (left / center / right)。省略可。
+#   - `#` 以降はコメント。空行は無視される。
+#   - 既に導入済みなら有効化だけ行うため, 何度実行しても安全。
+#   - placement は新規導入時と無効からの復帰時だけ適用し, 既存の位置は動かさない。
+#
+# 追加したら `make omarchy_plugins` (または `make omarchy`) を実行する。
+# 導入元: https://plugins.omarchy.org/
+
+# OpenCode Go の利用枠 (5h / weekly / monthly) とローカル DB のトークン統計を
+# 組み込みの omarchy.agents パネルに追加する。
+io.github.thomasvanholder.opencode-agents https://github.com/thomasvanholder/omarchy-opencode-agents.git
+
+# ロック画面のデザインを選べるようにする (在庫の omarchy.lock を置き換える)。
+io.github.sirjul1337.lock-explorer https://github.com/SirJul1337/omarchy-lock-explorer.git
+
+# KeyCastr 代替。押したキーをテーマ付きの keycap として画面に表示する。
+markpriem.keystrokes https://github.com/mpriem/omarchy-keystrokes-plugin.git right

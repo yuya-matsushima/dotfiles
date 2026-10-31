@@ -82,6 +82,10 @@ omarchy: ## Setup for Linux (omarchy / Arch) machine
 	sh ./bin/zsh_plugin.sh
 	$(MAKE) link
 
+.PHONY: omarchy_plugins
+omarchy_plugins: ## Install/enable Omarchy shell plugins
+	sh ./bin/omarchy/plugins.sh
+
 .PHONY: agent_hooks
 agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode / Pi)
 	sh ./bin/agent_hooks.sh

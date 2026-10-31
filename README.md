@@ -49,6 +49,10 @@ make omarchy
 `make link` を実行します。既に実体ファイルがある設定は `*.bak.<timestamp>` へ
 退避してから symlink します。
 
+Omarchy のシェルプラグインは `omarchy/plugins.txt` で宣言し, `make omarchy`
+または `make omarchy_plugins` で導入・有効化します (OpenCode Go の使用量,
+Lock Screen Explorer, KeyCastr 代替の Keystrokes など)。
+
 詳細 (zsh 導入・`chsh` の注意点・OS 別オーバーレイ) は [docs/omarchy.md](docs/omarchy.md) を参照してください。
 
 ## コーディングエージェントの共通設定例
