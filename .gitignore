@@ -18,6 +18,8 @@
 !.claude/CLAUDE.md
 !.claude/settings.example.json
 !.claude/statusline.sh
+# herdr が生成するフック (herdr integration install claude が管理)
+.claude/hooks/herdr-agent-state.sh
 .antigravitycli/
 .config/opencode/service.json
 # agents are distributed from personal-skills via `make install-agents`
