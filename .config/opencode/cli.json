@@ -33,5 +33,6 @@
   "keybinds": {
     "session.line.up": "alt+p",
     "session.line.down": "alt+n"
-  }
+  },
+  "plugins": ["./herdr-opencode"]
 }

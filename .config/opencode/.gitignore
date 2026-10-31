@@ -2,3 +2,10 @@ node_modules
 package.json
 package-lock.json
 bun.lock
+
+# herdr が生成する連携ファイル (herdr integration install opencode が管理・上書きする)
+herdr-opencode/
+herdr-tui-session.js
+plugins/herdr-agent-state.js
+# V1 用の TUI 登録。V2 は cli.json の plugins を使う
+tui.jsonc
