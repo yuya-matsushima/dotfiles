@@ -15,6 +15,53 @@ make omarchy
 2. `bin/zsh_plugin.sh` : zsh 用 git-prompt の取得
 3. `make link` : `$HOME` 配下への symlink 作成
 
+## シェルプラグイン (`omarchy/plugins.txt`)
+
+`make omarchy` は `bin/omarchy/plugins.sh` も実行し, `omarchy/plugins.txt` に
+列挙した Omarchy シェルプラグインを導入・有効化します。既に有効なプラグインは
+そのまま残すため, 何度実行しても安全です。プラグインだけ反映するときは
+`make omarchy_plugins` を使います。
+
+書式:
+
+```
+<plugin-id> <git-url> [placement]
+```
+
+`placement` (`left` / `center` / `right`) は新規導入時と無効からの復帰時だけ
+適用し, 既に有効なバーウィジェットの位置は動かしません。
+
+| プラグイン | 役割 |
+|---|---|
+| `io.github.thomasvanholder.opencode-agents` | 組み込み Agents パネルに OpenCode Go の利用枠 (5h / weekly / monthly) とトークン統計を追加 |
+| `io.github.sirjul1337.lock-explorer` | ロック画面のデザイン選択。`omarchy.lock` を置き換える |
+| `markpriem.keystrokes` | KeyCastr 代替。押したキーを keycap として表示 |
+
+### Lock Screen Explorer
+
+`omarchy-shell lock explore` でデザインを選択できます。負荷を抑えたい場合は
+Settings の Reduce motion を `On` または `On battery` にします (この環境では
+`omarchy-shell lock setReduceMotion battery` を設定済み)。動画系デザインは
+`qt6-multimedia` が必要で, 未導入なら Classic にフォールバックします。
+標準のロック画面に戻すときはプラグインを削除し, `omarchy.lock` を有効化します。
+
+```sh
+omarchy plugin remove io.github.sirjul1337.lock-explorer
+omarchy plugin enable omarchy.lock
+```
+
+### Keystrokes
+
+`omarchy/.config/hypr/bindings.lua` が, プラグインが存在するときだけ
+`hypr/keystrokes.lua` を読み込みます。`SUPER + SHIFT + K` でキャプチャを
+トグルし, バーのキーボードアイコンから設定を開けます。初回は `make link` の後に
+`hyprctl reload` を実行して binding を反映してください。
+
+設定は `~/.config/omarchy/keystrokes.json` (端末固有, dotfiles 管理外) に保存されます。
+KeyCastr のように全キーを出す場合は `combosOnly` を `false`, 修飾キー単体も出す場合は
+`modifiersAlone` を `true` にします。sudo / polkit の入力中は自動で停止しますが,
+画面共有や録画の前には秘密情報を入力しないよう注意してください。
+
 ## CLI ツール (`bin/omarchy/cli.sh`)
 
 macOS 側 `bin/homebrew/cli.sh` で導入している CLI ツールのうち, omarchy で使うものを

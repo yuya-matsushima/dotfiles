@@ -90,3 +90,14 @@ if dictation_backend == "voxtype" and o.cmd_present("voxtype") then
   -- 明示指定する。上書きしたモデルはデーモンが保持するので 2 回目以降は速い。
   o.bind("SUPER + CTRL + SHIFT + X", "Toggle dictation (accurate)", "voxtype record toggle --model small")
 end
+
+-- KeyCastr 代替: 押したキーを keycap として表示する (markpriem.keystrokes)。
+-- プラグイン未導入の環境で Hyprland の設定エラーにしないため, 存在するときだけ読む。
+-- 既定のトグルは SUPER + SHIFT + K。変更する場合は dofile の前に
+-- KEYSTROKES_TOGGLE_BIND = "SUPER + SHIFT + J" を置く。
+local keystrokes_plugin = os.getenv("HOME") .. "/.config/omarchy/plugins/markpriem.keystrokes/hypr/keystrokes.lua"
+local keystrokes_file = io.open(keystrokes_plugin, "r")
+if keystrokes_file then
+  keystrokes_file:close()
+  dofile(keystrokes_plugin)
+end

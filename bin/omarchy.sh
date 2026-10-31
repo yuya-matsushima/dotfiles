@@ -38,4 +38,7 @@ else
     echo "omarchy.sh: run 'chsh -s $ZSH_PATH' in an interactive shell to change the login shell" >&2
 fi
 
+# Omarchy のシェルプラグイン (omarchy/plugins.txt) を導入・有効化
+sh "$SCRIPT_DIR/omarchy/plugins.sh"
+
 echo "omarchy bootstrap done. Run 'make link' to create symlinks."
