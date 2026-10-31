@@ -85,4 +85,8 @@ end
 
 if dictation_backend == "voxtype" and o.cmd_present("voxtype") then
   o.bind("SUPER + CTRL + ESCAPE", "Cancel dictation", "voxtype record cancel")
+
+  -- 精度優先の dictation。通常は config の model (base) を使い, ここだけ small を
+  -- 明示指定する。上書きしたモデルはデーモンが保持するので 2 回目以降は速い。
+  o.bind("SUPER + CTRL + SHIFT + X", "Toggle dictation (accurate)", "voxtype record toggle --model small")
 end
