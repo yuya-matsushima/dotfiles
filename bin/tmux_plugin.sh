@@ -5,7 +5,7 @@
 #   - clone (or update) the plugin into ~/.tmux/plugins/tmux-agent-sidebar
 #   - download the prebuilt binary (fallback: cargo build --release)
 #   - wire only the agents that are actually installed:
-#       OpenCode   -> symlink the bundled plugin bridge
+#       OpenCode   -> verify the tracked V2 adapter and drop the old symlink
 #       Claude Code -> merge hooks into ~/.claude/settings.json
 #       Codex      -> enable [features] codex_hooks and merge ~/.codex/hooks.json
 #
@@ -15,7 +15,7 @@
 # Usage: tmux_plugin.sh [update|uninstall]
 #   (no argument) install: clone if missing, fetch binary only when missing
 #   update:               git pull and fetch the latest release binary
-#   uninstall:            remove managed agent hooks and the OpenCode bridge
+#   uninstall:            remove managed agent hooks
 
 set -e
 
@@ -34,7 +34,11 @@ PLUGIN_REPO="https://github.com/hiroppy/tmux-agent-sidebar.git"
 PLUGIN_DIR="$HOME/.tmux/plugins/$PLUGIN_NAME"
 BINARY="$PLUGIN_DIR/bin/$PLUGIN_NAME"
 OPENCODE_BRIDGE="$PLUGIN_DIR/.opencode/plugins/$PLUGIN_NAME.js"
-OPENCODE_LINK="$HOME/.config/opencode/plugins/$PLUGIN_NAME.js"
+# OpenCode V2 ignores the upstream V1 entrypoint, so dotfiles ships a tracked
+# adapter that loads the bridge and registers V2 hooks.
+OPENCODE_ADAPTER="$HOME/.config/opencode/plugins/$PLUGIN_NAME-v2.js"
+# symlink created by older versions of this script; removed when re-run
+OPENCODE_LEGACY_LINK="$HOME/.config/opencode/plugins/$PLUGIN_NAME.js"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 CODEX_CONFIG="$HOME/.codex/config.toml"
 CODEX_HOOKS="$HOME/.codex/hooks.json"
@@ -255,23 +259,29 @@ wire_opencode() {
         warn "OpenCode bridge not found: $OPENCODE_BRIDGE"
         return 0
     fi
-    mkdir -p "$(dirname "$OPENCODE_LINK")"
-    # 実ファイルが既にある場合は内容を失わないよう退避してから symlink する
-    if [ -e "$OPENCODE_LINK" ] && [ ! -L "$OPENCODE_LINK" ]; then
-        backup="$OPENCODE_LINK.bak.$(date +%Y%m%d%H%M%S)"
-        mv "$OPENCODE_LINK" "$backup"
-        echo "opencode: backed up $OPENCODE_LINK -> $backup"
+    # 旧バージョンが張った symlink は残すと V1 entrypoint を読み込んで
+    # エラーになるため取り除く (adapter は dotfiles 側の実ファイル)
+    if [ -L "$OPENCODE_LEGACY_LINK" ]; then
+        case "$(readlink "$OPENCODE_LEGACY_LINK")" in
+            "$PLUGIN_DIR"/*)
+                rm -f "$OPENCODE_LEGACY_LINK"
+                echo "opencode: removed legacy symlink $OPENCODE_LEGACY_LINK"
+                ;;
+        esac
     fi
-    ln -sfn "$OPENCODE_BRIDGE" "$OPENCODE_LINK"
-    echo "opencode: linked $OPENCODE_LINK"
+    if [ ! -f "$OPENCODE_ADAPTER" ]; then
+        warn "OpenCode V2 adapter not found: $OPENCODE_ADAPTER"
+        return 0
+    fi
+    echo "opencode: using $OPENCODE_ADAPTER"
 }
 
 unwire_opencode() {
-    [ -L "$OPENCODE_LINK" ] || return 0
-    case "$(readlink "$OPENCODE_LINK")" in
+    [ -L "$OPENCODE_LEGACY_LINK" ] || return 0
+    case "$(readlink "$OPENCODE_LEGACY_LINK")" in
         "$PLUGIN_DIR"/*)
-            rm -f "$OPENCODE_LINK"
-            echo "opencode: removed $OPENCODE_LINK"
+            rm -f "$OPENCODE_LEGACY_LINK"
+            echo "opencode: removed $OPENCODE_LEGACY_LINK"
             ;;
     esac
 }

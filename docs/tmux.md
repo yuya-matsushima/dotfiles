@@ -168,10 +168,16 @@ make tmux_plugin_uninstall  # 追加した agent hooks / OpenCode bridge を削�
 
 | エージェント | 配線内容 |
 |---|---|
-| OpenCode | `~/.config/opencode/plugins/tmux-agent-sidebar.js` を同梱 bridge への symlink として作成 |
+| OpenCode | `~/.config/opencode/plugins/tmux-agent-sidebar-v2.js` (リポジトリ管理) が同梱 bridge を読み込み, V2 の hook へ変換 |
 | Claude Code | `tmux-agent-sidebar setup claude` の hooks を `~/.claude/settings.json` へマージ |
 | Codex | `~/.codex/config.toml` の `[features]` に `codex_hooks = true` を追加し, hooks を `~/.codex/hooks.json` へマージ |
 
+- OpenCode V2 は V1 形式のプラグイン entrypoint を実行しないため, 上流の
+  `.opencode/plugins/tmux-agent-sidebar.js` を直接読み込むと
+  `Plugin must export a default definition...` で失敗します。
+  `tmux-agent-sidebar-v2.js` は上流の実装を `export default { id, setup(ctx) }`
+  に橋渡しするだけで, hook のペイロード生成は上流のまま使います。
+  旧 `make tmux_plugin` が作った symlink (`tmux-agent-sidebar.js`) は再実行時に削除されます。
 - 追加した hooks は `tmux-agent-sidebar/hook.sh` を含む command で識別し,
   再実行時に一度削除してからマージします (`bin/agent_hooks.sh` が管理する
   `agent-status.sh` などの hooks には触れません)。
