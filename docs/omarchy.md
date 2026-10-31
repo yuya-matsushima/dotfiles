@@ -304,6 +304,87 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 (実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
 ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
 
+## 音声入力 (Voxtype)
+
+Omarchy 4.5 では dictation がバックエンド選択式になり, **Superwhisper** と **Voxtype** の
+どちらかを *Setup > Defaults > Dictation* で選ぶ (`omarchy default dictation` で現在の
+選択を確認, `omarchy default dictation voxtype` で切り替え)。既定キーは
+**F9 長押し / 右 Alt 長押し (push-to-talk)** と **SUPER + CTRL + X (トグル)** で,
+F6 ではない (4.5.0-rc2 の `default/hypr/bindings/dictation.lua` で確認)。
+`SUPER + CTRL + ESCAPE` でキャンセルする (キャンセルだけ `hypr/bindings.lua` で追加)。
+
+- 設定は `omarchy/.config/voxtype/config.toml` を `~/.config/voxtype/config.toml` へ
+  symlink する。Omarchy 既定の設定をそのまま使わず, 日本語向けに変更している。
+  4.5 のインストーラは設定が**存在しないときだけ**既定をコピーするため, symlink は
+  上書きされない。
+- モデルは `whisper` エンジンの `small` (多言語)。`base.en` (既定) は英語専用のため,
+  日本語を喋ると英語として書き起こされる。CPU 推論 (AVX-512) の実測では 8 秒の音声で
+  約 5.5 秒かかる (約 0.7 倍速)。`threads = 4` が最も効率的で, 8 にしても速度は変わらなかった。
+  精度を上げたい場合は `medium` (約 1.5GB) に変える。`large-v3-turbo` は CPU では
+  リアルタイムを大きく下回る。速さを優先するなら `base` (多言語) に下げる。
+- `initial_prompt` に日本語の口述であることと固有名詞を書いて, 句読点と表記を安定させる。
+  固有名詞を増やしすぎると出力がプロンプトに引っ張られるため, よく使う語だけにする。
+- 出力は `wtype` 経由の `type` モード (CJK 対応)。失敗時はクリップボードに退避する。
+  `wtype_shift_prefix = true` は 1 文字目 (特に CJK) が落ちるアプリ向けの保険。
+- VAD は追加モデル不要の `energy` を使い, 無音だけの録音を書き起こさない。
+  小さい声が落ちる場合は `threshold` を下げる。Silero を使うなら
+  `voxtype setup vad` の後に `backend = "whisper"` へ変える。
+- `pause_media = true` で録音中は再生中のメディアを止める。音楽を止めたくない場合は
+  `duck_media = true` に変えて音量だけ下げる。
+
+セットアップ (4.5 以降):
+
+```sh
+# 設定の symlink を張る
+make link
+
+# Setup > Defaults > Dictation で Voxtype を選ぶ (未導入ならインストーラが入れる)。
+# メニューを使わない場合は次のコマンドでもよい。
+omarchy default dictation voxtype
+
+hyprctl reload
+```
+
+4.5 のインストーラは `wtype` / `voxtype-bin` の導入, 設定が無い場合の既定コピー,
+モデルのダウンロード (`voxtype setup --download`), systemd ユーザーサービスの
+`enable --now`, dictation バックエンドの切り替えまで行う。
+
+4.5 より前 (4.0.x) の手順:
+
+```sh
+omarchy-pkg-add wtype voxtype-bin
+voxtype setup --download --model small
+voxtype setup systemd
+systemctl --user enable --now voxtype
+make link
+hyprctl reload
+```
+
+確認:
+
+```sh
+omarchy default dictation  # 選択中のバックエンド
+voxtype setup check        # 依存関係 (wtype / モデル / 出力経路) の確認
+voxtype config schema      # 指定できるキーの一覧
+systemctl --user status voxtype
+# 16kHz モノラルで録音して書き起こし時間を測る
+pw-record --rate 16000 --channels 1 /tmp/voxtype-test.wav
+time voxtype transcribe /tmp/voxtype-test.wav
+```
+
+注意点:
+
+- `hotkey.enabled = false` のため `input` グループへの追加は不要。キーバインドは
+  compositor 側から `omarchy dictation start|stop|toggle` (バックエンド非依存) を叩く。
+  4.5 のラッパーには `cancel` が無いため, キャンセルだけは Voxtype 選択時に
+  `voxtype record cancel` を直接叩く。
+- mozc が ON のまま `wtype` で日本語を入力すると, IME が合成キーを変換して
+  二重変換になることがある。その場合は `output.pre_recording_command` で
+  `fcitx5-remote -s keyboard-us` を実行し, `output.post_output_command` で戻す。
+- 通知は出さず効果音 (`audio.feedback.theme = "subtle"`) で状態を知らせる。
+- 右 Alt の push-to-talk は 4.5 で追加された。日本語配列で AltGr と衝突する場合は
+  右 Alt を使わず F9 かトグルを使う (4.5 のリリースノートにも同じ注意がある)。
+
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう

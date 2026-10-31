@@ -42,6 +42,7 @@ TARGETS=( \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/obsidian/user-flags.conf" \
+         ".config/voxtype/config.toml" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
@@ -95,6 +96,7 @@ LINUX_ONLY=( \
               ".config/hypr/looknfeel.lua" \
               ".config/chromium-flags.conf" \
               ".config/obsidian/user-flags.conf" \
+              ".config/voxtype/config.toml" \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
               ".local/bin/omarchy-audio-stream-recover" \
