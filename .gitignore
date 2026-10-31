@@ -53,12 +53,6 @@
 **/markdown/
 webdata-output/
 
-# tmux-agent-sidebar (~/.tmux is a symlink to .tmux/, cloned by make tmux_plugin)
-# The OpenCode bridge is tracked at .config/opencode/plugins/tmux-agent-sidebar-v2.js;
-# this path is the symlink older releases of bin/tmux_plugin.sh created.
-.tmux/plugins/
-.config/opencode/plugins/tmux-agent-sidebar.js
-
 # Working directories
 tmp/
 feature/
