@@ -3,7 +3,7 @@
   "vendorProductId": 875823584,
   "macros": [
     "",
-    "[KC_F9]",
+    "{KC_F9}",
     "continue",
     "",
     "",
