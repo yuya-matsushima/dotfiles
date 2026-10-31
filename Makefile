@@ -90,6 +90,18 @@ agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode / 
 agent_hooks_uninstall: ## Uninstall AI agent status hooks
 	sh ./bin/agent_hooks.sh uninstall
 
+.PHONY: tmux_plugin
+tmux_plugin: ## Install tmux-agent-sidebar and wire installed AI agents
+	sh ./bin/tmux_plugin.sh
+
+.PHONY: tmux_plugin_update
+tmux_plugin_update: ## Update tmux-agent-sidebar to the latest release
+	sh ./bin/tmux_plugin.sh update
+
+.PHONY: tmux_plugin_uninstall
+tmux_plugin_uninstall: ## Remove tmux-agent-sidebar agent hooks
+	sh ./bin/tmux_plugin.sh uninstall
+
 .PHONY: setup_develop
 setup_develop: homebrew cli app link mise_develop mac ## *setup develop machine
 
