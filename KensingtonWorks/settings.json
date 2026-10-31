@@ -34,8 +34,8 @@
                 {
                   "command": "keyboard_shortcut",
                   "params": {
-                    "keyCode": 97,
-                    "label": "F6",
+                    "keyCode": 101,
+                    "label": "F9",
                     "modifiers": ""
                   }
                 }
