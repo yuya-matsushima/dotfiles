@@ -48,6 +48,8 @@ TARGETS=( \
          ".local/bin/omarchy-audio-stream-recover" \
          ".local/bin/omarchy-hyprland-monitor-resume" \
          ".local/bin/omarchy-1password-focus-guard" \
+         ".local/bin/omarchy-dictation-hex" \
+         ".local/bin/omarchy-install-dictation-hex" \
          ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
          ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
@@ -100,6 +102,8 @@ LINUX_ONLY=( \
               ".local/bin/omarchy-audio-stream-recover" \
               ".local/bin/omarchy-hyprland-monitor-resume" \
               ".local/bin/omarchy-1password-focus-guard" \
+              ".local/bin/omarchy-dictation-hex" \
+              ".local/bin/omarchy-install-dictation-hex" \
               ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
               ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )

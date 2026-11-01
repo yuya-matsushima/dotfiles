@@ -14,6 +14,7 @@ make omarchy
 1. `bin/omarchy.sh` : `bin/omarchy/cli.sh` を呼び出して CLI ツールを導入し, ログインシェルを zsh 化
 2. `bin/zsh_plugin.sh` : zsh 用 git-prompt の取得
 3. `make link` : `$HOME` 配下への symlink 作成
+4. `make omarchy_hex` : Hex の導入と dictation バックエンドの選択
 
 ## シェルプラグイン (`omarchy/plugins.txt`)
 
@@ -350,6 +351,27 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 見つけると `sed -i` で値を書き換え, symlink を実体ファイルに置き換えてしまう
 (実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
 ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
+
+## 音声入力 (Hex)
+
+Hex (`~/.local/bin/hex`) を Omarchy の dictation バックエンドとして使う。
+`make omarchy` または `make omarchy_hex` で導入し, 4.5 以降ではバックエンドを
+hex に切り替える (`omarchy default dictation hex` でもよい)。
+
+Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
+**SUPER + CTRL + X** (トグル)。dotfiles では JIS 配列に右 Alt が無いため,
+**右 Shift 長押し** も同じ push-to-talk に割り当てる。右 Alt は外部キーボード用に残す。
+右 Shift は文字入力にも使うため, SUPER / CTRL / ALT を先に押している組み合わせでは
+開始しないようにしている (Shift キー自体はアプリにも渡る)。
+
+Omarchy 4.0.x には dictation バックエンドの仕組みが無いため, `hypr/bindings.lua` が
+同じキーを直接 Hex (`omarchy-dictation-hex`) に割り当てる。4.5 以降は Omarchy の
+`default/hypr/bindings/dictation.lua` に任せ, 右 Shift の追加分だけを張る。
+
+- Hex 設定のショートカット (`Alt + Space` など) は Hyprland では使われない
+- Hex の Annotate も既定で F9 のため, 使う場合は Hex 側で別キーにする
+- キャンセルは `omarchy-dictation-hex cancel` を任意のキーに割り当てる
+  (Omarchy 4.5 の `omarchy dictation` に cancel は無い)
 
 ## symlink とバックアップ
 

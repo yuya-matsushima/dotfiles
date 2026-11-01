@@ -1,0 +1,30 @@
+#!/bin/sh
+# `omarchy default dictation hex` から呼ばれるセットアップ。
+#
+# Hex 本体の導入は dotfiles 側 (`make omarchy_hex`) が担当する。
+# ここでは導入済みか確認し, 選択中の dictation バックエンドを hex に切り替える。
+# 詳細: docs/omarchy.md の「音声入力 (Hex)」を参照。
+
+set -e
+
+if ! command -v hex >/dev/null 2>&1; then
+    echo "Hex is not installed." >&2
+    echo "Run 'make omarchy_hex' in the dotfiles repository first." >&2
+    exit 1
+fi
+
+if ! command -v omarchy-dictation-hex >/dev/null 2>&1; then
+    echo "omarchy-dictation-hex is not on PATH." >&2
+    echo "Run 'make link' in the dotfiles repository first." >&2
+    exit 1
+fi
+
+omarchy-dictation-use hex
+hyprctl reload >/dev/null 2>&1 || true
+
+if command -v omarchy-notification-send >/dev/null 2>&1; then
+    omarchy-notification-send \
+        "Dictation: Hex" \
+        "Hold Right Shift, Right Alt, or F9 to dictate; SUPER + CTRL + X to toggle." \
+        -t 10000 || true
+fi
