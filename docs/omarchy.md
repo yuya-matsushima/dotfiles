@@ -222,6 +222,119 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - fcitx5 を再起動した場合, 起動中の Chromium は IME 接続が復帰しないことがあるため
   Chromium も再起動する。
 
+## キーバインド (よく使うもの)
+
+`hypr/bindings.lua` (Omarchy 既定 + 自前の上書き) で有効なもの。全一覧は
+`SUPER + K` または `omarchy menu keybindings --print` で確認できる。
+`SUPER` は macOS の Command に相当する。
+
+### まず覚える 3 つ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + SPACE` | Omarchy メニュー (ここからほぼ全部たどれる) |
+| `SUPER ALT + SPACE` | Apps メニュー (アプリ一覧) |
+| `SUPER + K` | キーバインド一覧 |
+
+### ウィンドウ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + W` / `CTRL ALT + DELETE` | 閉じる / 全ウィンドウを閉じる |
+| `SUPER + F` | フルスクリーン |
+| `SUPER ALT + F` | 全幅表示 |
+| `SUPER CTRL + F` | タイル内フルスクリーン |
+| `SUPER + T` | フローティング / タイル切替 |
+| `SUPER + J` / `SUPER + P` | 分割 (split) 切替 / 疑似ウィンドウ (pseudo tile) |
+| `SUPER + O` | ポップアウト (float + pin) |
+| `SUPER + L` | ワークスペースレイアウト切替 |
+| `SUPER + BACKSPACE` | ウィンドウ透過切替 |
+| `SUPER + Home` / `SUPER ALT + Home` | ウィンドウ幅の復元 / 保存 |
+| `SUPER CTRL + BACKSPACE` | 単一ウィンドウを正方形アスペクトに |
+| `SUPER + S` / `SUPER ALT + S` | スクラッチパッド表示切替 / ウィンドウをスクラッチパッドへ |
+
+### フォーカスと移動
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + 矢印` | 上下左右のウィンドウへフォーカス |
+| `ALT + TAB` / `SHIFT ALT + TAB` | 次 / 前のウィンドウ |
+| `CTRL ALT + TAB` / `SHIFT CTRL ALT + TAB` | 次 / 前のモニタ |
+| `SUPER SHIFT + 矢印` | ウィンドウをその方向へスワップ |
+| `SUPER + 左ドラッグ` / `SUPER + 右ドラッグ` | ウィンドウ移動 / リサイズ |
+| `SUPER CTRL + ←/→` | グループ内のフォーカス移動 |
+| `SUPER ALT + ホイール↑` / `SUPER SHIFT ALT + TAB` | グループ内の前のウィンドウ |
+
+### リサイズ (キーボード)
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + -` / `SUPER + =` | 左へ広げる / 左を縮める |
+| `SUPER SHIFT + =` / `SUPER SHIFT + -` | 下へ広げる / 上を縮める |
+| 上記 + `ALT` / 上記 + `CTRL` | 少しだけ (a little) / 大きく (a lot) |
+
+### ワークスペース
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + 1〜0` | その番号へ直行 (0 = 10) |
+| `SUPER + TAB` / `SUPER SHIFT + TAB` | 次 / 前のワークスペース (巡回) |
+| `SUPER CTRL + TAB` | 直前にいたワークスペースへ戻る |
+| `SUPER + ホイール↓/↑` | 前 / 後ろへスクロール切替 |
+| `SUPER SHIFT + 1〜0` | ウィンドウをそのワークスペースへ移動 |
+| `SUPER SHIFT ALT + 1〜0` | フォーカスを追従させずに移動 |
+
+### アプリ起動・メニュー
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + RETURN` | ターミナル |
+| `SUPER SHIFT + RETURN` / `SUPER + B` | ブラウザ |
+| `SUPER SHIFT ALT + B` | ブラウザ (プライベート) |
+| `SUPER SHIFT + F` / `SUPER SHIFT ALT + F` | ファイルマネージャ / カレントディレクトリで開く |
+| `SUPER + ESCAPE` / `XF86PowerOff` | システムメニュー (ロック・再起動など) |
+| `SUPER CTRL + C` | キャプチャメニュー |
+| `SUPER CTRL + 1〜9` | バーパネル 1〜9 |
+| `SUPER ALT + K` / `SUPER CTRL + K` | Tmux / Herdr |
+| `XF86Calculator` / `SUPER CTRL + Q` | 電卓 |
+
+### クリップボード・スクリーンショット
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER C` / `SUPER V` / `SUPER X` | コピー / ペースト / カット (universal。ターミナルでも GUI と同じ感覚で効く) |
+| `SUPER CTRL + V` | クリップボード履歴 |
+| `SUPER CTRL + E` | 絵文字 |
+| `PRINT` / `ALT + PRINT` | スクリーンショット / 画面録画 |
+| `SUPER CTRL + PRINT` | スクショから OCR (文字抽出) |
+| `SUPER + PRINT` | カラーピッカー |
+
+### 通知・音量・明るさ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + ,` / `SUPER SHIFT + ,` | 最後の通知を消す / 全部消す |
+| `SUPER ALT + ,` / `SUPER CTRL + ,` / `SUPER SHIFT ALT + ,` | 最後の通知を開く / 通知のミュート切替 / 通知履歴 |
+| `XF86AudioRaiseVolume` / `XF86AudioLowerVolume` | 音量 上下 (ALT 併用で微調整) |
+| `XF86AudioMute` / `XF86AudioMicMute` | スピーカー / マイクのミュート |
+| `SHIFT + XF86AudioMute` | 音声出力の切替 |
+| `XF86MonBrightnessUp` / `XF86MonBrightnessDown` | 明るさ 上下 (ALT 併用で微調整, SHIFT 併用で最大 / 最小) |
+| `XF86KbdBrightnessUp` / `XF86KbdBrightnessDown` | キーボードバックライト |
+| `XF86AudioPlay` / `XF86AudioNext` / `XF86AudioPrev` | 再生 / 次 / 前の曲 |
+
+### この環境固有 (IME / 音声入力 / 表示)
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER` 単押し (左右どちらでも) | IME トグル (macOS の Command 単押しと同じ) |
+| `かな` / `英数` | IME を mozc / keyboard-us へ明示切替 |
+| 右 `Alt` 押しっぱなし / `F9` / 右 `Shift` 押しっぱなし | 音声入力 (Hex, push-to-talk) |
+| `SUPER SHIFT + K` | 押したキーを画面に表示 (Keystrokes) |
+| `SUPER CTRL + L` | 画面ロック |
+| `SUPER CTRL + N` / `SUPER CTRL + I` | ナイトライト / アイドル時ロックの切替 |
+| `SUPER CTRL + Delete` | ラップトップ画面の切替 |
+| `SUPER ALT + BRACKETLEFT` / `SUPER ALT + BRACKETRIGHT` | ウェブカメラオーバーレイの縮小 / 拡大 |
+
 ## 無効化している Omarchy 既定キーバインド
 
 `hypr/bindings.lua` で `hl.unbind` しているもの。復活させる場合は該当行を削除して
