@@ -34,8 +34,8 @@
                 {
                   "command": "keyboard_shortcut",
                   "params": {
-                    "keyCode": 101,
-                    "label": "F9",
+                    "keyCode": 60,
+                    "label": "Right Shift",
                     "modifiers": ""
                   }
                 }
