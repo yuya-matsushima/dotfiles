@@ -46,8 +46,8 @@ make omarchy
 ```
 
 `make omarchy` は CLI ツールの導入とログインシェルの zsh 化を行い、その後
-`make link` を実行します。既に実体ファイルがある設定は `*.bak.<timestamp>` へ
-退避してから symlink します。
+`make link` と `make omarchy_hex` (Hex 音声入力の導入) を実行します。
+既に実体ファイルがある設定は `*.bak.<timestamp>` へ退避してから symlink します。
 
 Omarchy のシェルプラグインは `omarchy/plugins.txt` で宣言し, `make omarchy`
 または `make omarchy_plugins` で導入・有効化します (OpenCode Go の使用量,

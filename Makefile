@@ -81,6 +81,11 @@ omarchy: ## Setup for Linux (omarchy / Arch) machine
 	sh ./bin/omarchy.sh
 	sh ./bin/zsh_plugin.sh
 	$(MAKE) link
+	$(MAKE) omarchy_hex
+
+.PHONY: omarchy_hex
+omarchy_hex: ## Install and select Hex dictation backend
+	sh ./bin/omarchy/hex.sh
 
 .PHONY: omarchy_plugins
 omarchy_plugins: ## Install/enable Omarchy shell plugins

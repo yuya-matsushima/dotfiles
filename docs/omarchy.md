@@ -14,6 +14,7 @@ make omarchy
 1. `bin/omarchy.sh` : `bin/omarchy/cli.sh` を呼び出して CLI ツールを導入し, ログインシェルを zsh 化
 2. `bin/zsh_plugin.sh` : zsh 用 git-prompt の取得
 3. `make link` : `$HOME` 配下への symlink 作成
+4. `make omarchy_hex` : Hex (音声入力) の導入と dictation バックエンドの切り替え
 
 ## シェルプラグイン (`omarchy/plugins.txt`)
 
@@ -351,90 +352,64 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 (実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
 ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
 
-## 音声入力 (Voxtype)
+## 音声入力 (Hex)
 
-Omarchy 4.5 では dictation がバックエンド選択式になり, **Superwhisper** と **Voxtype** の
-どちらかを *Setup > Defaults > Dictation* で選ぶ (`omarchy default dictation` で現在の
-選択を確認, `omarchy default dictation voxtype` で切り替え)。既定キーは
+ローカル完結の音声入力として **Hex** を使う。Voxtype 用の `config.toml` は削除した。
+Hex は設定を GUI (または `hex settings`) で一元管理し, マイク・モデル・出力先が
+マシンごとに異なるため, dotfiles では設定ファイルを symlink しない。
+
+Omarchy 4.5 以降は dictation がバックエンド選択式で, *Setup > Defaults > Dictation* から
+選ぶ (`omarchy default dictation` で現在の選択を確認, `omarchy default dictation hex` で
+切り替え)。dotfiles は `omarchy-dictation-hex` アダプタを PATH に置き,
+`make omarchy_hex` で Hex の導入とバックエンドの切り替えを行う。既定キーは
 **F9 長押し / 右 Alt 長押し (push-to-talk)** と **SUPER + CTRL + X (トグル)** で,
 F6 ではない (4.5.0-rc2 の `default/hypr/bindings/dictation.lua` で確認)。
-dotfiles 側で `SUPER + CTRL + ESCAPE` (キャンセル) と
-`SUPER + CTRL + SHIFT + X` (精度優先のトグル) を追加している。
+dotfiles 側で `SUPER + CTRL + ESCAPE` (キャンセル) を追加している。
 
-- 設定は `omarchy/.config/voxtype/config.toml` を `~/.config/voxtype/config.toml` へ
-  symlink する。Omarchy 既定の設定をそのまま使わず, 日本語向けに変更している。
-  4.5 のインストーラは設定が**存在しないときだけ**既定をコピーするため, symlink は
-  上書きされない。
-- モデルは速度優先の `base` を既定にし, 精度が必要なときだけ `small` を使う 2 段構え。
-  `base.en` (Omarchy 既定) は英語専用のため, 日本語を喋ると英語として書き起こされる。
-  CPU 推論 (AVX-512 / 4 スレッド) の実測値 (8 秒の日本語音声):
-  - `base`: 約 1.6 秒。通常の `F9` / `SUPER + CTRL + X` はこちら。
-  - `small`: 約 5.5 秒。`SUPER + CTRL + SHIFT + X` で `--model small` を明示指定する。
-  `--model` で上書きしたモデルはデーモンが保持するため, 2 回目以降はロード待ちが無い
-  (メモリは `small` の分だけ増える)。`medium` (約 1.5GB) はさらに遅く, CPU では
-  実用的な待ち時間に収まらない。`threads = 4` が最も効率的で, 8 にしても
-  速度は変わらず消費電力だけ増えた。GPU (Vulkan) は Iris Plus ではかえって遅く,
-  量子化モデルはこの AVX-512 ビルドで SIGILL になるため採用していない。
-- `initial_prompt` に日本語の口述であることと固有名詞を書いて, 句読点と表記を安定させる。
-  固有名詞を増やしすぎると出力がプロンプトに引っ張られるため, よく使う語だけにする。
-- 出力は `wtype` 経由の `type` モード (CJK 対応)。失敗時はクリップボードに退避する。
-  `wtype_shift_prefix = true` は 1 文字目 (特に CJK) が落ちるアプリ向けの保険。
-- VAD は追加モデル不要の `energy` を使い, 無音だけの録音を書き起こさない。
-  小さい声が落ちる場合は `threshold` を下げる。Silero を使うなら
-  `voxtype setup vad` の後に `backend = "whisper"` へ変える。
-- `pause_media = true` で録音中は再生中のメディアを止める。音楽を止めたくない場合は
-  `duck_media = true` に変えて音量だけ下げる。
+- Omarchy 4.0.x にはバックエンド選択が無く, 既定の dictation は Voxtype 前提。
+  `omarchy/.config/hypr/bindings.lua` が `hex` の存在を検出したときだけ, F9 と
+  SUPER + CTRL + X を Hex 用に張り直す。
+- 設定は Hex が `~/.local/share/hex/settings.json` に保存する。GUI から変更するか,
+  `hex settings list` で現在値を確認して `hex settings set <key> <value>` で変更する。
+- モデルは初回起動のオンボーディングで選ぶ (`hex model list` で一覧と導入状況を確認)。
+  日本語なら `sense_voice_small` (この環境の既定) や `whisper_large_v3_turbo` など。
+  CPU 推論でも動くが, Hex のウィンドウ表示には Vulkan ドライバが必要
+  (Intel なら `vulkan-intel`。`bin/omarchy/hex.sh` が導入する)。
+- Hex は導入後に stable channel を自己更新する。`make omarchy` のたびに
+  ダウンロードし直さないよう, 導入済みなら何もしない
+  (`sh bin/omarchy/hex.sh --force` で入れ直す)。
+- 出力は Hex がフォーカス中のウィンドウへ貼り付ける。
+  `hex dictation stop --print` を使うと貼り付けずに書き起こし結果だけ確認できる。
 
-セットアップ (4.5 以降):
+セットアップ:
 
 ```sh
-# 設定の symlink を張る
-make link
-
-# Setup > Defaults > Dictation で Voxtype を選ぶ (未導入ならインストーラが入れる)。
-# メニューを使わない場合は次のコマンドでもよい。
-omarchy default dictation voxtype
-
+make omarchy_hex   # 依存 (openblas / tinyxxd / vulkan-intel) と Hex 本体を導入
+make link          # omarchy-dictation-hex を ~/.local/bin へ link
 hyprctl reload
 ```
 
-4.5 のインストーラは `wtype` / `voxtype-bin` の導入, 設定が無い場合の既定コピー,
-モデルのダウンロード (`voxtype setup --download`), systemd ユーザーサービスの
-`enable --now`, dictation バックエンドの切り替えまで行う。
-
-4.5 より前 (4.0.x) の手順:
-
-```sh
-omarchy-pkg-add wtype voxtype-bin
-voxtype setup --download --model small
-voxtype setup systemd
-systemctl --user enable --now voxtype
-make link
-hyprctl reload
-```
+`make omarchy` は上記を含めて実行する。
 
 確認:
 
 ```sh
-omarchy default dictation  # 選択中のバックエンド
-voxtype setup check        # 依存関係 (wtype / モデル / 出力経路) の確認
-voxtype config schema      # 指定できるキーの一覧
-systemctl --user status voxtype
-# 16kHz モノラルで録音して書き起こし時間を測る
-pw-record --rate 16000 --channels 1 /tmp/voxtype-test.wav
-time voxtype transcribe /tmp/voxtype-test.wav
+omarchy default dictation  # 選択中のバックエンド (4.5 以降)
+hex status                 # 起動状態と録音状態
+hex settings list          # 現在の設定
+hex dictation --help       # start / stop / cancel / toggle
+systemctl --user status hex
+hex logs
 ```
 
 注意点:
 
-- `hotkey.enabled = false` のため `input` グループへの追加は不要。キーバインドは
-  compositor 側から `omarchy dictation start|stop|toggle` (バックエンド非依存) を叩く。
-  4.5 のラッパーには `cancel` が無いため, キャンセルだけは Voxtype 選択時に
-  `voxtype record cancel` を直接叩く。
-- mozc が ON のまま `wtype` で日本語を入力すると, IME が合成キーを変換して
-  二重変換になることがある。その場合は `output.pre_recording_command` で
-  `fcitx5-remote -s keyboard-us` を実行し, `output.post_output_command` で戻す。
-- 通知は出さず効果音 (`audio.feedback.theme = "subtle"`) で状態を知らせる。
+- `omarchy dictation` には cancel が無いため, キャンセルだけは
+  `omarchy-dictation-hex cancel` を直接叩く。
+- Hex が起動していないと `hex dictation start|toggle` は exit 3 で失敗する。
+  ログイン時は `~/.config/autostart/anomaly.hex.desktop` で自動起動する。
+- Voxtype が残っている環境では `omarchy voxtype remove` でパッケージと設定を削除する
+  (コマンドが無ければ `sudo pacman -Rns voxtype-bin`)。
 - 右 Alt の push-to-talk は 4.5 で追加された。日本語配列で AltGr と衝突する場合は
   右 Alt を使わず F9 かトグルを使う (4.5 のリリースノートにも同じ注意がある)。
 
