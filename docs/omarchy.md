@@ -335,15 +335,31 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 | `SUPER CTRL + Delete` | ラップトップ画面の切替 |
 | `SUPER ALT + BRACKETLEFT` / `SUPER ALT + BRACKETRIGHT` | ウェブカメラオーバーレイの縮小 / 拡大 |
 
-## 無効化している Omarchy 既定キーバインド
+## 無効化・差し替えしている設定
 
 `hypr/bindings.lua` で `hl.unbind` しているもの。復活させる場合は該当行を削除して
-`hyprctl reload` する。
+`hyprctl reload` する。`omarchy_default_bindings = false` や
+`omarchy_preinstalled_bindings = false` は使っておらず, 既定の上に最小限の
+unbind / 再 bind だけを重ねている。
 
-| キー | Omarchy 既定の動作 | 無効化の理由 |
-| --- | --- | --- |
-| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | 当時 IME 切替に使っていた `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
-| `SUPER + /` / `SUPER + ALT + /` | Monitor scaling up / down (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし。一時的に変える場合は `omarchy-hyprland-monitor-scaling up\|down` を直接実行する |
+### 無効化しているキーバインド
+
+| キー | Omarchy 既定の動作 | 無効化の理由 | 代替手段 |
+| --- | --- | --- | --- |
+| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | 当時 IME 切替に使っていた `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった | `omarchy-toggle-bar off` (表示) / `on` (非表示) を直接実行する。フラグ名が `bar-off` のため `on` が「非表示」になる点に注意 |
+| `SUPER + /` | Monitor scaling up (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし | `omarchy-hyprland-monitor-scaling up` を直接実行する |
+| `SUPER + ALT + /` | Monitor scaling down (`omarchy-hyprland-monitor-scaling`) | 上と同じ | `omarchy-hyprland-monitor-scaling down` を直接実行する |
+
+### 差し替えているキーバインド
+
+既定の動作を unbind したうえで, 別の動作を割り当てているもの。
+
+| キー | 元の動作 | 現在の動作 | 備考 |
+| --- | --- | --- | --- |
+| `Shift_R` / `SHIFT + Shift_R` | Shift (修飾キー) | 右 Shift 単押しで音声入力の push-to-talk (`Hex`) | JIS 配列に右 Alt が無いため追加。`non_consuming` のため Shift キーとしての文字入力は維持される。他の修飾キーを押している間は発火しない |
+| `SUPER + CTRL + X` | Toggle dictation | Toggle dictation (`Hex`) | Omarchy 4.0.x のみ。4.5 以降は Omarchy 既定の dictation バインドをそのまま使う |
+| `F9` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
+| `ALT + Alt_R` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
 
 バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
 `omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
