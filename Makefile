@@ -81,10 +81,15 @@ omarchy: ## Setup for Linux (omarchy / Arch) machine
 	sh ./bin/omarchy.sh
 	sh ./bin/zsh_plugin.sh
 	$(MAKE) link
+	$(MAKE) omarchy_hex
 
 .PHONY: omarchy_plugins
 omarchy_plugins: ## Install/enable Omarchy shell plugins
 	sh ./bin/omarchy/plugins.sh
+
+.PHONY: omarchy_hex
+omarchy_hex: ## Install Hex voice dictation and select it as the dictation backend
+	sh ./bin/omarchy/hex.sh
 
 .PHONY: agent_hooks
 agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode / Pi)

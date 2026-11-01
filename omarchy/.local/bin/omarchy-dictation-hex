@@ -1,0 +1,40 @@
+#!/bin/sh
+# Omarchy (>= 4.5) の dictation バックエンドとして Hex を使うアダプタ。
+#
+# Omarchy は `omarchy dictation start|stop|toggle` を
+# `omarchy-dictation-<backend>` に委譲する。ここでは Hex の CLI に読み替える。
+# 規約:
+#   - start / toggle / cancel は速やかに返る (Hex 側が実際の録音を進める)
+#   - stop / cancel は Hex が録音していない / 起動していないときも成功させる
+# 詳細: docs/omarchy.md の「音声入力 (Hex)」を参照。
+
+set -e
+
+hex_bin="${HOME}/.local/bin/hex"
+
+if [ ! -x "$hex_bin" ]; then
+    echo "omarchy-dictation-hex: Hex is not installed: $hex_bin" >&2
+    exit 1
+fi
+
+case "${1:-}" in
+    start)
+        exec "$hex_bin" dictation start
+        ;;
+    stop)
+        # Hex は録音していないとき stop を失敗させるため, 常に成功として扱う。
+        "$hex_bin" dictation stop >/dev/null 2>&1 || true
+        ;;
+    cancel)
+        # Omarchy 4.5 の `omarchy dictation` には cancel が無いため,
+        # bindings.lua から直接このサブコマンドを叩く。
+        "$hex_bin" dictation cancel >/dev/null 2>&1 || true
+        ;;
+    toggle)
+        exec "$hex_bin" dictation toggle
+        ;;
+    *)
+        echo "Usage: omarchy-dictation-hex <start|stop|cancel|toggle>" >&2
+        exit 1
+        ;;
+esac
