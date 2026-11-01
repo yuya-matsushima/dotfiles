@@ -39,7 +39,6 @@ hl.unbind("SUPER + ALT + SLASH")
 
 -- Logitech MX Keys examples:
 -- o.bind("SUPER + SHIFT + S", nil, "omarchy-capture-screenshot")
--- o.bind("SUPER + H", nil, "voxtype record toggle")
 -- o.bind("SUPER + PERIOD", nil, "omarchy-shell shell toggle omarchy.emojis")
 
 -- IME (fcitx5/mozc) の切替。
@@ -65,31 +64,6 @@ o.bind("Hangul_Hanja", "IME off (英数 → keyboard-us)", "fcitx5-remote -s key
 local ime_toggle = os.getenv("HOME") .. "/.local/bin/ime-toggle"
 o.bind("SUPER + Super_L", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })
 o.bind("SUPER + Super_R", "IME toggle (SUPER 単押し)", ime_toggle, { release = true })
-
--- 音声入力のキャンセル。
--- トグル (SUPER + CTRL + X) と push-to-talk (F9 / 右 Alt) は Omarchy 4.5 の既定に任せる。
--- 4.5 の `omarchy dictation` には cancel が無いため, バックエンドが Voxtype のときだけ
--- `voxtype record cancel` を直接叩く。ESC 単体はアプリへ渡す必要があるため,
--- SUPER + CTRL + ESCAPE に割り当てる。
-local dictation_backend
-if o.cmd_present("omarchy-default-dictation") then
-  local pipe = io.popen("omarchy-default-dictation 2>/dev/null")
-  if pipe then
-    dictation_backend = pipe:read("*l")
-    pipe:close()
-  end
-elseif o.cmd_present("voxtype") then
-  -- 4.5 より前はバックエンド選択が無く Voxtype 固定だった
-  dictation_backend = "voxtype"
-end
-
-if dictation_backend == "voxtype" and o.cmd_present("voxtype") then
-  o.bind("SUPER + CTRL + ESCAPE", "Cancel dictation", "voxtype record cancel")
-
-  -- 精度優先の dictation。通常は config の model (base) を使い, ここだけ small を
-  -- 明示指定する。上書きしたモデルはデーモンが保持するので 2 回目以降は速い。
-  o.bind("SUPER + CTRL + SHIFT + X", "Toggle dictation (accurate)", "voxtype record toggle --model small")
-end
 
 -- KeyCastr 代替: 押したキーを keycap として表示する (markpriem.keystrokes)。
 -- プラグイン未導入の環境で Hyprland の設定エラーにしないため, 存在するときだけ読む。
