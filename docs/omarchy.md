@@ -222,15 +222,144 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - fcitx5 を再起動した場合, 起動中の Chromium は IME 接続が復帰しないことがあるため
   Chromium も再起動する。
 
-## 無効化している Omarchy 既定キーバインド
+## キーバインド (よく使うもの)
+
+`hypr/bindings.lua` (Omarchy 既定 + 自前の上書き) で有効なもの。全一覧は
+`SUPER + K` または `omarchy menu keybindings --print` で確認できる。
+`SUPER` は macOS の Command に相当する。
+
+### まず覚える 3 つ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + SPACE` | Omarchy メニュー (ここからほぼ全部たどれる) |
+| `SUPER ALT + SPACE` | Apps メニュー (アプリ一覧) |
+| `SUPER + K` | キーバインド一覧 |
+
+### ウィンドウ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + W` / `CTRL ALT + DELETE` | 閉じる / 全ウィンドウを閉じる |
+| `SUPER + F` | フルスクリーン |
+| `SUPER ALT + F` | 全幅表示 |
+| `SUPER CTRL + F` | タイル内フルスクリーン |
+| `SUPER + T` | フローティング / タイル切替 |
+| `SUPER + J` / `SUPER + P` | 分割 (split) 切替 / 疑似ウィンドウ (pseudo tile) |
+| `SUPER + O` | ポップアウト (float + pin) |
+| `SUPER + L` | ワークスペースレイアウト切替 |
+| `SUPER + BACKSPACE` | ウィンドウ透過切替 |
+| `SUPER + Home` / `SUPER ALT + Home` | ウィンドウ幅の復元 / 保存 |
+| `SUPER CTRL + BACKSPACE` | 単一ウィンドウを正方形アスペクトに |
+| `SUPER + S` / `SUPER ALT + S` | スクラッチパッド表示切替 / ウィンドウをスクラッチパッドへ |
+
+### フォーカスと移動
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + 矢印` | 上下左右のウィンドウへフォーカス |
+| `ALT + TAB` / `SHIFT ALT + TAB` | 次 / 前のウィンドウ |
+| `CTRL ALT + TAB` / `SHIFT CTRL ALT + TAB` | 次 / 前のモニタ |
+| `SUPER SHIFT + 矢印` | ウィンドウをその方向へスワップ |
+| `SUPER + 左ドラッグ` / `SUPER + 右ドラッグ` | ウィンドウ移動 / リサイズ |
+| `SUPER CTRL + ←/→` | グループ内のフォーカス移動 |
+| `SUPER ALT + ホイール↑` / `SUPER SHIFT ALT + TAB` | グループ内の前のウィンドウ |
+
+### リサイズ (キーボード)
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + -` / `SUPER + =` | 左へ広げる / 左を縮める |
+| `SUPER SHIFT + =` / `SUPER SHIFT + -` | 下へ広げる / 上を縮める |
+| 上記 + `ALT` / 上記 + `CTRL` | 少しだけ (a little) / 大きく (a lot) |
+
+### ワークスペース
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + 1〜0` | その番号へ直行 (0 = 10) |
+| `SUPER + TAB` / `SUPER SHIFT + TAB` | 次 / 前のワークスペース (巡回) |
+| `SUPER CTRL + TAB` | 直前にいたワークスペースへ戻る |
+| `SUPER + ホイール↓/↑` | 前 / 後ろへスクロール切替 |
+| `SUPER SHIFT + 1〜0` | ウィンドウをそのワークスペースへ移動 |
+| `SUPER SHIFT ALT + 1〜0` | フォーカスを追従させずに移動 |
+
+### アプリ起動・メニュー
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + RETURN` | ターミナル |
+| `SUPER SHIFT + RETURN` / `SUPER + B` | ブラウザ |
+| `SUPER SHIFT ALT + B` | ブラウザ (プライベート) |
+| `SUPER SHIFT + F` / `SUPER SHIFT ALT + F` | ファイルマネージャ / カレントディレクトリで開く |
+| `SUPER + ESCAPE` / `XF86PowerOff` | システムメニュー (ロック・再起動など) |
+| `SUPER CTRL + C` | キャプチャメニュー |
+| `SUPER CTRL + 1〜9` | バーパネル 1〜9 |
+| `SUPER ALT + K` / `SUPER CTRL + K` | Tmux / Herdr |
+| `XF86Calculator` / `SUPER CTRL + Q` | 電卓 |
+
+### クリップボード・スクリーンショット
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER C` / `SUPER V` / `SUPER X` | コピー / ペースト / カット (universal。ターミナルでも GUI と同じ感覚で効く) |
+| `SUPER CTRL + V` | クリップボード履歴 |
+| `SUPER CTRL + E` | 絵文字 |
+| `PRINT` / `ALT + PRINT` | スクリーンショット / 画面録画 |
+| `SUPER CTRL + PRINT` | スクショから OCR (文字抽出) |
+| `SUPER + PRINT` | カラーピッカー |
+
+### 通知・音量・明るさ
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER + ,` / `SUPER SHIFT + ,` | 最後の通知を消す / 全部消す |
+| `SUPER ALT + ,` / `SUPER CTRL + ,` / `SUPER SHIFT ALT + ,` | 最後の通知を開く / 通知のミュート切替 / 通知履歴 |
+| `XF86AudioRaiseVolume` / `XF86AudioLowerVolume` | 音量 上下 (ALT 併用で微調整) |
+| `XF86AudioMute` / `XF86AudioMicMute` | スピーカー / マイクのミュート |
+| `SHIFT + XF86AudioMute` | 音声出力の切替 |
+| `XF86MonBrightnessUp` / `XF86MonBrightnessDown` | 明るさ 上下 (ALT 併用で微調整, SHIFT 併用で最大 / 最小) |
+| `XF86KbdBrightnessUp` / `XF86KbdBrightnessDown` | キーボードバックライト |
+| `XF86AudioPlay` / `XF86AudioNext` / `XF86AudioPrev` | 再生 / 次 / 前の曲 |
+
+### この環境固有 (IME / 音声入力 / 表示)
+
+| キー | 動作 |
+| --- | --- |
+| `SUPER` 単押し (左右どちらでも) | IME トグル (macOS の Command 単押しと同じ) |
+| `かな` / `英数` | IME を mozc / keyboard-us へ明示切替 |
+| 右 `Alt` 押しっぱなし / `F9` / 右 `Shift` 押しっぱなし | 音声入力 (Hex, push-to-talk) |
+| `SUPER SHIFT + K` | 押したキーを画面に表示 (Keystrokes) |
+| `SUPER CTRL + L` | 画面ロック |
+| `SUPER CTRL + N` / `SUPER CTRL + I` | ナイトライト / アイドル時ロックの切替 |
+| `SUPER CTRL + Delete` | ラップトップ画面の切替 |
+| `SUPER ALT + BRACKETLEFT` / `SUPER ALT + BRACKETRIGHT` | ウェブカメラオーバーレイの縮小 / 拡大 |
+
+## 無効化・差し替えしている設定
 
 `hypr/bindings.lua` で `hl.unbind` しているもの。復活させる場合は該当行を削除して
-`hyprctl reload` する。
+`hyprctl reload` する。`omarchy_default_bindings = false` や
+`omarchy_preinstalled_bindings = false` は使っておらず, 既定の上に最小限の
+unbind / 再 bind だけを重ねている。
 
-| キー | Omarchy 既定の動作 | 無効化の理由 |
-| --- | --- | --- |
-| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | 当時 IME 切替に使っていた `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった |
-| `SUPER + /` / `SUPER + ALT + /` | Monitor scaling up / down (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし。一時的に変える場合は `omarchy-hyprland-monitor-scaling up\|down` を直接実行する |
+### 無効化しているキーバインド
+
+| キー | Omarchy 既定の動作 | 無効化の理由 | 代替手段 |
+| --- | --- | --- | --- |
+| `SUPER + SHIFT + SPACE` | Toggle top bar (`omarchy-toggle-bar`) | 当時 IME 切替に使っていた `CTRL + SPACE` と押し方が近く誤爆しやすい。誤爆で `~/.local/state/omarchy/toggles/bar-off` が立ち, バーが画面外 (y = -26) に隠れたままになった | `omarchy-toggle-bar off` (表示) / `on` (非表示) を直接実行する。フラグ名が `bar-off` のため `on` が「非表示」になる点に注意 |
+| `SUPER + /` | Monitor scaling up (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし | `omarchy-hyprland-monitor-scaling up` を直接実行する |
+| `SUPER + ALT + /` | Monitor scaling down (`omarchy-hyprland-monitor-scaling`) | 上と同じ | `omarchy-hyprland-monitor-scaling down` を直接実行する |
+
+### 差し替えているキーバインド
+
+既定の動作を unbind したうえで, 別の動作を割り当てているもの。
+
+| キー | 元の動作 | 現在の動作 | 備考 |
+| --- | --- | --- | --- |
+| `Shift_R` / `SHIFT + Shift_R` | Shift (修飾キー) | 右 Shift 単押しで音声入力の push-to-talk (`Hex`) | JIS 配列に右 Alt が無いため追加。`non_consuming` のため Shift キーとしての文字入力は維持される。他の修飾キーを押している間は発火しない |
+| `SUPER + CTRL + X` | Toggle dictation | Toggle dictation (`Hex`) | Omarchy 4.0.x のみ。4.5 以降は Omarchy 既定の dictation バインドをそのまま使う |
+| `F9` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
+| `ALT + Alt_R` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
 
 バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
 `omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
