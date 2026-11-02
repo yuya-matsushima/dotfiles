@@ -16,6 +16,27 @@ make omarchy
 3. `make link` : `$HOME` 配下への symlink 作成
 4. `make omarchy_hex` : Hex の導入と dictation バックエンドの選択
 
+## Omarchy 4.5 への更新 (4.0.6 → 4.5.0rc3)
+
+`omarchy-channel-set rc` (または `omarchy channel set rc`) で rc チャンネルへ切り替えると
+`omarchy` / `omarchy-settings` が 4.5.0rc3 になり, 続けて `omarchy update` が走る。
+4.1〜4.4 は存在せず, 4.0.6 からの直接更新になる。
+
+更新時に知っておくこと:
+
+- **キーバインドが移動した**: 電卓 `SUPER + SHIFT + Q`, Activity `SUPER + SHIFT + T`,
+  ネットワーク `SUPER + CTRL + N`, 通知系は `SUPER + ,` が「最新の通知に作用」に変更。
+  ナイトライトのショートカットは廃止され Trigger > Toggle へ。
+- **モニターごとのワークスペース**: `SUPER + 1〜0` はフォーカス中モニターの 1〜10 を選ぶ。
+  4.0.x 用の `workspace_rule` によるモニター固定は競合するため削除した (`hypr/monitors.lua`)。
+- **dictation がバックエンド方式に**: migration は既存ユーザーを Voxtype のまま残すので,
+  Hex を使うには `omarchy dictation use hex` を実行する (`make omarchy` でも切り替わる)。
+- **mise の既定ツール**: `gh` / AI CLI は `/etc/mise/conf.d/omarchy-tools.toml` が宣言する。
+  migration が `omarchy/.config/mise/config.toml` から `= "latest"` を削除する。
+- **Chromium 系**: migration が `--enable-features` に `OverlayScrollbar` を追加する。
+- `hypr/bindings.lua` の 4.0.x 向け dictation フォールバックは, stable へ戻す場合に備えて
+  残している (4.5 では実行されない)。
+
 ## シェルプラグイン (`omarchy/plugins.txt`)
 
 `make omarchy` は `bin/omarchy/plugins.sh` も実行し, `omarchy/plugins.txt` に
@@ -76,7 +97,7 @@ omarchy base (`/usr/share/omarchy/install/omarchy-base.packages`) が既に導�
 その他の除外:
 
 - `git` / `curl` / `make` / `grep` / `ncurses` などは base や base-devel で導入済み。
-- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `pi`) は mise 管理のため含めません。
+- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `pi`) は Omarchy 4.5 以降 `/etc/mise/conf.d/omarchy-tools.toml` が宣言するため、`omarchy/.config/mise/config.toml` には書かない (4.5 の migration がユーザー設定側の `= "latest"` を削除する)。
 - `direnv` は mise で代替するため含めません。
 - `htop` / `mariadb-clients` (`mysql-client` 相当) は未使用のため含めません。
 - `pngpaste` / `font-symbols-only-nerd-font` など macOS 専用ツールは含めません。
@@ -129,7 +150,7 @@ getent passwd "$USER" | cut -d: -f7
 
 | 対象 | 扱い |
 |---|---|
-| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。macOS 側は Homebrew で管理する `gh`/`uv` を含む |
+| `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。`gh` / AI CLI は Omarchy が `/etc/mise/conf.d/omarchy-tools.toml` で宣言するためここには書かない |
 | `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
 | `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
 | `omarchy/.pi/agent/settings.json` | Linux のみ (`theme: omarchy-system` を含む) |
@@ -233,7 +254,7 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 | キー | 動作 |
 | --- | --- |
 | `SUPER + SPACE` | Omarchy メニュー (ここからほぼ全部たどれる) |
-| `SUPER ALT + SPACE` | Apps メニュー (アプリ一覧) |
+| `SUPER ALT + SPACE` | dock のアプリ一覧 (4.5 以降) |
 | `SUPER + K` | キーバインド一覧 |
 
 ### ウィンドウ
@@ -277,12 +298,18 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 
 | キー | 動作 |
 | --- | --- |
-| `SUPER + 1〜0` | その番号へ直行 (0 = 10) |
-| `SUPER + TAB` / `SUPER SHIFT + TAB` | 次 / 前のワークスペース (巡回) |
-| `SUPER CTRL + TAB` | 直前にいたワークスペースへ戻る |
-| `SUPER + ホイール↓/↑` | 前 / 後ろへスクロール切替 |
-| `SUPER SHIFT + 1〜0` | ウィンドウをそのワークスペースへ移動 |
+| `SUPER + 1〜0` | フォーカス中モニターのスロット 1〜10 へ (0 = 10) |
+| `SUPER + TAB` / `SUPER SHIFT + TAB` | 同じモニター内で次 / 前のワークスペース |
+| `SUPER CTRL + TAB` | そのモニターで直前にいたワークスペースへ |
+| `SUPER + ホイール↓/↑` | 同じモニター内で前 / 後ろへスクロール切替 |
+| `SUPER SHIFT + 1〜0` | ウィンドウをそのスロットへ移動 |
 | `SUPER SHIFT ALT + 1〜0` | フォーカスを追従させずに移動 |
+| `SUPER SHIFT ALT + 矢印` | ワークスペースごと隣のモニターへ移動 |
+| `SUPER SHIFT CTRL + 矢印` | ウィンドウだけ隣のモニターへ移動 |
+| `SUPER + L` / `SUPER ALT + L` | レイアウト (dwindle / scrolling / floating) を次 / 前へ |
+| `SUPER + M` | ウィンドウを dock へ最小化 |
+
+Omarchy 4.5 以降は**モニターごとに 1-10 のワークスペース**を持つ。番号は内部的にグローバル (内蔵 1-10、次のモニター 11-20) だが、バーは各モニターの 1-10 を表示し、`SUPER + 1〜0` はフォーカス中のモニターのスロットを選ぶ (`default/hypr/monitor-workspaces.lua`)。
 
 ### アプリ起動・メニュー
 
@@ -294,9 +321,16 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 | `SUPER SHIFT + F` / `SUPER SHIFT ALT + F` | ファイルマネージャ / カレントディレクトリで開く |
 | `SUPER + ESCAPE` / `XF86PowerOff` | システムメニュー (ロック・再起動など) |
 | `SUPER CTRL + C` | キャプチャメニュー |
+| `SUPER CTRL + ALT + C` | スクリーンショット (4.5 以降) |
 | `SUPER CTRL + 1〜9` | バーパネル 1〜9 |
 | `SUPER ALT + K` / `SUPER CTRL + K` | Tmux / Herdr |
-| `XF86Calculator` / `SUPER CTRL + Q` | 電卓 |
+| `XF86Calculator` / `SUPER SHIFT + Q` | 電卓 |
+| `SUPER CTRL + T` / `SUPER CTRL + W` | テーマ / 背景 (4.5 以降) |
+| `SUPER SHIFT + T` | Activity (4.5 で `Ctrl+T` から移動) |
+| `SUPER CTRL + ALT + E` | 世界時計 (Elsewhen, 4.5 以降) |
+| `SUPER + grave` / `SUPER SHIFT + grave` | Quake 端末の表示切替 / ウィンドウを送る (4.5 以降) |
+| `SUPER CTRL + ALT + F` | フルスクリーンデスクトップの切替 (4.5 以降) |
+| `SUPER + Q` / `SUPER + A` | ウィンドウを閉じる / 全選択 (4.5 以降) |
 
 ### クリップボード・スクリーンショット
 
@@ -313,8 +347,12 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 
 | キー | 動作 |
 | --- | --- |
-| `SUPER + ,` / `SUPER SHIFT + ,` | 最後の通知を消す / 全部消す |
-| `SUPER ALT + ,` / `SUPER CTRL + ,` / `SUPER SHIFT ALT + ,` | 最後の通知を開く / 通知のミュート切替 / 通知履歴 |
+| `SUPER + ,` | 最新の通知を消す / 開く / ボタンを押す (4.5 以降) |
+| `SUPER SHIFT + ,` | 通知をすべて消す |
+| `SUPER ALT + ,` | 最後の通知を消す (4.5 以降。以前は「開く」) |
+| `SUPER CTRL + ,` | 通知をキーボードで操作 (4.5 以降) |
+| `SUPER CTRL + ALT + ,` | 通知のミュート切替 (4.5 以降。以前は `Ctrl+,`) |
+| `SUPER SHIFT ALT + ,` | 通知履歴 |
 | `XF86AudioRaiseVolume` / `XF86AudioLowerVolume` | 音量 上下 (ALT 併用で微調整) |
 | `XF86AudioMute` / `XF86AudioMicMute` | スピーカー / マイクのミュート |
 | `SHIFT + XF86AudioMute` | 音声出力の切替 |
@@ -331,7 +369,9 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 | 右 `Alt` 押しっぱなし / `F9` / 右 `Shift` 押しっぱなし | 音声入力 (Hex, push-to-talk) |
 | `SUPER SHIFT + K` | 押したキーを画面に表示 (Keystrokes) |
 | `SUPER CTRL + L` | 画面ロック |
-| `SUPER CTRL + N` / `SUPER CTRL + I` | ナイトライト / アイドル時ロックの切替 |
+| `SUPER CTRL + I` | アイドル時ロックの切替 |
+| `SUPER + I` / `SUPER SHIFT + I` | 入力言語の切替 / 戻す (Omarchy 4.5 の `omarchy-input-method cycle`) |
+| `SUPER CTRL + N` | ネットワーク (4.5 以降。ナイトライトは Trigger > Toggle へ移動) |
 | `SUPER CTRL + Delete` | ラップトップ画面の切替 |
 | `SUPER ALT + BRACKETLEFT` / `SUPER ALT + BRACKETRIGHT` | ウェブカメラオーバーレイの縮小 / 拡大 |
 
@@ -357,9 +397,10 @@ unbind / 再 bind だけを重ねている。
 | キー | 元の動作 | 現在の動作 | 備考 |
 | --- | --- | --- | --- |
 | `Shift_R` / `SHIFT + Shift_R` | Shift (修飾キー) | 右 Shift 単押しで音声入力の push-to-talk (`Hex`) | JIS 配列に右 Alt が無いため追加。`non_consuming` のため Shift キーとしての文字入力は維持される。他の修飾キーを押している間は発火しない |
-| `SUPER + CTRL + X` | Toggle dictation | Toggle dictation (`Hex`) | Omarchy 4.0.x のみ。4.5 以降は Omarchy 既定の dictation バインドをそのまま使う |
-| `F9` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
-| `ALT + Alt_R` | Start dictation | Start dictation (`Hex`) | 同上。4.5 以降は Omarchy 既定のまま |
+
+`SUPER + CTRL + X` / `F9` / `ALT + Alt_R` は Omarchy 4.5 では既定の dictation バインド
+(`default/hypr/bindings/dictation.lua`) がそのまま張る。選択中のバックエンドが Hex なら
+そのまま Hex が動くため, `hypr/bindings.lua` 側での差し替えは 4.0.x のみ。
 
 バーの表示を手動で切り替える場合は `omarchy-toggle-bar off` (表示) /
 `omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
@@ -447,17 +488,16 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 `bin/link.sh` で Linux 専用ターゲットとして管理される。
 
 - 外部ディスプレイ (DP-3) を上 (Display 1)、内蔵 (eDP-1) を下 (Display 2) に縦配置
-- SUPER+1..5 = 外部 / SUPER+6..0 = 内蔵 (workspace_rule で固定)
-- 配置とワークスペースの割り当ては接続状態にかかわらず常に宣言する。Hyprland は
-  未接続出力のルールを保持し、接続時に自動適用する (該当ワークスペースも移動する)
-  ため、起動後に外部を抜き挿ししても画面順は崩れない
+- 配置ルールは接続状態にかかわらず常に宣言する。Hyprland は未接続出力のルールを
+  保持し、接続時に自動適用するため、起動後に外部を抜き挿ししても画面順は崩れない
+- ワークスペースはモニターへ固定しない。Omarchy 4.5 以降は各モニターが 1-10 を
+  持ち (`default/hypr/monitor-workspaces.lua`)、`SUPER+1..0` はフォーカス中の
+  モニターのスロットを選ぶ。4.0.x 向けの `workspace_rule` 固定は 4.5 の
+  ブロック割り当てと競合するため削除した
 - 長時間サスペンドからの復帰後に外部が認識されない場合に備え、
   `omarchy-hyprland-monitor-resume` がログイン時に常駐し、復帰時に必要なら
   `hyprctl reload` でモニター状態を再適用する
   (手動実行: `omarchy-hyprland-monitor-resume --now`)
-
-注意: `hl.workspace_rule` の範囲指定 (`workspace = "1-5"`) は使えないため、
-`workspace = "1"` のように 1 つずつ列挙する必要がある。
 
 ## 1Password の SSH 承認ダイアログ
 
@@ -485,7 +525,11 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 
 Hex (`~/.local/bin/hex`) を Omarchy の dictation バックエンドとして使う。
 `make omarchy` または `make omarchy_hex` で導入し, 4.5 以降ではバックエンドを
-hex に切り替える (`omarchy default dictation hex` でもよい)。
+hex に切り替える (`omarchy dictation use hex`)。
+
+注意: 4.5 へ更新すると migration が「既存の dictation ユーザーは Voxtype のまま」に
+するため (`~/.config/omarchy/defaults/dictation` に `voxtype` を書き込む), Hex に
+戻すには上記コマンドを明示的に実行する。`make omarchy` もこの切り替えを行う。
 
 Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
 **SUPER + CTRL + X** (トグル)。dotfiles では JIS 配列に右 Alt が無いため,
