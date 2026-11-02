@@ -20,26 +20,23 @@ local internal_scale = 5 / 3  -- 内蔵 (eDP-1): 高 DPI (≒1.667)
 
 hl.env("GDK_SCALE", tostring(gdk_scale))
 
--- 外部 (DP-3) と内蔵 (eDP-1) の monitor / workspace ルールは接続状態に
--- かかわらず常に宣言する。Hyprland は未接続出力のルールを保持し、接続時に
--- 自動で適用する (該当ワークスペースもそのモニターへ移動する)。
--- 読み込み時点の検出に頼ると、起動後に外部を挿したときレイアウトと
--- SUPER+1..0 の割り当てが内蔵基準のままになり、画面順が崩れる。
+-- 外部 (DP-3) と内蔵 (eDP-1) の monitor ルールは接続状態にかかわらず常に
+-- 宣言する。Hyprland は未接続出力のルールを保持し、接続時に自動で適用する
+-- ため、起動後に外部を挿しても画面順は崩れない。
 --
 -- 縦配置: 外部 (DP-3) を上 (Display 1, 0x0)、内蔵 (eDP-1) をその真下
 -- (Display 2)。外部の論理高さ = 2160 / (4/3) = 1620px なので y=1620。
 hl.monitor({ output = "DP-3", mode = "preferred", position = "0x0", scale = external_scale })
 hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x1620", scale = internal_scale })
 
--- SUPER+1..0 が選ぶワークスペースをモニターに固定:
---   SUPER+1..5 = 外部 (Display 1), SUPER+6..0 = 内蔵 (Display 2)
--- 注意: 範囲指定 (1-5) は使えないため、個別に列挙する。
-for ws = 1, 5 do
-  hl.workspace_rule({ workspace = tostring(ws), monitor = "DP-3" })
-end
-for ws = 6, 10 do
-  hl.workspace_rule({ workspace = tostring(ws), monitor = "eDP-1" })
-end
+-- ワークスペースをモニターへ固定しない。
+-- Omarchy 4.5 以降は各モニターが 1-10 のワークスペースを持ち (内蔵が 1-10、
+-- 次のモニターが 11-20 のブロック)、SUPER+1..0 はフォーカス中のモニターの
+-- スロット 1..10 を選ぶ (default/hypr/monitor-workspaces.lua)。
+-- 4.0.x 向けに SUPER+1..5 を外部、6..0 を内蔵へ固定していた workspace_rule は、
+-- このブロック割り当てと競合して接続時にワークスペースを renumber させるため
+-- 削除した。モニター間の移動は SUPER+SHIFT+ALT+矢印 (ワークスペース) /
+-- SUPER+SHIFT+CTRL+矢印 (ウィンドウ) を使う。
 
 -- Configure a specific monitor.
 -- hl.monitor({ output = "DP-2", mode = "2560x1440@144", position = "0x0", scale = 1 })
