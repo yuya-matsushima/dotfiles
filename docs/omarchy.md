@@ -151,7 +151,7 @@ getent passwd "$USER" | cut -d: -f7
 | 対象 | 扱い |
 |---|---|
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。`gh` / AI CLI は Omarchy が `/etc/mise/conf.d/omarchy-tools.toml` で宣言するためここには書かない |
-| `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
+| `omarchy/.config/chromium-flags.conf` | Chromium の起動フラグ (上流 config の全置換) |
 | `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
 | `omarchy/.pi/agent/settings.json` | Linux のみ (`theme: omarchy-system` を含む) |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
@@ -238,8 +238,13 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - 環境変数 (`INPUT_METHOD` / `QT_IM_MODULE` / `XMODIFIERS` / `SDL_IM_MODULE`) は
   Omarchy 既定 (`default/environment.d/10-omarchy-fcitx.conf`) に任せる。fcitx5 は
   同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。
-- Chromium 系は `omarchy/.config/chromium-flags.conf` で `--enable-wayland-ime` を
-  指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
+- Chromium 系の起動フラグは `omarchy/.config/chromium-flags.conf` (`make link` で
+  `~/.config/chromium-flags.conf` に symlink) で管理する。Chromium は drop-in
+  ディレクトリを持たないため上流 `/usr/share/omarchy/config/chromium-flags.conf` の
+  全置換になり, 上流が更新されたら (`omarchy-refresh-chromium` の内容に) 追従する。
+  4.5 / Chromium 155 は Wayland IME (text-input-v3) が既定で有効なため
+  `--enable-wayland-ime` は指定しない。`--force-device-scale-factor=1` だけは
+  HiDPI (scale 5/3, 4/3) での見え方を実機確認するまで残している。
 - Obsidian (Electron) も同様に `omarchy/.config/obsidian/user-flags.conf` で
   `--enable-wayland-ime` を指定する (Arch パッケージのラッパーが読む)。以前入れていた
   `-disable-gpu` は MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認したため外した。
