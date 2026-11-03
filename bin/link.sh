@@ -51,7 +51,6 @@ TARGETS=( \
          ".local/bin/omarchy-dictation-hex" \
          ".local/bin/omarchy-install-dictation-hex" \
          ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
-         ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -105,7 +104,6 @@ LINUX_ONLY=( \
               ".local/bin/omarchy-dictation-hex" \
               ".local/bin/omarchy-install-dictation-hex" \
               ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
-              ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )
 
 # Linux では使わないターゲット (macOS では link する)
@@ -173,6 +171,13 @@ do
   # Linux で OS 別定義があれば差し替える (例: omarchy/.config/obsidian/user-flags.conf)
   if [ "$OS" != "Darwin" ] && [ -e "$OVERLAY_DIR/$TARGET" ]; then
     SOURCE=$OVERLAY_DIR/$TARGET
+  fi
+
+  # リポジトリ側にソースが無い場合は link しない (dangling symlink を作らない)。
+  # unlink は残存リンクの掃除のために実行する。
+  if [ "$MODE" = "link" ] && [ ! -e "$SOURCE" ]; then
+    echo "skip (source not found): $TARGET"
+    continue
   fi
 
   DEST=$HOME/$TARGET
