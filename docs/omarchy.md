@@ -406,6 +406,22 @@ unbind / 再 bind だけを重ねている。
 `omarchy-toggle-bar on` (非表示) を使う。フラグ名が `bar-off` のため `on` が「非表示」に
 なる点に注意。
 
+## T2 音声 (内蔵スピーカーのブチブチ)
+
+`t2bce_audio` はスピーカー (`hw:0,0`, 4ch) とヘッドホン (`hw:0,2`, 2ch) を別 PCM で公開する。
+以前は `~/.config/wireplumber/wireplumber.conf.d/t2-audio.conf` で
+`api.alsa.split-enable = false` と `session.suspend-timeout-seconds = 0` を T2 の PCM に
+当てていた (ヘッドホン抜き差し後にスピーカーが無音になる問題への対策)。
+
+しかしこの構成では**内蔵スピーカーの再生にブチブチというノイズが乗る**。
+`suspend=0` の出力 PCM は `t2bce_audio` の再生位置をリセットできず、入力にも当てると
+マイク PCM が常時オープンになってコーデックが全二重で動くため。PipeWire 既定の split
+経路と idle suspend に戻すと解消するので、`t2-audio.conf` は削除した。
+
+- 3.5mm ジャックを抜いたあとにスピーカーが無音になる症状が再発した場合は,
+  `systemctl --user restart wireplumber` で復帰する。恒久的に split を無効化しない
+- マイクや出力の PCM を `session.suspend-timeout-seconds = 0` で開きっぱなしにしない
+
 ## T2 MacBook トラックパッドの二本指タップが反応しない / 遅い
 
 MacBookPro16,2 (T2) で「二本指タップ (右クリック) でブラウザのメニューが出るのが遅い / 軽いタッチだと出ない」場合。
