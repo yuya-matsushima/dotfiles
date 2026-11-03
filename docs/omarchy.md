@@ -537,7 +537,12 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 - 長時間サスペンドからの復帰後に外部が認識されない場合に備え、
   `omarchy-hyprland-monitor-resume` がログイン時に常駐し、復帰時に必要なら
   `hyprctl reload` でモニター状態を再適用する
-  (手動実行: `omarchy-hyprland-monitor-resume --now`)
+  (手動実行: `omarchy-hyprland-monitor-resume --now`)。4.5 にも
+  systemd-sleep / `PrepareForSleep` を使ったモニター復旧フックは無く
+  (`system-sleep` は fprintd / force-igpu のみ, `omarchy-system-sleep-monitor` は
+  ロック専用), `omarchy-hyprland-monitor-watch` も socket イベント起点のため
+  復帰時には何も起きない。この常駐スクリプトは引き続き必要
+  (確認: `--now` は外部接続済み・有効時に何もせず exit 0)。
 
 ## 1Password の SSH 承認ダイアログ
 
