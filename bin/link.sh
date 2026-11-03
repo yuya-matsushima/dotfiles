@@ -41,7 +41,6 @@ TARGETS=( \
          ".config/hypr/monitors.lua" \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
-         ".config/obsidian/user-flags.conf" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
@@ -95,7 +94,6 @@ LINUX_ONLY=( \
               ".config/hypr/monitors.lua" \
               ".config/hypr/looknfeel.lua" \
               ".config/chromium-flags.conf" \
-              ".config/obsidian/user-flags.conf" \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
               ".local/bin/omarchy-audio-stream-recover" \
@@ -168,7 +166,7 @@ do
   fi
 
   SOURCE=$CURRENT_DIR/$TARGET
-  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/obsidian/user-flags.conf)
+  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/hypr/monitors.lua)
   if [ "$OS" != "Darwin" ] && [ -e "$OVERLAY_DIR/$TARGET" ]; then
     SOURCE=$OVERLAY_DIR/$TARGET
   fi

@@ -152,7 +152,6 @@ getent passwd "$USER" | cut -d: -f7
 |---|---|
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。`gh` / AI CLI は Omarchy が `/etc/mise/conf.d/omarchy-tools.toml` で宣言するためここには書かない |
 | `omarchy/.config/chromium-flags.conf` | Chromium の起動フラグ (上流 config の全置換) |
-| `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
 | `omarchy/.pi/agent/settings.json` | Linux のみ (`theme: omarchy-system` を含む) |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | Linux のみ (macOS では link しない) |
@@ -245,9 +244,12 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   4.5 / Chromium 155 は Wayland IME (text-input-v3) が既定で有効なため
   `--enable-wayland-ime` は指定しない。`--force-device-scale-factor=1` だけは
   HiDPI (scale 5/3, 4/3) での見え方を実機確認するまで残している。
-- Obsidian (Electron) も同様に `omarchy/.config/obsidian/user-flags.conf` で
-  `--enable-wayland-ime` を指定する (Arch パッケージのラッパーが読む)。以前入れていた
-  `-disable-gpu` は MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認したため外した。
+- Obsidian (Electron 43 = Chromium 150) は Omarchy 既定の
+  `ELECTRON_OZONE_PLATFORM_HINT=wayland` (`hypr/envs.lua`) で Wayland ネイティブに
+  動く。Wayland IME (text-input-v3) は Chromium M137 以降 既定で有効なため,
+  Omarchy が同梱する `~/.config/obsidian/user-flags.conf`
+  (`--enable-wayland-ime` + `-disable-gpu`) は置かない。`-disable-gpu` は
+  MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認済み。
 - fcitx5 を再起動した場合, 起動中の Chromium は IME 接続が復帰しないことがあるため
   Chromium も再起動する。
 
