@@ -182,6 +182,13 @@ Omarchy 既定のスクリーンセーバー (`/usr/bin/omarchy-screensaver`) �
 から解決され, `~/.local/bin` (既に `/usr/bin` より前) の上書きが優先される。
 `envs.lua` は `hypr/autostart.lua` の先頭で `require("hypr.envs")` して読み込む。
 
+4.5 でも `/usr/bin/omarchy-screensaver` は `--random-effect --frame-rate 120` の
+ままで, エフェクトを選ぶ公式オプションも追加されていないため, この上書きと PATH
+調整は維持する (確認: `command -v omarchy-screensaver` が
+`~/.local/bin/omarchy-screensaver` を返し, Hyprland 起動プロセスの PATH に
+`/usr/share/omarchy/bin` は含まれない)。キー入力のエコーを消す `stty -echo` は
+上流の修正に追従した。
+
 上書き版は**軽い効果を一度だけ描画して静止表示**する。環境変数で調整できる。
 
 | 環境変数 | 既定 | 説明 |
