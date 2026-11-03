@@ -555,11 +555,15 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 1Password のアップデートで class やダイアログのサイズが変わった場合は,
 スクリプト内の判定を合わせる。
 
-注意: scale 用の変数名を Omarchy 既定の `omarchy_monitor_scale` / `omarchy_gdk_scale` に
-しない。`omarchy-hyprland-monitor-scaling` (`SUPER + /` / `SUPER + ALT + /`) はこの行を
-見つけると `sed -i` で値を書き換え, symlink を実体ファイルに置き換えてしまう
-(実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
-ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
+注意: GDK_SCALE 用の変数名を Omarchy 既定の `omarchy_gdk_scale` にしない。
+`omarchy-hyprland-monitor-scaling` は 4.5 でも `local omarchy_gdk_scale = ...` と
+リテラルの `hl.env("GDK_SCALE", "...")` を `sed -i` で書き換えるため, 既定名だと
+誤爆時に GDK_SCALE が書き換わる (実際に 2 → 1 になった)。`gdk_scale` +
+`tostring()` にしているためどちらの sed にも一致しない。
+なお 4.5 の同コマンドは変更後の scale を `monitors.lua` の該当 `hl.monitor` ルールへ
+直接書き込む (`persist_scale`)。symlink は維持されるが, 直接実行するとリポジトリ側
+ファイルの値が更新される (その場限りではない)。`SUPER + /` / `SUPER + ALT + /` は
+誤爆防止のため unbind 済み。
 
 ## 音声入力 (Hex)
 
