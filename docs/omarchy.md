@@ -206,10 +206,13 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
   `bin/link.sh` で symlink) で, current IM を `mozc` <-> `keyboard-us` に
   **明示的に切り替える**。
 - `CTRL + SPACE` は IME 切替に使わず, アプリ (nvim の `<C-Space>` 補完等) に渡す。
-  fcitx5 は既定で `Control+space` をトリガキーに持ち, Hyprland のバインドを外しても
-  fcitx5 が先に受け取ってしまうため, `~/.config/fcitx5/config` の
-  `[Hotkey/TriggerKeys]` を空にしている (`make omarchy` の `bin/omarchy/fcitx5.sh` が
-  未設定時のみ追記する)。
+  Omarchy 4.5 の `omarchy-input-method configure --defaults` は
+  `default/input-methods/configure.py` の `without_ctrl_space` で `Control+space` を
+  トリガキーから除去するが, 代わりに `Zenkaku_Hankaku` (半角/全角) と `Hangul` を
+  残す。`Hangul` は Hyprland の かな バインドが消費するものの, `Zenkaku_Hankaku` は
+  未バインドで fcitx5 自身の active/inactive トグルが走り, `ime-toggle` の IM 切替と
+  状態が食い違う。そのため `~/.config/fcitx5/config` の `[Hotkey/TriggerKeys]` は
+  空に揃える (`make omarchy` の `bin/omarchy/fcitx5.sh` がキー行を削除して冪等に実行)。
 - 従来の `fcitx5-remote -t` (active/inactive トグル) は, keyboard-us を current IM にした
   状態では mozc に戻れず, mozc が「直接入力」に取り残されて変換が効かなくなることが
   あった (表示は「あ」のまま英語が入力される症状)。`ime-toggle` による IM 切替で
