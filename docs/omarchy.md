@@ -59,6 +59,11 @@ make omarchy
 | `io.github.sirjul1337.lock-explorer` | ロック画面のデザイン選択。`omarchy.lock` を置き換える |
 | `markpriem.keystrokes` | KeyCastr 代替。押したキーを keycap として表示 |
 
+4.5 でも `omarchy plugin add [url] [--enable] [--yes]` / `enable <id> [placement]` /
+`list [--json]` のインターフェースは変わっていない。`sh bin/omarchy/plugins.sh` を
+再実行し, 3 件とも `already enabled` で exit 0 になることを確認済み
+(4.5 で `update` / `clone` / `validate` が追加されたが, 本スクリプトでは使わない)。
+
 ### Lock Screen Explorer
 
 `omarchy-shell lock explore` でデザインを選択できます。負荷を抑えたい場合は
