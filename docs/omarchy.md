@@ -428,6 +428,13 @@ unbind / 再 bind だけを重ねている。
 マイク PCM が常時オープンになってコーデックが全二重で動くため。PipeWire 既定の split
 経路と idle suspend に戻すと解消するので、`t2-audio.conf` は削除した。
 
+`~/.config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf` (quantum を 1024 に
+固定する drop-in) も削除した。これは split を無効化した構成で 4ch スピーカーが
+既定の 256 サンプルで underrun していたための対策だった。split 既定に戻した後は
+`clock.force-quantum` を 256 にしても `pw-top` の ERR は 0 のまま (4ch 再生中に
+約 13 秒計測)。PipeWire 1.6.9 の既定 quantum は 1024 なので、固定を外しても
+通常再生のバッファ長は変わらない。
+
 - 3.5mm ジャックを抜いたあとにスピーカーが無音になる症状が再発した場合は,
   `systemctl --user restart wireplumber` で復帰する。恒久的に split を無効化しない
 - マイクや出力の PCM を `session.suspend-timeout-seconds = 0` で開きっぱなしにしない

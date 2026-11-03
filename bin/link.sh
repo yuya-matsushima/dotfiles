@@ -49,7 +49,6 @@ TARGETS=( \
          ".local/bin/omarchy-1password-focus-guard" \
          ".local/bin/omarchy-dictation-hex" \
          ".local/bin/omarchy-install-dictation-hex" \
-         ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -101,7 +100,6 @@ LINUX_ONLY=( \
               ".local/bin/omarchy-1password-focus-guard" \
               ".local/bin/omarchy-dictation-hex" \
               ".local/bin/omarchy-install-dictation-hex" \
-              ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
             )
 
 # Linux では使わないターゲット (macOS では link する)
