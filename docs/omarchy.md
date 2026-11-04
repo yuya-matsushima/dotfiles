@@ -34,8 +34,6 @@ make omarchy
 - **mise の既定ツール**: `gh` / AI CLI は `/etc/mise/conf.d/omarchy-tools.toml` が宣言する。
   migration が `omarchy/.config/mise/config.toml` から `= "latest"` を削除する。
 - **Chromium 系**: migration が `--enable-features` に `OverlayScrollbar` を追加する。
-- `hypr/bindings.lua` の 4.0.x 向け dictation フォールバックは, stable へ戻す場合に備えて
-  残している (4.5 では実行されない)。
 
 ## シェルプラグイン (`omarchy/plugins.txt`)
 
@@ -614,9 +612,9 @@ Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
 右 Shift は文字入力にも使うため, SUPER / CTRL / ALT を先に押している組み合わせでは
 開始しないようにしている (Shift キー自体はアプリにも渡る)。
 
-Omarchy 4.0.x には dictation バックエンドの仕組みが無いため, `hypr/bindings.lua` が
-同じキーを直接 Hex (`omarchy-dictation-hex`) に割り当てる。4.5 以降は Omarchy の
-`default/hypr/bindings/dictation.lua` に任せ, 右 Shift の追加分だけを張る。
+4.5 以降は Omarchy の `default/hypr/bindings/dictation.lua` が選択中のバックエンドへ
+標準キーを張るため, `hypr/bindings.lua` は右 Shift の追加分だけを張る。
+4.0.x 向けの直接 Hex バインドと F9 / 右 Alt のフォールバックは削除した。
 
 - Hex 設定のショートカット (`Alt + Space` など) は Hyprland では使われない
 - Hex の Annotate も既定で F9 のため, 使う場合は Hex 側で別キーにする

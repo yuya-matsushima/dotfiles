@@ -78,12 +78,10 @@ end
 
 -- Omarchy 4.5 以降は default/hypr/bindings/dictation.lua が, 選択中の
 -- dictation バックエンドに対して Right Alt / F9 / SUPER + CTRL + X を張る。
--- 4.0.x にはその仕組みが無いため, 4.5 と同じキーを Hex に割り当てる。
+-- ここでは追加の右 Shift だけを, 選択中バックエンドが使えるときに有効にする。
 local dictation_command
 
 if o.cmd_present("omarchy-dictation") then
-  -- 4.5 以降。標準の 3 キーは Omarchy が張るので, ここでは追加の
-  -- 右 Shift だけを, 選択中バックエンドが使えるときに有効にする。
   local pipe = io.popen("omarchy-default-dictation 2>/dev/null", "r")
   local backend = pipe and pipe:read("*l")
   if pipe then
@@ -92,43 +90,9 @@ if o.cmd_present("omarchy-dictation") then
   if backend and backend:match("^[%w%-]+$") and not o.cmd_missing(backend) then
     dictation_command = "omarchy-dictation"
   end
-elseif o.cmd_present("hex") and o.cmd_present("omarchy-dictation-hex") then
-  -- 4.0.x。Omarchy 既定 (voxtype) を外して 4.5 と同じキーを Hex に張る。
-  dictation_command = "omarchy-dictation-hex"
-
-  hl.unbind("SUPER + CTRL + X")
-  hl.unbind("F9")
-  hl.unbind("ALT + Alt_R")
-
-  o.bind("SUPER + CTRL + X", "Toggle dictation", dictation_command .. " toggle")
-end
-
--- 押したら start, 離したら stop。Omarchy 4.5 の o.bind_hold と同じ flags。
--- 修飾キーは押下と解放で mask が変わるため, release 側は ignore_mods にする。
--- 4.0.x には o.bind_hold が無いため, press/release の 2 本で表す。
-local function bind_hold(keys, command, options)
-  local release_options = {}
-  for key, value in pairs(options or {}) do
-    release_options[key] = value
-  end
-  release_options.release = true
-  release_options.ignore_mods = true
-  release_options.non_consuming = true
-  release_options.transparent = true
-
-  o.bind(keys, "Start dictation (push-to-talk)", command .. " start", options)
-  o.bind(keys, "Stop dictation (push-to-talk)", command .. " stop", release_options)
 end
 
 if dictation_command then
-  if o.cmd_missing("omarchy-dictation") then
-    -- 4.0.x のみ。4.5 は Omarchy 標準の bind に任せる。
-    bind_hold("F9", dictation_command)
-    -- Right Alt は他の修飾キーと組み合わせても開始する (4.5 と同じ)。
-    -- 組み合わせたいときは Left Alt を使う。
-    bind_hold("ALT + Alt_R", dictation_command, { ignore_mods = true })
-  end
-
   -- JIS 配列には右 Alt が無いため, 右 Shift にも同じ push-to-talk を割り当てる。
   -- 外部キーボードの右 Alt はそのまま残す。
   --
