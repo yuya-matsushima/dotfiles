@@ -220,7 +220,11 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - IME の切替はすべて `hypr/bindings.lua` で compositor 側から行う (かな / 英数キー,
   `SUPER` 単押し)。トグルの実体は `~/.local/bin/ime-toggle` (リポジトリ管理,
   `bin/link.sh` で symlink) で, current IM を `mozc` <-> `keyboard-us` に
-  **明示的に切り替える**。
+  **明示的に切り替える**。4.5 の `omarchy-input-method cycle` (`SUPER + I`) は
+  quickshell 経由で IM を巡回する代替だが, かな/英数キーは「必ず mozc / 必ず
+  keyboard-us」へ明示的に切り替える必要があり, 「次へ」では状態がずれたときに
+  意図と合わない。fcitx5 だけで完結する `ime-toggle` に 3 つのバインドを揃える方針で
+  維持する (実際の日本語入力は実機で確認する)。
 - `CTRL + SPACE` は IME 切替に使わず, アプリ (nvim の `<C-Space>` 補完等) に渡す。
   Omarchy 4.5 の `omarchy-input-method configure --defaults` は
   `default/input-methods/configure.py` の `without_ctrl_space` で `Control+space` を
@@ -461,6 +465,14 @@ unbind / 再 bind だけを重ねている。
 - 3.5mm ジャックを抜いたあとにスピーカーが無音になる症状が再発した場合は,
   `systemctl --user restart wireplumber` で復帰する。恒久的に split を無効化しない
 - マイクや出力の PCM を `session.suspend-timeout-seconds = 0` で開きっぱなしにしない
+
+ジャック抜き差しでストリームが消えた sink に取り残される問題には,
+`omarchy-audio-stream-recover` を `autostart.lua` で常駐させている。
+`pactl subscribe` と 5 秒周期のポーリングで, ヘッドホンが使えるようになったら
+ヘッドホンへ切り替え, sink が消えたアプリのストリームを既定 sink へ移す。
+4.5 の `omarchy audio output switch` / `omarchy audio output set default` は同じ移動を
+**手動で**行えるが, ジャックの変化を検知して自動復帰する仕組みは無いため,
+この症状が再現しないと実機で確認できるまでスクリプトを維持する。
 
 ## T2 MacBook トラックパッドの二本指タップが反応しない / 遅い
 
