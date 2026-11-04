@@ -36,6 +36,7 @@ exit_screensaver() {
 trap exit_screensaver SIGINT SIGTERM SIGHUP SIGQUIT
 
 printf '\033]11;rgb:00/00/00\007'  # Set background color to black
+stty -echo 2>/dev/null  # Don't echo the key that stops the screensaver into the corner
 
 hyprctl eval 'hl.config({ cursor = { invisible = true } })' &>/dev/null || hyprctl keyword cursor:invisible true &>/dev/null
 
@@ -60,7 +61,7 @@ ttfx -i "$BRANDING" \
 
 # Hold the settled logo until the user comes back or the window loses focus.
 while true; do
-  if read -n1 -t 1 || ! screensaver_in_focus; then
+  if read -rn1 -t 1 || ! screensaver_in_focus; then
     exit_screensaver
   fi
 done

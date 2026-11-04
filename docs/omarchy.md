@@ -34,8 +34,6 @@ make omarchy
 - **mise の既定ツール**: `gh` / AI CLI は `/etc/mise/conf.d/omarchy-tools.toml` が宣言する。
   migration が `omarchy/.config/mise/config.toml` から `= "latest"` を削除する。
 - **Chromium 系**: migration が `--enable-features` に `OverlayScrollbar` を追加する。
-- `hypr/bindings.lua` の 4.0.x 向け dictation フォールバックは, stable へ戻す場合に備えて
-  残している (4.5 では実行されない)。
 
 ## シェルプラグイン (`omarchy/plugins.txt`)
 
@@ -58,6 +56,11 @@ make omarchy
 | `io.github.thomasvanholder.opencode-agents` | 組み込み Agents パネルに OpenCode Go の利用枠 (5h / weekly / monthly) とトークン統計を追加 |
 | `io.github.sirjul1337.lock-explorer` | ロック画面のデザイン選択。`omarchy.lock` を置き換える |
 | `markpriem.keystrokes` | KeyCastr 代替。押したキーを keycap として表示 |
+
+4.5 でも `omarchy plugin add [url] [--enable] [--yes]` / `enable <id> [placement]` /
+`list [--json]` のインターフェースは変わっていない。`sh bin/omarchy/plugins.sh` を
+再実行し, 3 件とも `already enabled` で exit 0 になることを確認済み
+(4.5 で `update` / `clone` / `validate` が追加されたが, 本スクリプトでは使わない)。
 
 ### Lock Screen Explorer
 
@@ -94,14 +97,19 @@ omarchy base (`/usr/share/omarchy/install/omarchy-base.packages`) が既に導�
 `postgresql-libs` / `qrencode` / `ripgrep` / `tmux` / `tree-sitter-cli` / `zoxide` など)
 は二重管理を避けるため含めません。
 
+4.5 の base (`omarchy-base.packages` / `omarchy-other.packages` など) と
+`bin/omarchy/cli.sh` の導入リストを突き合わせ, 重複は 0 件でした
+(`base-devel` / `ffmpeg` / `qt6-*` / `vi` / `fcitx5-mozc` は base 側にあり,
+cli.sh には含めていません)。
+
 その他の除外:
 
 - `git` / `curl` / `make` / `grep` / `ncurses` などは base や base-devel で導入済み。
-- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `pi`) は Omarchy 4.5 以降 `/etc/mise/conf.d/omarchy-tools.toml` が宣言するため、`omarchy/.config/mise/config.toml` には書かない (4.5 の migration がユーザー設定側の `= "latest"` を削除する)。
+- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `copilot` / `pi`) は Omarchy 4.5 以降 `/etc/mise/conf.d/omarchy-tools.toml` が宣言するため、`omarchy/.config/mise/config.toml` には書かない (4.5 の migration がユーザー設定側の `= "latest"` を削除する)。`github-copilot-cli-bin` も mise の `copilot` と重複するため AUR から外した。
 - `direnv` は mise で代替するため含めません。
 - `htop` / `mariadb-clients` (`mysql-client` 相当) は未使用のため含めません。
 - `pngpaste` / `font-symbols-only-nerd-font` など macOS 専用ツールは含めません。
-- 公式リポジトリに無いツール (`diff-pdf-git`, `github-copilot-cli-bin`) は AUR から
+- 公式リポジトリに無いツール (`diff-pdf-git`) は AUR から
   導入します。AUR ヘルパー (`omarchy` / `yay`) が無い環境では自動的に skip されます。
 
 ## zsh の導入とログインシェル変更
@@ -151,8 +159,7 @@ getent passwd "$USER" | cut -d: -f7
 | 対象 | 扱い |
 |---|---|
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。`gh` / AI CLI は Omarchy が `/etc/mise/conf.d/omarchy-tools.toml` で宣言するためここには書かない |
-| `omarchy/.config/chromium-flags.conf` | Chromium の Wayland / IME フラグ (`--enable-wayland-ime` 等) |
-| `omarchy/.config/obsidian/user-flags.conf` | Obsidian (Arch パッケージ) の起動フラグ (`--enable-wayland-ime`) |
+| `omarchy/.config/chromium-flags.conf` | Chromium の起動フラグ (上流 config の全置換) |
 | `omarchy/.pi/agent/settings.json` | Linux のみ (`theme: omarchy-system` を含む) |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | Linux のみ (macOS では link しない) |
@@ -183,6 +190,13 @@ Omarchy 既定のスクリーンセーバー (`/usr/bin/omarchy-screensaver`) �
 から解決され, `~/.local/bin` (既に `/usr/bin` より前) の上書きが優先される。
 `envs.lua` は `hypr/autostart.lua` の先頭で `require("hypr.envs")` して読み込む。
 
+4.5 でも `/usr/bin/omarchy-screensaver` は `--random-effect --frame-rate 120` の
+ままで, エフェクトを選ぶ公式オプションも追加されていないため, この上書きと PATH
+調整は維持する (確認: `command -v omarchy-screensaver` が
+`~/.local/bin/omarchy-screensaver` を返し, Hyprland 起動プロセスの PATH に
+`/usr/share/omarchy/bin` は含まれない)。キー入力のエコーを消す `stty -echo` は
+上流の修正に追従した。
+
 上書き版は**軽い効果を一度だけ描画して静止表示**する。環境変数で調整できる。
 
 | 環境変数 | 既定 | 説明 |
@@ -204,12 +218,19 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - IME の切替はすべて `hypr/bindings.lua` で compositor 側から行う (かな / 英数キー,
   `SUPER` 単押し)。トグルの実体は `~/.local/bin/ime-toggle` (リポジトリ管理,
   `bin/link.sh` で symlink) で, current IM を `mozc` <-> `keyboard-us` に
-  **明示的に切り替える**。
+  **明示的に切り替える**。4.5 の `omarchy-input-method cycle` (`SUPER + I`) は
+  quickshell 経由で IM を巡回する代替だが, かな/英数キーは「必ず mozc / 必ず
+  keyboard-us」へ明示的に切り替える必要があり, 「次へ」では状態がずれたときに
+  意図と合わない。fcitx5 だけで完結する `ime-toggle` に 3 つのバインドを揃える方針で
+  維持する (実際の日本語入力は実機で確認する)。
 - `CTRL + SPACE` は IME 切替に使わず, アプリ (nvim の `<C-Space>` 補完等) に渡す。
-  fcitx5 は既定で `Control+space` をトリガキーに持ち, Hyprland のバインドを外しても
-  fcitx5 が先に受け取ってしまうため, `~/.config/fcitx5/config` の
-  `[Hotkey/TriggerKeys]` を空にしている (`make omarchy` の `bin/omarchy/fcitx5.sh` が
-  未設定時のみ追記する)。
+  Omarchy 4.5 の `omarchy-input-method configure --defaults` は
+  `default/input-methods/configure.py` の `without_ctrl_space` で `Control+space` を
+  トリガキーから除去するが, 代わりに `Zenkaku_Hankaku` (半角/全角) と `Hangul` を
+  残す。`Hangul` は Hyprland の かな バインドが消費するものの, `Zenkaku_Hankaku` は
+  未バインドで fcitx5 自身の active/inactive トグルが走り, `ime-toggle` の IM 切替と
+  状態が食い違う。そのため `~/.config/fcitx5/config` の `[Hotkey/TriggerKeys]` は
+  空に揃える (`make omarchy` の `bin/omarchy/fcitx5.sh` がキー行を削除して冪等に実行)。
 - 従来の `fcitx5-remote -t` (active/inactive トグル) は, keyboard-us を current IM にした
   状態では mozc に戻れず, mozc が「直接入力」に取り残されて変換が効かなくなることが
   あった (表示は「あ」のまま英語が入力される症状)。`ime-toggle` による IM 切替で
@@ -235,11 +256,19 @@ IME は Omarchy 既定の fcitx5 + Hyprland に任せ, **単一のグローバ�
 - 環境変数 (`INPUT_METHOD` / `QT_IM_MODULE` / `XMODIFIERS` / `SDL_IM_MODULE`) は
   Omarchy 既定 (`default/environment.d/10-omarchy-fcitx.conf`) に任せる。fcitx5 は
   同梱の systemd ユーザーサービス `omarchy-fcitx5.service` が起動する。
-- Chromium 系は `omarchy/.config/chromium-flags.conf` で `--enable-wayland-ime` を
-  指定する。`GTK_IM_MODULE` を設定しない構成のため, これが無いと日本語入力できない。
-- Obsidian (Electron) も同様に `omarchy/.config/obsidian/user-flags.conf` で
-  `--enable-wayland-ime` を指定する (Arch パッケージのラッパーが読む)。以前入れていた
-  `-disable-gpu` は MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認したため外した。
+- Chromium 系の起動フラグは `omarchy/.config/chromium-flags.conf` (`make link` で
+  `~/.config/chromium-flags.conf` に symlink) で管理する。Chromium は drop-in
+  ディレクトリを持たないため上流 `/usr/share/omarchy/config/chromium-flags.conf` の
+  全置換になり, 上流が更新されたら (`omarchy-refresh-chromium` の内容に) 追従する。
+  4.5 / Chromium 155 は Wayland IME (text-input-v3) が既定で有効なため
+  `--enable-wayland-ime` は指定しない。`--force-device-scale-factor=1` だけは
+  HiDPI (scale 5/3, 4/3) での見え方を実機確認するまで残している。
+- Obsidian (Electron 43 = Chromium 150) は Omarchy 既定の
+  `ELECTRON_OZONE_PLATFORM_HINT=wayland` (`hypr/envs.lua`) で Wayland ネイティブに
+  動く。Wayland IME (text-input-v3) は Chromium M137 以降 既定で有効なため,
+  Omarchy が同梱する `~/.config/obsidian/user-flags.conf`
+  (`--enable-wayland-ime` + `-disable-gpu`) は置かない。`-disable-gpu` は
+  MacBookPro16,2 (Intel Iris Plus, i915) では不要と確認済み。
 - fcitx5 を再起動した場合, 起動中の Chromium は IME 接続が復帰しないことがあるため
   Chromium も再起動する。
 
@@ -390,6 +419,12 @@ unbind / 再 bind だけを重ねている。
 | `SUPER + /` | Monitor scaling up (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし | `omarchy-hyprland-monitor-scaling up` を直接実行する |
 | `SUPER + ALT + /` | Monitor scaling down (`omarchy-hyprland-monitor-scaling`) | 上と同じ | `omarchy-hyprland-monitor-scaling down` を直接実行する |
 
+4.5 でも既定の `SUPER + SHIFT + SPACE` (`bind_toggle` bar, `bindings/utilities.lua`) と
+`SUPER + SLASH` / `SUPER + ALT + SLASH` (monitor scaling, `bindings/tiling.lua`) は
+残っているため, `hl.unbind` は 3 件とも維持する。`hyprctl reload` 後に
+`hyprctl binds` で該当する description (`Toggle top bar` / `Monitor scaling`) が
+消えていることを確認済み。
+
 ### 差し替えているキーバインド
 
 既定の動作を unbind したうえで, 別の動作を割り当てているもの。
@@ -418,9 +453,24 @@ unbind / 再 bind だけを重ねている。
 マイク PCM が常時オープンになってコーデックが全二重で動くため。PipeWire 既定の split
 経路と idle suspend に戻すと解消するので、`t2-audio.conf` は削除した。
 
+`~/.config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf` (quantum を 1024 に
+固定する drop-in) も削除した。これは split を無効化した構成で 4ch スピーカーが
+既定の 256 サンプルで underrun していたための対策だった。split 既定に戻した後は
+`clock.force-quantum` を 256 にしても `pw-top` の ERR は 0 のまま (4ch 再生中に
+約 13 秒計測)。PipeWire 1.6.9 の既定 quantum は 1024 なので、固定を外しても
+通常再生のバッファ長は変わらない。
+
 - 3.5mm ジャックを抜いたあとにスピーカーが無音になる症状が再発した場合は,
   `systemctl --user restart wireplumber` で復帰する。恒久的に split を無効化しない
 - マイクや出力の PCM を `session.suspend-timeout-seconds = 0` で開きっぱなしにしない
+
+ジャック抜き差しでストリームが消えた sink に取り残される問題には,
+`omarchy-audio-stream-recover` を `autostart.lua` で常駐させている。
+`pactl subscribe` と 5 秒周期のポーリングで, ヘッドホンが使えるようになったら
+ヘッドホンへ切り替え, sink が消えたアプリのストリームを既定 sink へ移す。
+4.5 の `omarchy audio output switch` / `omarchy audio output set default` は同じ移動を
+**手動で**行えるが, ジャックの変化を検知して自動復帰する仕組みは無いため,
+この症状が再現しないと実機で確認できるまでスクリプトを維持する。
 
 ## T2 MacBook トラックパッドの二本指タップが反応しない / 遅い
 
@@ -513,7 +563,12 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 - 長時間サスペンドからの復帰後に外部が認識されない場合に備え、
   `omarchy-hyprland-monitor-resume` がログイン時に常駐し、復帰時に必要なら
   `hyprctl reload` でモニター状態を再適用する
-  (手動実行: `omarchy-hyprland-monitor-resume --now`)
+  (手動実行: `omarchy-hyprland-monitor-resume --now`)。4.5 にも
+  systemd-sleep / `PrepareForSleep` を使ったモニター復旧フックは無く
+  (`system-sleep` は fprintd / force-igpu のみ, `omarchy-system-sleep-monitor` は
+  ロック専用), `omarchy-hyprland-monitor-watch` も socket イベント起点のため
+  復帰時には何も起きない。この常駐スクリプトは引き続き必要
+  (確認: `--now` は外部接続済み・有効時に何もせず exit 0)。
 
 ## 1Password の SSH 承認ダイアログ
 
@@ -531,11 +586,15 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 1Password のアップデートで class やダイアログのサイズが変わった場合は,
 スクリプト内の判定を合わせる。
 
-注意: scale 用の変数名を Omarchy 既定の `omarchy_monitor_scale` / `omarchy_gdk_scale` に
-しない。`omarchy-hyprland-monitor-scaling` (`SUPER + /` / `SUPER + ALT + /`) はこの行を
-見つけると `sed -i` で値を書き換え, symlink を実体ファイルに置き換えてしまう
-(実際に誤爆で `GDK_SCALE` 2 → 1, 外部 4/3 → 1.25 に書き換わった)。別名にしているため
-ショートカットでの scale 変更はその場限りで, `hyprctl reload` で本ファイルの値に戻る。
+注意: GDK_SCALE 用の変数名を Omarchy 既定の `omarchy_gdk_scale` にしない。
+`omarchy-hyprland-monitor-scaling` は 4.5 でも `local omarchy_gdk_scale = ...` と
+リテラルの `hl.env("GDK_SCALE", "...")` を `sed -i` で書き換えるため, 既定名だと
+誤爆時に GDK_SCALE が書き換わる (実際に 2 → 1 になった)。`gdk_scale` +
+`tostring()` にしているためどちらの sed にも一致しない。
+なお 4.5 の同コマンドは変更後の scale を `monitors.lua` の該当 `hl.monitor` ルールへ
+直接書き込む (`persist_scale`)。symlink は維持されるが, 直接実行するとリポジトリ側
+ファイルの値が更新される (その場限りではない)。`SUPER + /` / `SUPER + ALT + /` は
+誤爆防止のため unbind 済み。
 
 ## 音声入力 (Hex)
 
@@ -553,23 +612,36 @@ Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
 右 Shift は文字入力にも使うため, SUPER / CTRL / ALT を先に押している組み合わせでは
 開始しないようにしている (Shift キー自体はアプリにも渡る)。
 
-Omarchy 4.0.x には dictation バックエンドの仕組みが無いため, `hypr/bindings.lua` が
-同じキーを直接 Hex (`omarchy-dictation-hex`) に割り当てる。4.5 以降は Omarchy の
-`default/hypr/bindings/dictation.lua` に任せ, 右 Shift の追加分だけを張る。
+4.5 以降は Omarchy の `default/hypr/bindings/dictation.lua` が選択中のバックエンドへ
+標準キーを張るため, `hypr/bindings.lua` は右 Shift の追加分だけを張る。
+4.0.x 向けの直接 Hex バインドと F9 / 右 Alt のフォールバックは削除した。
 
 - Hex 設定のショートカット (`Alt + Space` など) は Hyprland では使われない
 - Hex の Annotate も既定で F9 のため, 使う場合は Hex 側で別キーにする
 - キャンセルは `omarchy-dictation-hex cancel` を任意のキーに割り当てる
   (Omarchy 4.5 の `omarchy dictation` に cancel は無い)
+- Hex は既定 (`release_microphone_while_idle = false`) だと待機中もマイクを掴んだままに
+  するため, 入力メーターが常時動いて見える。プライバシーとバッテリーのため
+  `hex settings set release_microphone_while_idle true` にしてアイドル時は解放する
+  (dictation 開始時に開くため, 開始はわずかに遅くなる)
 
 ## symlink とバックアップ
 
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
   `*.bak.<timestamp>` へ退避してから symlink します。
 - `.gitconfig` は XDG 配置の `~/.config/git/config` へリンクします
-  (omarchy 既定の git 設定を上書き)。
+  (omarchy 既定の git 設定を上書き)。4.5 でも `~/.gitconfig` が無い状態で
+  `git config --list --show-origin` がこのファイルを読むことを確認済み。
 - `.tmux.conf` は Linux では XDG 配置の `~/.config/tmux/tmux.conf` へリンクします。
-  tmux 3.7 は `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されるため,
-  omarchy 既定の tmux 設定を上書きするには XDG 側に置く必要があります。
+  tmux 3.8 も `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されます
+  (4.5 は `~/.tmux.conf` を配布せず, `/usr/share/omarchy/config/tmux/tmux.conf` を
+  `omarchy-refresh-tmux` で XDG 側へ置く)。`~/.tmux.conf` は作らないため,
+  テスト用サーバー (`tmux -L audit new-session`) で `mode-keys vi` などの設定が
+  適用されることを確認済み。
+- 注意: omarchy の migration が `sed -i` で `~/.config/tmux/tmux.conf` を直接編集すると
+  symlink が実体ファイルに置き換わります (4.5 の `1784401744.sh` など)。
+  `ls -l` でリンクのままか確認し, 実体化していたら `make link` で再リンクします
+  (実体ファイルは `*.bak.<timestamp>` へ退避されます)。`omarchy-refresh-tmux` は
+  `cp -f` で symlink 先のリポジトリ側ファイルを上書きする点にも注意してください。
 - mise は symlink 先を新しいパスとして扱うため, 初回は `mise trust` が必要になる
   ことがあります (`mise trust ~/Projects/Personal/dotfiles` など)。

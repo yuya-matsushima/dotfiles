@@ -41,7 +41,6 @@ TARGETS=( \
          ".config/hypr/monitors.lua" \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
-         ".config/obsidian/user-flags.conf" \
          ".config/ghostty" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
@@ -50,8 +49,6 @@ TARGETS=( \
          ".local/bin/omarchy-1password-focus-guard" \
          ".local/bin/omarchy-dictation-hex" \
          ".local/bin/omarchy-install-dictation-hex" \
-         ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
-         ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
          ".config/nvim" \
          ".config/opencode" \
          ".hammerspoon" \
@@ -96,7 +93,6 @@ LINUX_ONLY=( \
               ".config/hypr/monitors.lua" \
               ".config/hypr/looknfeel.lua" \
               ".config/chromium-flags.conf" \
-              ".config/obsidian/user-flags.conf" \
               ".local/bin/omarchy-screensaver" \
               ".local/bin/ime-toggle" \
               ".local/bin/omarchy-audio-stream-recover" \
@@ -104,8 +100,6 @@ LINUX_ONLY=( \
               ".local/bin/omarchy-1password-focus-guard" \
               ".local/bin/omarchy-dictation-hex" \
               ".local/bin/omarchy-install-dictation-hex" \
-              ".config/pipewire/pipewire.conf.d/10-t2-larger-quantum.conf" \
-              ".config/wireplumber/wireplumber.conf.d/t2-audio.conf" \
             )
 
 # Linux では使わないターゲット (macOS では link する)
@@ -170,9 +164,16 @@ do
   fi
 
   SOURCE=$CURRENT_DIR/$TARGET
-  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/obsidian/user-flags.conf)
+  # Linux で OS 別定義があれば差し替える (例: omarchy/.config/hypr/monitors.lua)
   if [ "$OS" != "Darwin" ] && [ -e "$OVERLAY_DIR/$TARGET" ]; then
     SOURCE=$OVERLAY_DIR/$TARGET
+  fi
+
+  # リポジトリ側にソースが無い場合は link しない (dangling symlink を作らない)。
+  # unlink は残存リンクの掃除のために実行する。
+  if [ "$MODE" = "link" ] && [ ! -e "$SOURCE" ]; then
+    echo "skip (source not found): $TARGET"
+    continue
   fi
 
   DEST=$HOME/$TARGET
@@ -187,7 +188,7 @@ do
   fi
 
   # .tmux.conf は Linux では XDG 配置 (~/.config/tmux/tmux.conf) にリンクする。
-  # tmux 3.7 は ~/.tmux.conf と ~/.config/tmux/tmux.conf の両方を読み, XDG 側が
+  # tmux 3.7 以降は ~/.tmux.conf と ~/.config/tmux/tmux.conf の両方を読み, XDG 側が
   # 後に適用されるため, omarchy 既定を上書きするには XDG 側に置く必要がある。
   if [ "$TARGET" = ".tmux.conf" ] && [ "$OS" != "Darwin" ]; then
     DEST=$HOME/.config/tmux/tmux.conf

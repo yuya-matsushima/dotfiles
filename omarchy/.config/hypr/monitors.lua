@@ -4,10 +4,13 @@
 -- GDK_SCALE は compositor の scale と揃える (食い違うと GTK/Chromium 系で
 -- IME 候補ウィンドウの座標がずれる)。
 local gdk_scale = 2
--- 注意: 変数名を Omarchy 既定の omarchy_monitor_scale / omarchy_gdk_scale にしない。
--- omarchy-hyprland-monitor-scaling (SUPER + / , SUPER + ALT + /) はその行を見つけると
--- sed -i で書き換え, symlink を実体ファイルに置き換えてしまう。別名にしておけば
--- ショートカットでの scale 変更はその場限り (再起動・reload で本ファイルの値に戻る)。
+-- 注意: GDK_SCALE 用の変数名を Omarchy 既定の omarchy_gdk_scale にしない。
+-- omarchy-hyprland-monitor-scaling は 4.5 でも `local omarchy_gdk_scale = ...` と
+-- リテラルの hl.env("GDK_SCALE", "...") を sed -i で書き換える (誤爆で GDK_SCALE が
+-- 2 → 1 に書き換わったことがある)。別名 + tostring() にしているためどちらの sed にも
+-- 一致しない。なお同コマンドは 4.5 でモニターの hl.monitor ルールを直接書き換えて
+-- 永続化する (persist_scale)。symlink は維持されるが, 直接実行すると本ファイルの
+-- scale 値が更新される。ショートカットは誤爆防止のため unbind 済み。
 -- モニター別スケール。同じ値に揃えると高 DPI の内蔵 (225 DPI) の文字が
 -- 外部 4K (162 DPI) より小さく見えるため、内蔵を高めに振る。
 -- 注意: Hyprland は「物理ピクセル ÷ scale が整数論理ピクセルになる」scale しか
