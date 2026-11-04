@@ -54,7 +54,9 @@ install_aur() {
 #   gnu-sed: Linux の sed は GNU sed のため不要
 #   mise: omarchy の mise-bin で導入済み
 #   direnv: mise で代替するため不要
-#   gh opencode uv と AI CLI (claude / codex / pi): mise (.config/mise/config.toml) で管理
+#   gh opencode uv と AI CLI (claude / codex / copilot / pi 等): mise
+#     (.config/mise/config.toml と /etc/mise/conf.d/omarchy-tools.toml) で管理
+#     (github-copilot-cli-bin は 4.5 で mise の copilot と重複するため外した)
 #   htop mariadb-clients: 未使用のため不要
 #   lazygit: omarchy base が導入済み
 #   zsh-git-prompt: bin/zsh_plugin.sh が woefe 版 git-prompt.zsh を取得
@@ -82,7 +84,6 @@ install_official \
 
 # 公式リポジトリに無いツールは AUR から導入する。
 # Arch (対応する Homebrew ツール):
-#   diff-pdf-git (diff-pdf) / github-copilot-cli-bin (cask copilot-cli)
+#   diff-pdf-git (diff-pdf)
 install_aur \
-    diff-pdf-git \
-    github-copilot-cli-bin
+    diff-pdf-git

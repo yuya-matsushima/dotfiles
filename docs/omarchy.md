@@ -99,14 +99,19 @@ omarchy base (`/usr/share/omarchy/install/omarchy-base.packages`) が既に導�
 `postgresql-libs` / `qrencode` / `ripgrep` / `tmux` / `tree-sitter-cli` / `zoxide` など)
 は二重管理を避けるため含めません。
 
+4.5 の base (`omarchy-base.packages` / `omarchy-other.packages` など) と
+`bin/omarchy/cli.sh` の導入リストを突き合わせ, 重複は 0 件でした
+(`base-devel` / `ffmpeg` / `qt6-*` / `vi` / `fcitx5-mozc` は base 側にあり,
+cli.sh には含めていません)。
+
 その他の除外:
 
 - `git` / `curl` / `make` / `grep` / `ncurses` などは base や base-devel で導入済み。
-- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `pi`) は Omarchy 4.5 以降 `/etc/mise/conf.d/omarchy-tools.toml` が宣言するため、`omarchy/.config/mise/config.toml` には書かない (4.5 の migration がユーザー設定側の `= "latest"` を削除する)。
+- `mise` は omarchy の `mise-bin`。`gh` / `opencode` / `uv` と AI CLI (`claude` / `codex` / `copilot` / `pi`) は Omarchy 4.5 以降 `/etc/mise/conf.d/omarchy-tools.toml` が宣言するため、`omarchy/.config/mise/config.toml` には書かない (4.5 の migration がユーザー設定側の `= "latest"` を削除する)。`github-copilot-cli-bin` も mise の `copilot` と重複するため AUR から外した。
 - `direnv` は mise で代替するため含めません。
 - `htop` / `mariadb-clients` (`mysql-client` 相当) は未使用のため含めません。
 - `pngpaste` / `font-symbols-only-nerd-font` など macOS 専用ツールは含めません。
-- 公式リポジトリに無いツール (`diff-pdf-git`, `github-copilot-cli-bin`) は AUR から
+- 公式リポジトリに無いツール (`diff-pdf-git`) は AUR から
   導入します。AUR ヘルパー (`omarchy` / `yay`) が無い環境では自動的に skip されます。
 
 ## zsh の導入とログインシェル変更
