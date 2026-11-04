@@ -620,6 +620,10 @@ Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
 - Hex の Annotate も既定で F9 のため, 使う場合は Hex 側で別キーにする
 - キャンセルは `omarchy-dictation-hex cancel` を任意のキーに割り当てる
   (Omarchy 4.5 の `omarchy dictation` に cancel は無い)
+- Hex は既定 (`release_microphone_while_idle = false`) だと待機中もマイクを掴んだままに
+  するため, 入力メーターが常時動いて見える。プライバシーとバッテリーのため
+  `hex settings set release_microphone_while_idle true` にしてアイドル時は解放する
+  (dictation 開始時に開くため, 開始はわずかに遅くなる)
 
 ## symlink とバックアップ
 
