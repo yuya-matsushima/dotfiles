@@ -188,7 +188,7 @@ do
   fi
 
   # .tmux.conf は Linux では XDG 配置 (~/.config/tmux/tmux.conf) にリンクする。
-  # tmux 3.7 は ~/.tmux.conf と ~/.config/tmux/tmux.conf の両方を読み, XDG 側が
+  # tmux 3.7 以降は ~/.tmux.conf と ~/.config/tmux/tmux.conf の両方を読み, XDG 側が
   # 後に適用されるため, omarchy 既定を上書きするには XDG 側に置く必要がある。
   if [ "$TARGET" = ".tmux.conf" ] && [ "$OS" != "Darwin" ]; then
     DEST=$HOME/.config/tmux/tmux.conf

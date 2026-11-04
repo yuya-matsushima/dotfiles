@@ -616,9 +616,18 @@ Omarchy 4.0.x には dictation バックエンドの仕組みが無いため, `h
 - リンク先に実体ファイル/ディレクトリがある場合は内容を失わないよう
   `*.bak.<timestamp>` へ退避してから symlink します。
 - `.gitconfig` は XDG 配置の `~/.config/git/config` へリンクします
-  (omarchy 既定の git 設定を上書き)。
+  (omarchy 既定の git 設定を上書き)。4.5 でも `~/.gitconfig` が無い状態で
+  `git config --list --show-origin` がこのファイルを読むことを確認済み。
 - `.tmux.conf` は Linux では XDG 配置の `~/.config/tmux/tmux.conf` へリンクします。
-  tmux 3.7 は `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されるため,
-  omarchy 既定の tmux 設定を上書きするには XDG 側に置く必要があります。
+  tmux 3.8 も `~/.tmux.conf` と XDG の両方を読み, XDG 側が後に適用されます
+  (4.5 は `~/.tmux.conf` を配布せず, `/usr/share/omarchy/config/tmux/tmux.conf` を
+  `omarchy-refresh-tmux` で XDG 側へ置く)。`~/.tmux.conf` は作らないため,
+  テスト用サーバー (`tmux -L audit new-session`) で `mode-keys vi` などの設定が
+  適用されることを確認済み。
+- 注意: omarchy の migration が `sed -i` で `~/.config/tmux/tmux.conf` を直接編集すると
+  symlink が実体ファイルに置き換わります (4.5 の `1784401744.sh` など)。
+  `ls -l` でリンクのままか確認し, 実体化していたら `make link` で再リンクします
+  (実体ファイルは `*.bak.<timestamp>` へ退避されます)。`omarchy-refresh-tmux` は
+  `cp -f` で symlink 先のリポジトリ側ファイルを上書きする点にも注意してください。
 - mise は symlink 先を新しいパスとして扱うため, 初回は `mise trust` が必要になる
   ことがあります (`mise trust ~/Projects/Personal/dotfiles` など)。
