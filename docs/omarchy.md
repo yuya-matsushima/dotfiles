@@ -417,6 +417,12 @@ unbind / 再 bind だけを重ねている。
 | `SUPER + /` | Monitor scaling up (`omarchy-hyprland-monitor-scaling`) | 誤爆で画面全体の scale が変わっていた (1 秒間に 5 回 down した記録あり)。アプリ内ズーム (`CTRL + +/-`) は別機能のため影響なし | `omarchy-hyprland-monitor-scaling up` を直接実行する |
 | `SUPER + ALT + /` | Monitor scaling down (`omarchy-hyprland-monitor-scaling`) | 上と同じ | `omarchy-hyprland-monitor-scaling down` を直接実行する |
 
+4.5 でも既定の `SUPER + SHIFT + SPACE` (`bind_toggle` bar, `bindings/utilities.lua`) と
+`SUPER + SLASH` / `SUPER + ALT + SLASH` (monitor scaling, `bindings/tiling.lua`) は
+残っているため, `hl.unbind` は 3 件とも維持する。`hyprctl reload` 後に
+`hyprctl binds` で該当する description (`Toggle top bar` / `Monitor scaling`) が
+消えていることを確認済み。
+
 ### 差し替えているキーバインド
 
 既定の動作を unbind したうえで, 別の動作を割り当てているもの。
