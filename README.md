@@ -76,22 +76,28 @@ Pi も Linux でのみ使います。`~/.pi/agent` 全体は symlink せず、�
 ファイルとして維持し、共通部分だけを symlink します。Pi を使わない macOS では
 これらも link しません。
 
-- `.pi/agent/settings.json` (既定プロバイダー/モデル, `packages`)
+- `.pi/agent/settings.json` (既定プロバイダー/モデル, `theme`, `packages`。Pi は Linux 専用のため `omarchy/` との二重管理はしない)
 - `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
 - `.pi/agent/AGENTS.md` (グローバル指示。日本語で回答する方針など)
 - `.pi/agent/extensions/tmux-status.ts` (tmux ステータス + 通知音のブリッジ)
 - `.pi/agent/extensions/guard-force-push.ts` (共有ロジックを使う force-push ガード)
 - `.pi/agent/extensions/pi-permission-system/config.json` (権限ポリシー)
 
-`pi` 本体は Linux では mise (`omarchy/.config/mise/config.toml` の `pi = "latest"`)
-で管理します (macOS では使いません)。
+`pi` 本体は Linux では Omarchy の `/etc/mise/conf.d/omarchy-tools.toml` が管理します
+(`omarchy/.config/mise/config.toml` には書かない。macOS では使いません)。
 認証は `OPENCODE_API_KEY` 環境変数か、`pi` 内の `/login` で設定します。
+`OPENCODE_API_KEY` は `.zsh/credentials.zsh` を source する対話シェルでのみ設定されるため,
+Herdr やランチャーなど環境を引き継がない起動経路では見えないことがあります。
 `settings.json` の `packages` で宣言した拡張 (`pi-vim`, `pi-web-search`,
-`pi-mcp-adapter` など) は初回起動時に自動導入されます。
+`pi-mcp-adapter` など) は初回起動時に自動導入されます。権限まわり
+(`@gotgenes/pi-permission-system`, `cc-safety-net`) は供給網リスクを抑えるため
+バージョンを固定しています。
 
-`pi-code` は内包する subagent / plan-mode / MCP flag / web search が既存拡張
-(`pi-subagents` / `@narumitw/pi-plan-mode` / `pi-mcp-adapter` / `pi-web-search`) と
-衝突するため, `packages` の object 形式で該当 extension だけ除外して読み込みます。
+`pi-code` は内包する subagent / plan-mode / MCP flag / web search に加え, Claude Code の
+hooks と MCP も既存拡張 (`pi-subagents` / `@narumitw/pi-plan-mode` / `pi-mcp-adapter` /
+`pi-web-search` / `tmux-status.ts` / `herdr-agent-state.ts`) と衝突するため,
+`packages` の object 形式で該当 extension だけ除外して読み込みます。特に hooks を除外しないと,
+Pi のセッションが Herdr に `herdr:claude` として登録され, tmux ステータスも二重更新されます。
 `pi-web-access` は `pi-web-search` と `web_search` が重複するため導入しません。
 
 tmux ステータスと通知音は `make agent_hooks` の対象に含まれます。Pi 側は

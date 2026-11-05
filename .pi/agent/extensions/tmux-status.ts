@@ -15,8 +15,8 @@
  *                      `permissions:ui_prompt` / `permissions:decision` を利用する
  *
  * 備考:
- *   - 各スクリプトは tmux 外 / macOS 以外では自ら no-op するため、ここでは
- *     環境判定をせず detached で起動する。
+ *   - 各スクリプトは tmux 外では自ら no-op し、通知音は macOS / Linux の
+ *     両方に対応する。ここでは環境判定をせず detached で起動する。
  *   - pi-code などで Claude Code の hooks を併用している場合、`Notification`
  *     hook と本拡張の通知音が二重に鳴ることがある。どちらか片方を無効化する。
  */
