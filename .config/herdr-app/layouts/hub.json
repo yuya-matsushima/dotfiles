@@ -126,7 +126,6 @@
                 "weight": 1
               },
               "min": 0,
-              "max": 2200,
               "content": {
                 "tab": "active",
                 "pane": {
