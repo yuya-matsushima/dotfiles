@@ -42,6 +42,7 @@ TARGETS=( \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
+         ".config/herdr-app/keys.json" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \
