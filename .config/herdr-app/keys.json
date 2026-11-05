@@ -59,6 +59,7 @@
     "ctrl-+": "app.zoom_in",
     "ctrl--": "app.zoom_out",
     "ctrl-0": "app.zoom_reset",
+    "ctrl-shift-g": "mod.open:repo-hub",
 
     "cmd-q": "app.quit",
     "cmd-h": "app.hide",
@@ -88,5 +89,13 @@
     "cmd-left": "send:\u0001",
     "cmd-right": "send:\u0005",
     "cmd-backspace": "send:\u0015"
+  },
+  "layout:hub": {
+    "ctrl-shift-g": "repo-toggle.toggle",
+    "ctrl-shift-r": "repo-hub.refresh"
+  },
+  "layout:workbench": {
+    "ctrl-shift-g": "repo-toggle.toggle",
+    "ctrl-shift-r": "repo-hub.refresh"
   }
 }
