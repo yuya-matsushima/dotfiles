@@ -56,6 +56,7 @@ TARGETS=( \
          ".config/herdr-app/layouts/hub.json" \
          ".config/herdr-app/layouts/workbench.json" \
          ".config/herdr-app/mods/agent-cards" \
+         ".config/herdr-app/mods/space-cards" \
          ".config/herdr-app/mods/repo-hub" \
          ".config/herdr-app/mods/repo-toggle" \
          ".hammerspoon" \
