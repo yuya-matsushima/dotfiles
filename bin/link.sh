@@ -42,7 +42,6 @@ TARGETS=( \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
-         ".config/herdr-app/keys.json" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \
@@ -204,7 +203,13 @@ do
 
   if [[ $MODE == "link" ]]; then
     if [ -L "$DEST" ]; then
-      echo "exist: $DEST"
+      if [ -e "$DEST" ]; then
+        echo "exist: $DEST"
+      else
+        # リンク先が消えた残骸 (OS 別定義の削除など) は現行の SOURCE へ張り直す。
+        echo "relink: $DEST -> $SOURCE"
+        ln -sfn "$SOURCE" "$DEST"
+      fi
     elif [ -e "$DEST" ]; then
       # 実ファイル / 実ディレクトリが既にある場合は内容を失わないよう退避してから link する。
       # 退避先は $DEST.bak.<timestamp>。

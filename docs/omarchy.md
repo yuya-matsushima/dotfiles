@@ -171,7 +171,7 @@ getent passwd "$USER" | cut -d: -f7
 |---|---|
 | `omarchy/.config/mise/config.toml` | Linux 用 mise 設定。`gh` / AI CLI は Omarchy が `/etc/mise/conf.d/omarchy-tools.toml` で宣言するためここには書かない |
 | `omarchy/.config/chromium-flags.conf` | Chromium の起動フラグ (上流 config の全置換) |
-| `omarchy/.pi/agent/settings.json` | Linux のみ (`theme: omarchy-system` を含む) |
+| `.pi/agent/settings.json` | Linux のみ。Pi は Linux 専用のため `omarchy/` との二重管理はせず, `theme: omarchy-system` も共通設定に置く |
 | `.config/nvim` | macOS / Linux 共通 (独自 lazy.nvim 構成) |
 | `.config/opencode` | Linux のみ (macOS では link しない) |
 | `.pi/agent/*` | Linux のみ (macOS では link しない) |
