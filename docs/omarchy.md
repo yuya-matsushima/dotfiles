@@ -16,13 +16,24 @@ make omarchy
 3. `make link` : `$HOME` 配下への symlink 作成
 4. `make omarchy_hex` : Hex の導入と dictation バックエンドの選択
 
-## Omarchy 4.5 への更新 (4.0.6 → 4.5.0rc3)
+## Omarchy 4.5 への更新 (4.0.6 → 4.5.0)
 
-`omarchy-channel-set rc` (または `omarchy channel set rc`) で rc チャンネルへ切り替えると
-`omarchy` / `omarchy-settings` が 4.5.0rc3 になり, 続けて `omarchy update` が走る。
-4.1〜4.4 は存在せず, 4.0.6 からの直接更新になる。
+Omarchy 4.5 は 2026-11-04 に正式リリースされた。stable チャンネルでも `4.5.0` が配布されており,
+本機は 2026-11-05 に `4.5.0-3` へ更新した。RC チャンネルで `4.5.0rc3` を試していた場合は,
+`omarchy channel set stable` で取得先を stable ミラーへ戻す。チャンネル切り替えは
+pacman の設定を更新して `omarchy` / `omarchy-settings` を入れ直したあと,
+続けて `omarchy update` まで実行する。
 
-更新時に知っておくこと:
+```sh
+omarchy channel set stable
+```
+
+4.1〜4.4 は存在せず, 4.0.6 からの直接更新になる。stable の pacman ミラーは Arch upstream より
+約 1 か月遅れるため, stable チャンネルでは Arch パッケージもそのミラー基準で更新される。
+4.5.0-2 (rc3) から 4.5.0-3 の間には新しい migration は無く, `default/` の差分も
+メニューの翻訳データが中心だった。
+
+更新時に知っておくこと (4.0.x から上げる場合):
 
 - **キーバインドが移動した**: 電卓 `SUPER + SHIFT + Q`, Activity `SUPER + SHIFT + T`,
   ネットワーク `SUPER + CTRL + N`, 通知系は `SUPER + ,` が「最新の通知に作用」に変更。
