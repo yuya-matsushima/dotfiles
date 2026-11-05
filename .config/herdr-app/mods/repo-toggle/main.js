@@ -43,6 +43,7 @@ export default class RepoToggle extends View {
     } else {
       run("layout.select", { stack: "panel-body", child: "repo-hub" });
       run("layout.show", { id: "panel" });
+      run("repo-hub.refresh");
     }
   }
 

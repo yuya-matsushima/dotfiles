@@ -1,6 +1,17 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, TextView } from "gpui-base";
-import { exec, focused, nextCommand, panes, props, settings, spaces, theme, window } from "herdr";
+import {
+  exec,
+  focused,
+  layout,
+  nextCommand,
+  panes,
+  props,
+  settings,
+  spaces,
+  theme,
+  window,
+} from "herdr";
 
 const PR_FIELDS = "number,title,author,isDraft,reviewDecision,statusCheckRollup,updatedAt,url";
 const ISSUE_FIELDS = "number,title,author,labels,comments,updatedAt,url";
@@ -23,6 +34,25 @@ function timeAgo(iso) {
   if (s < 86400 * 30) return `${Math.floor(s / 86400)}d`;
   if (s < 86400 * 365) return `${Math.floor(s / 86400 / 30)}mo`;
   return `${Math.floor(s / 86400 / 365)}y`;
+}
+
+function find(node, id) {
+  if (node?.id === id) return node;
+  for (const child of node?.children ?? []) {
+    const found = find(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+// The panel is idle while it is hidden or showing files/changes, so skip the
+// network round trips until it is on screen again.
+function panelVisible() {
+  const root = layout();
+  const panel = find(root, "panel");
+  if (!panel) return true;
+  if (panel.hidden) return false;
+  return find(root, "panel-body")?.active === "repo-hub";
 }
 
 function reviewBadge(decision) {
@@ -77,6 +107,11 @@ export default class RepoHub extends View {
     this.job = 0;
     this.refresh(cx);
     cx.timer.every(60000, (cx) => this.refresh(cx));
+    // A pull request created in a terminal should show up while the panel is
+    // open, without waiting for the minute-long background refresh.
+    cx.timer.every(10000, (cx) => {
+      if (panelVisible()) this.refresh(cx);
+    });
     cx.spawn(async (cx) => {
       for (;;) {
         const command = await nextCommand();
