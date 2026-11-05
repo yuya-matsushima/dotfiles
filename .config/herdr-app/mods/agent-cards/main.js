@@ -1,5 +1,6 @@
 // Agents as one list. Fixed order by default (pinned first), so a change of state moves no
-// card; Priority puts the most urgent first and does move them.
+// card; Priority puts the most urgent first and does move them; Grouped puts them under
+// a header per space, in the same fixed order.
 // Clone of `agents`: each agent gets a card under its row saying what it is doing now;
 // clicking the card opens the task, branch, folder and turn.
 // A viewed done agent stays in Done until left.
@@ -59,6 +60,7 @@ const kidStatus = (k, listed) => {
 const SORTS = [
   { id: "fixed", label: "Fixed", icon: "layers" },
   { id: "priority", label: "Priority", icon: "clock" },
+  { id: "grouped", label: "Grouped by space", icon: "folder" },
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agent-cards.sort")) ?? SORTS[0];
 const STATUS_WORD = { blocked: "Needs you", done: "Done", working: "Working", idle: "Idle" };
@@ -284,6 +286,7 @@ export default class Agents extends View {
     const shown = focused()?.agent;
     const now = Date.now();
     this.track(list, now);
+    const grouped = sort.id === "grouped";
     this.hold(list);
     if (sort.id === "priority") {
       const urgency = new Map(list.map((a) => [a.address, Math.max(this.rank(a), ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0))]));
@@ -398,8 +401,9 @@ export default class Agents extends View {
           cx.notify();
         })
         .child(svg(`mods/workspace-chrome/${isPinned ? "pin-off" : "pin"}.svg`).size(13));
-      // No headers: each row names its space.
-      const name = a.space_name || label(a);
+      // Under a space header the space goes without saying; otherwise each row names it.
+      const full = !grouped || a.pinned;
+      const name = full ? a.space_name || label(a) : more ?? (/^\d+$/.test(label(a)) ? a.program?.name || label(a) : label(a));
       return h_flex()
         .id(`ag-${a.address}`)
         .px(8)
@@ -423,14 +427,53 @@ export default class Agents extends View {
             cx.notify();
           })).child(pic)))
         .child(h_flex().flex_1().min_w(0).gap(5).items_center()
-          .child(div().min_w(0).max_w(more ? 120 : 200).truncate().text_color(idle ? t.muted : t.foreground).child(name))
-          .when(Boolean(more), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
+          .child(div().min_w(0).max_w(full && more ? 120 : 200).truncate().text_color(idle ? t.muted : t.foreground).child(name))
+          .when(full && Boolean(more), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
         .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
         .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
         .child(this.status(t, a));
     };
+
+    // Agents of a space are next to each other in agents(), so neighbours make a group.
+    const groups = pinned.length ? [{ id: "pinned", label: "Pinned", members: pinned }] : [];
+    for (const a of rest) {
+      const id = `sp-${a.space}`;
+      if (groups.at(-1)?.id === id) groups.at(-1).members.push(a);
+      else groups.push({ id, label: a.space_name || "", members: [a] });
+    }
+
+    // A group's header; it folds the group. Folded, it says how many and the most urgent state.
+    const header = (g) => {
+      const open = !this.folded.has(g.id);
+      const top = g.members.reduce((m, a) => ((RANK[a.status] ?? 0) > (RANK[m] ?? 0) ? a.status : m), null);
+      return h_flex()
+        .id(g.id)
+        .px(8)
+        .pt(8)
+        .h(30)
+        .flex_none()
+        .gap(6)
+        .items_center()
+        .text_size(11)
+        .font_medium()
+        .cursor_pointer()
+        .hover((s) => s.text_color(t.foreground))
+        .on_click((_e, cx) => {
+          open ? this.folded.add(g.id) : this.folded.delete(g.id);
+          cx.notify();
+        })
+        .child(div().truncate().text_color(t.dim).child(g.label))
+        .when(!open, (el) => el.child(div().text_color(t.dim).child(String(g.members.length))))
+        .child(div().flex_1())
+        .when(!open, (el) => el
+          .when(top && top !== "idle", (el) => el.child(this.status(t, { status: top }, true)))
+          .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
+    };
+    const cards = grouped && !collapsed
+      ? groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))])
+      : list.flatMap(withKids);
 
     return v_flex()
       .size_full()
@@ -456,7 +499,7 @@ export default class Agents extends View {
                 .text_size(11)
                 .text_color(t.dim)
                 .hover((s) => s.text_color(t.foreground))
-                .on_click(() => openOverlay({ mod: "agent-cards", kind: "popup", width: 200, height: 110, props: { sortMenu: true } }))
+                .on_click(() => openOverlay({ mod: "agent-cards", kind: "popup", width: 200, height: 140, props: { sortMenu: true } }))
                 .tooltip(`Sort agents: ${sort.label}`)
                 .child(svg(`mods/workspace-chrome/${sort.icon}.svg`).size(14)),
             ),
@@ -465,7 +508,7 @@ export default class Agents extends View {
       .when(list.length === 0 && !collapsed, (el) =>
         el.child(div().px(12).text_size(12).text_color(t.dim).child("No agent status yet. Agents show up here when they report their status. Older versions and agents inside tmux may not.")),
       )
-      .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 8).overflow_y_scrollbar().mode("always").children(list.flatMap(withKids)))
+      .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 8).overflow_y_scrollbar().mode("always").children(cards))
       .when(collapsed, (el) =>
         el.child(
           h_flex()
