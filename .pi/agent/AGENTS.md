@@ -13,5 +13,5 @@ question tool のように UI 側で番号付けされる場合はその UI に�
 ## 横断調査の委譲
 
 複数の issue / docs / レポートをまたぐ調査(対応順の検討, 依存関係の整理, docs と現状の食い違い探し)は,
-メインスレッドで Read / Grep / Glob を回さず, 読み取り専用の Explore subagent に委譲する。
+メインスレッドで Read / Grep / Glob を回さず, 読み取り専用の scout subagent (`pi-subagents`) に委譲する。
 メインスレッドには結論だけを戻し, 読み込んだ本文をコンテキストに残さない。

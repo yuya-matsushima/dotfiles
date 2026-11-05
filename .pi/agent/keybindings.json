@@ -1,4 +1,5 @@
 {
+  "$schema": "https://pi.dev/schemas/keybindings.schema.json",
   "app.interrupt": "ctrl+[",
   "tui.editor.cursorUp": ["up", "alt+k"],
   "tui.editor.cursorDown": ["down", "alt+j"],
