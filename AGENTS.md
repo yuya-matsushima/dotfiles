@@ -25,6 +25,7 @@ macOS と Linux で設定が本質的に異なるものだけを `omarchy/` 配�
 - それぞれのツールの設定ファイルは `$HOME` ディレクトリに配置した際のファイル名やディレクトリ構造に基づいて配置されています。
 - 例外として `_.gitignore` は Symbolic link 作成時に `.gitignore` としてリンクされます。
 - `.gitconfig` は XDG 配置の `$HOME/.config/git/config` へリンクされます (omarchy 既定の git 設定を上書き)。
+- Herdr は symlink 先の SVG を描画しないため, repo-hub のアイコンだけは `bin/link.sh` が `$HOME/.config/herdr-app/repo-hub-icons/` へコピーします。アイコンを変更したら `make link` を再実行します。
 
 ## ビルド・テスト・開発コマンド
 - `make help` : サポートされるターゲットと概要を一覧表示します。
