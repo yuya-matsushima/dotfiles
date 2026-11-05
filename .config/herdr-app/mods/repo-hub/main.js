@@ -577,8 +577,8 @@ export default class RepoHub extends View {
           .items_center()
           .border_b(1)
           .border_color(t.border)
-          .child(this.tabButton("pr", "mods/repo-hub/icons/pull-request.svg", this.prs.length, t))
-          .child(this.tabButton("issues", "mods/repo-hub/icons/issue.svg", this.issues.length, t))
+          .child(this.tabButton("pr", "repo-hub-icons/pull-request.svg", this.prs.length, t))
+          .child(this.tabButton("issues", "repo-hub-icons/issue.svg", this.issues.length, t))
           .child(div().flex_1())
           .child(
             div()

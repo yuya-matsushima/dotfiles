@@ -228,3 +228,19 @@ do
     fi
   fi
 done
+
+# Herdr は symlink 先や絶対パスの SVG を描画しない (アプリディレクトリ外の扱いになる)。
+# repo-hub のアイコンだけは symlink せず実ファイルとしてコピーする。
+HERDR_ICON_SOURCE=$CURRENT_DIR/.config/herdr-app/mods/repo-hub/icons
+HERDR_ICON_DEST=$HOME/.config/herdr-app/repo-hub-icons
+if [[ $MODE == "link" ]]; then
+  mkdir -p "$HERDR_ICON_DEST"
+  for ICON in "$HERDR_ICON_SOURCE"/*.svg; do
+    echo "copy: $ICON -> $HERDR_ICON_DEST/"
+    cp "$ICON" "$HERDR_ICON_DEST/"
+  done
+elif [ -d "$HERDR_ICON_DEST" ]; then
+  echo "remove: $HERDR_ICON_DEST"
+  rm -f "$HERDR_ICON_DEST"/*.svg
+  rmdir "$HERDR_ICON_DEST"
+fi
