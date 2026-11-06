@@ -95,7 +95,7 @@
               },
               "window_drag": true,
               "content": {
-                "mod": "tabs"
+                "mod": "tabs-plus"
               }
             },
             {
