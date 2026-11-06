@@ -408,6 +408,7 @@ Omarchy 4.5 以降は**モニターごとに 1-10 のワークスペース**を�
 | `かな` / `英数` | IME を mozc / keyboard-us へ明示切替 |
 | 右 `Alt` 押しっぱなし / `F9` / 右 `Shift` 押しっぱなし | 音声入力 (Hex, push-to-talk) |
 | 右 `Shift` を素早く2回 | 音声入力をロック (もう一度押すまで継続) |
+| `CTRL + J` | 改行を挿入 (`SHIFT + ENTER`)。Enter が「送信」になるチャット系アプリでのみ有効 |
 | `SUPER SHIFT + K` | 押したキーを画面に表示 (Keystrokes) |
 | `SUPER CTRL + L` | 画面ロック |
 | `SUPER CTRL + I` | アイドル時ロックの切替 |
@@ -415,6 +416,12 @@ Omarchy 4.5 以降は**モニターごとに 1-10 のワークスペース**を�
 | `SUPER CTRL + N` | ネットワーク (4.5 以降。ナイトライトは Trigger > Toggle へ移動) |
 | `SUPER CTRL + Delete` | ラップトップ画面の切替 |
 | `SUPER ALT + BRACKETLEFT` / `SUPER ALT + BRACKETRIGHT` | ウェブカメラオーバーレイの縮小 / 拡大 |
+
+`CTRL + J` の改行は macOS の `.hammerspoon/init.lua` と同じ挙動で, アクティブな
+ウィンドウのクラスが `hypr/bindings.lua` の `ctrl_j_targets` に一致するときだけ
+`SHIFT + ENTER` を送る。一致しないアプリ (ターミナル, エディタ等) ではバインド自体を
+無効化するため, `CTRL + J` (= LF) はそのままアプリへ渡る。対象を増やすときは
+`ctrl_j_targets` に WM_CLASS (小文字, Lua パターン) を追加して `hyprctl reload` する。
 
 ## 無効化・差し替えしている設定
 

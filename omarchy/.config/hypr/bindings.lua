@@ -181,3 +181,46 @@ if dictation_command then
     transparent = true,
   })
 end
+
+-- macOS の .hammerspoon/init.lua と同じく, CTRL + J で改行 (SHIFT + ENTER) を挿入する。
+-- ENTER が「送信」になるチャット系アプリだけを対象にする。ターミナルやエディタでは
+-- CTRL + J (= LF) をそのままアプリへ渡したいので, 対象アプリがアクティブなときだけ
+-- バインドを有効化する (macOS 版の application watcher と同じ考え方)。
+--
+-- ネイティブアプリは WM_CLASS を小文字で, Omarchy の web app は
+-- chrome-<host>_<path>-Default というクラス名を小文字で比較する。
+local ctrl_j_targets = {
+  "^discord$",
+  "^slack$",
+  "^telegram",
+  "^teams%-for%-linux$",
+  "^element",
+  "chatgpt%.com",
+  "claude%.ai",
+  "gemini%.google%.com",
+  "app%.slack%.com",
+  "teams%.microsoft%.com",
+  "notion%.so",
+}
+
+local function ctrl_j_target_active(window)
+  local class = ((window and window.class) or ""):lower()
+  for _, pattern in ipairs(ctrl_j_targets) do
+    if class:find(pattern) then
+      return true
+    end
+  end
+  return false
+end
+
+local ctrl_j_newline = hl.bind(
+  "CTRL + J",
+  hl.dsp.send_shortcut({ mods = "SHIFT", key = "Return" }),
+  { description = "Insert newline (SHIFT + ENTER)" }
+)
+
+ctrl_j_newline:set_enabled(ctrl_j_target_active(hl.get_active_window()))
+
+hl.on("window.active", function(window)
+  ctrl_j_newline:set_enabled(ctrl_j_target_active(window))
+end)
