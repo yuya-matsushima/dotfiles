@@ -58,6 +58,8 @@ TARGETS=( \
          ".config/herdr-app/mods/space-cards" \
          ".config/herdr-app/mods/repo-hub" \
          ".config/herdr-app/mods/repo-toggle" \
+         ".config/herdr-app/mods/launcher-menu" \
+         ".config/herdr-app/mods/tabs-plus" \
          ".hammerspoon" \
          ".markdownlint.yml" \
          ".claude/hooks" \
