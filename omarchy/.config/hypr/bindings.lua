@@ -105,6 +105,25 @@ if dictation_command then
   hl.unbind("SHIFT + Shift_R")
 
   local shift_dictating = false
+  local shift_locked = false
+  local pending_stop = false
+  local press_serial = 0
+  local long_press = false
+  -- 2回目の押下を待つ時間。この間に押し直すとロック録音になる。
+  local double_tap_ms = 300
+  -- これ以上押し続けたら push-to-talk の長押しとみなす。
+  local hold_ms = 400
+
+  local function run_dictation(action)
+    hl.dispatch(hl.dsp.exec_cmd(dictation_command .. " " .. action))
+  end
+
+  local function stop_dictation()
+    shift_dictating = false
+    shift_locked = false
+    pending_stop = false
+    run_dictation("stop")
+  end
 
   hl.bind("Shift_R", function()
     for _, key in ipairs({ "Super_L", "Super_R", "Control_L", "Control_R", "Alt_L", "Alt_R" }) do
@@ -112,20 +131,48 @@ if dictation_command then
         return
       end
     end
+    -- ロック中にもう一度押したら停止する。
+    if shift_locked then
+      stop_dictation()
+      return
+    end
+    -- 直前のタップから続けて押した場合は, 録音を止めずにロックへ移る。
+    if pending_stop then
+      pending_stop = false
+      shift_locked = true
+      return
+    end
     shift_dictating = true
-    hl.dispatch(hl.dsp.exec_cmd(dictation_command .. " start"))
+    long_press = false
+    press_serial = press_serial + 1
+    local serial = press_serial
+    hl.timer(function()
+      if press_serial == serial then
+        long_press = true
+      end
+    end, { timeout = hold_ms, type = "oneshot" })
+    run_dictation("start")
   end, {
-    description = "Start dictation (push-to-talk)",
+    description = "Start dictation (push-to-talk, double-tap to lock)",
     ignore_mods = true,
     non_consuming = true,
   })
 
   hl.bind("Shift_R", function()
-    if not shift_dictating then
+    if not shift_dictating or shift_locked then
       return
     end
-    shift_dictating = false
-    hl.dispatch(hl.dsp.exec_cmd(dictation_command .. " stop"))
+    if long_press then
+      stop_dictation()
+      return
+    end
+    -- タップは少し待ってから止める。すぐ押し直されたらロックとして継続する。
+    pending_stop = true
+    hl.timer(function()
+      if pending_stop then
+        stop_dictation()
+      end
+    end, { timeout = double_tap_ms, type = "oneshot" })
   end, {
     description = "Stop dictation (push-to-talk)",
     release = true,
