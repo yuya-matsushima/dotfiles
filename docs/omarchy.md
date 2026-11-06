@@ -407,6 +407,7 @@ Omarchy 4.5 以降は**モニターごとに 1-10 のワークスペース**を�
 | `SUPER` 単押し (左右どちらでも) | IME トグル (macOS の Command 単押しと同じ) |
 | `かな` / `英数` | IME を mozc / keyboard-us へ明示切替 |
 | 右 `Alt` 押しっぱなし / `F9` / 右 `Shift` 押しっぱなし | 音声入力 (Hex, push-to-talk) |
+| 右 `Shift` を素早く2回 | 音声入力をロック (もう一度押すまで継続) |
 | `SUPER SHIFT + K` | 押したキーを画面に表示 (Keystrokes) |
 | `SUPER CTRL + L` | 画面ロック |
 | `SUPER CTRL + I` | アイドル時ロックの切替 |
@@ -442,7 +443,7 @@ unbind / 再 bind だけを重ねている。
 
 | キー | 元の動作 | 現在の動作 | 備考 |
 | --- | --- | --- | --- |
-| `Shift_R` / `SHIFT + Shift_R` | Shift (修飾キー) | 右 Shift 単押しで音声入力の push-to-talk (`Hex`) | JIS 配列に右 Alt が無いため追加。`non_consuming` のため Shift キーとしての文字入力は維持される。他の修飾キーを押している間は発火しない |
+| `Shift_R` / `SHIFT + Shift_R` | Shift (修飾キー) | 右 Shift の長押しで音声入力の push-to-talk、素早く2回でロック録音 (`Hex`) | JIS 配列に右 Alt が無いため追加。`non_consuming` のため Shift キーとしての文字入力は維持される。他の修飾キーを押している間は発火しない。ロック中はもう一度押すと停止する |
 
 `SUPER + CTRL + X` / `F9` / `ALT + Alt_R` は Omarchy 4.5 では既定の dictation バインド
 (`default/hypr/bindings/dictation.lua`) がそのまま張る。選択中のバックエンドが Hex なら
@@ -622,6 +623,8 @@ Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
 **右 Shift 長押し** も同じ push-to-talk に割り当てる。右 Alt は外部キーボード用に残す。
 右 Shift は文字入力にも使うため, SUPER / CTRL / ALT を先に押している組み合わせでは
 開始しないようにしている (Shift キー自体はアプリにも渡る)。
+右 Shift を素早く2回押すと録音をロックし, もう一度押すまで継続する
+(長押しは通常どおり離した時点で停止)。
 
 4.5 以降は Omarchy の `default/hypr/bindings/dictation.lua` が選択中のバックエンドへ
 標準キーを張るため, `hypr/bindings.lua` は右 Shift の追加分だけを張る。
