@@ -27,6 +27,7 @@ brew install \
           grep \
           font-symbols-only-nerd-font \
           fzf \
+          herdr \
           htop \
           lazygit \
           imagemagick \
