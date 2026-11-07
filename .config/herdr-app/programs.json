@@ -1,0 +1,20 @@
+{
+  "programs": {
+    "opencode": {
+      "run": ["opencode", "--auto"]
+    },
+    "codex": {
+      "run": ["codex", "--approve-for-me"]
+    },
+    "codex-danger": {
+      "name": "Codex (danger)",
+      "icon": "icons/codex.svg",
+      "tint": false,
+      "agent": true,
+      "run": ["codex", "--dangerously-bypass-approvals-and-sandbox"]
+    },
+    "antigravity": {
+      "run": ["agy", "--dangerously-skip-permissions"]
+    }
+  }
+}
