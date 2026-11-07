@@ -3,7 +3,7 @@
 onboarding = false
 
 [theme]
-name = "gruvbox-light"
+name = "gruvbox"
 auto_switch = false
 
 [keys]
@@ -54,3 +54,5 @@ height = "98%"
 [ui]
 # herdr-app の tab.new と同様に名前を聞かずタブを作る
 prompt_new_tab_name = false
+# 1 ペインでも枠を描き, サイドバーとの境界線を残す
+pane_borders = "always"
