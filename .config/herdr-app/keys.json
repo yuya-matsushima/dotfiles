@@ -22,6 +22,10 @@
     "ctrl-e j": "pane.go:down",
     "ctrl-e k": "pane.go:up",
     "ctrl-e l": "pane.go:right",
+    "ctrl-e shift-h": "pane.swap:left",
+    "ctrl-e shift-j": "pane.swap:down",
+    "ctrl-e shift-k": "pane.swap:up",
+    "ctrl-e shift-l": "pane.swap:right",
     "ctrl-e z": "pane.close",
     "ctrl-e x": "pane.close",
     "ctrl-e m": "pane.zoom",
@@ -66,7 +70,6 @@
     "cmd-alt-h": "app.hide_others"
   },
   "terminal": {
-    "ctrl-e ctrl-z": "send:\u0005",
     "ctrl-e p": "terminal.paste",
     "ctrl-e /": "terminal.search",
 
