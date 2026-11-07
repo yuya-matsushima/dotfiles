@@ -1,0 +1,56 @@
+# herdr (TUI) の設定。キー操作は .config/herdr-app/keys.json に揃えている。
+# 全項目は `herdr --default-config` で確認できる。
+onboarding = false
+
+[theme]
+name = "gruvbox-light"
+auto_switch = false
+
+[keys]
+prefix = "ctrl+e"
+
+# Tabs
+new_tab = "prefix+c"
+next_tab = ["prefix+n", "prefix+ctrl+n"]
+previous_tab = "prefix+ctrl+p"
+switch_tab = "prefix+1..9"
+rename_tab = "prefix+comma"
+close_tab = "prefix+ampersand"
+
+# Panes
+split_vertical = "prefix+backslash"
+split_horizontal = "prefix+minus"
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+close_pane = ["prefix+x", "prefix+z"]
+zoom = "prefix+m"
+
+# Workspaces (herdr-app の space)
+workspace_picker = ["prefix+w", "prefix+s"]
+previous_workspace = "prefix+("
+next_workspace = "prefix+)"
+rename_workspace = "prefix+$"
+new_workspace = "prefix+shift+n"
+close_workspace = "prefix+shift+d"
+
+# Agents
+next_agent = "prefix+a"
+previous_agent = "prefix+shift+a"
+
+# herdr-app の割り当てと衝突する既定値の退避先
+settings = "prefix+shift+s"
+goto = "prefix+shift+o"
+
+# herdr-app は lazygit を新規タブで開くが, TUI のカスタムコマンドにタブ指定はない
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "lazygit"
+width = "98%"
+height = "98%"
+
+[ui]
+# herdr-app の tab.new と同様に名前を聞かずタブを作る
+prompt_new_tab_name = false

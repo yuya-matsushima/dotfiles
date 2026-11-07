@@ -51,6 +51,7 @@ TARGETS=( \
          ".local/bin/omarchy-install-dictation-hex" \
          ".config/nvim" \
          ".config/opencode" \
+         ".config/herdr/config.toml" \
          ".config/herdr-app/keys.json" \
          ".config/herdr-app/layouts/hub.json" \
          ".config/herdr-app/layouts/workbench.json" \
