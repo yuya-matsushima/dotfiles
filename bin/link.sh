@@ -52,6 +52,7 @@ TARGETS=( \
          ".config/nvim" \
          ".config/opencode" \
          ".config/herdr-app/keys.json" \
+         ".config/herdr-app/programs.json" \
          ".config/herdr-app/layouts/hub.json" \
          ".config/herdr-app/layouts/workbench.json" \
          ".config/herdr-app/mods/agent-cards" \
