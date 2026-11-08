@@ -73,7 +73,7 @@ TARGETS=( \
          ".pi/agent/settings.json" \
          ".pi/agent/keybindings.json" \
          ".pi/agent/AGENTS.md" \
-         ".pi/agent/extensions/tmux-status.ts" \
+         ".pi/agent/extensions/notify-sound.ts" \
          ".pi/agent/extensions/guard-force-push.ts" \
          ".pi/agent/extensions/pi-permission-system/config.json" \
        )
@@ -90,7 +90,7 @@ DARWIN_EXCLUDE=( \
                  ".pi/agent/settings.json" \
                  ".pi/agent/keybindings.json" \
                  ".pi/agent/AGENTS.md" \
-                 ".pi/agent/extensions/tmux-status.ts" \
+                 ".pi/agent/extensions/notify-sound.ts" \
                  ".pi/agent/extensions/guard-force-push.ts" \
                  ".pi/agent/extensions/pi-permission-system/config.json" \
                )

@@ -3,14 +3,10 @@
 # Install / uninstall AI agent hooks for Claude Code, Codex, OpenCode, and Pi.
 #
 # Manages:
-#   - tmux status hooks (agent-status.sh) for Claude Code / Codex
 #   - shared notification sound (~/.agents/hooks/notify-sound.sh)
 #   - Codex-only protected-file and force-push guards
-#   - OpenCode tmux status plugins (.config/opencode/plugins/tmux-status.js and
-#     .config/opencode/plugins/tui/tmux-status.js) are self-contained and
-#     auto-loaded; no registration step needed.
-#   - Pi is self-contained as well: the tmux status / notification bridge and the
-#     force-push guard live in ~/.pi/agent/extensions/*.ts (linked by bin/link.sh)
+#   - Pi is self-contained: the notification bridge and the force-push guard
+#     live in ~/.pi/agent/extensions/*.ts (linked by bin/link.sh)
 #     and are auto-loaded. This script only verifies they exist after `make link`.
 #
 # Unrelated hook entries (e.g. Claude Code's existing guard-protected-files.sh
@@ -37,7 +33,6 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 1
 fi
 
-TMUX_SCRIPT="$HOME/.tmux/agent-status.sh"
 NOTIFY_SCRIPT="$HOME/.agents/hooks/notify-sound.sh"
 CODEX_GUARD_APPLY="$HOME/.codex/hooks/guard-protected-apply-patch.sh"
 CODEX_GUARD_BASH="$HOME/.codex/hooks/guard-force-push.sh"
@@ -46,16 +41,16 @@ CODEX_GUARD_BASH="$HOME/.codex/hooks/guard-force-push.sh"
 FORCE_PUSH_VERDICT="$HOME/.agents/hooks/force-push-verdict.sh"
 FORCE_PUSH_REASON="$HOME/.agents/hooks/force-push-reason.sh"
 # Pi は hook JSON ではなく拡張で完結する。存在検査のみ行う。
-PI_TMUX_STATUS="$HOME/.pi/agent/extensions/tmux-status.ts"
+PI_NOTIFY_SOUND="$HOME/.pi/agent/extensions/notify-sound.ts"
 PI_GUARD_FORCE_PUSH="$HOME/.pi/agent/extensions/guard-force-push.ts"
 PI_PERMISSION_CONFIG="$HOME/.pi/agent/extensions/pi-permission-system/config.json"
 
 if [ "$MODE" = "install" ]; then
     # Pi は macOS では使わない (bin/link.sh が link しない) ため存在検査も行わない。
-    set -- "$TMUX_SCRIPT" "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" \
+    set -- "$NOTIFY_SCRIPT" "$CODEX_GUARD_APPLY" "$CODEX_GUARD_BASH" \
            "$FORCE_PUSH_VERDICT" "$FORCE_PUSH_REASON"
     if [ "$(uname -s)" != "Darwin" ]; then
-        set -- "$@" "$PI_TMUX_STATUS" "$PI_GUARD_FORCE_PUSH" "$PI_PERMISSION_CONFIG"
+        set -- "$@" "$PI_NOTIFY_SOUND" "$PI_GUARD_FORCE_PUSH" "$PI_PERMISSION_CONFIG"
     fi
     for p in "$@"; do
         if [ ! -e "$p" ]; then
@@ -68,6 +63,7 @@ fi
 # Managed command substrings. A hook is treated as managed by this script
 # (and stripped before re-registration) when its command contains any marker.
 # Path-qualified where possible so Claude's own guard-* hooks are not touched.
+# agent-status.sh は廃止済み。過去に登録された hook を掃除するためマーカーだけ残す。
 CLAUDE_MARKERS='[
     "agent-status.sh",
     ".agents/hooks/notify-sound.sh",
@@ -84,15 +80,7 @@ build_claude() {
     jq -n '
         def cmd($c): { type: "command", command: $c, timeout: 5 };
         {
-            SessionStart:     [{ hooks: [cmd("sh ~/.tmux/agent-status.sh idle")] }],
-            Stop:             [{ hooks: [cmd("sh ~/.tmux/agent-status.sh idle")] }],
-            UserPromptSubmit: [{ hooks: [cmd("sh ~/.tmux/agent-status.sh working")] }],
-            PostToolUse:      [{ hooks: [cmd("sh ~/.tmux/agent-status.sh working")] }],
-            Notification:     [{ hooks: [
-                cmd("sh ~/.tmux/agent-status.sh blocked"),
-                cmd("sh ~/.agents/hooks/notify-sound.sh")
-            ]}],
-            SessionEnd:       [{ hooks: [cmd("sh ~/.tmux/agent-status.sh clear")] }]
+            Notification: [{ hooks: [cmd("sh ~/.agents/hooks/notify-sound.sh")] }]
         }
     '
 }
@@ -101,14 +89,7 @@ build_codex() {
     jq -n '
         def cmd($c): { type: "command", command: $c, timeout: 5 };
         {
-            SessionStart:     [{ hooks: [cmd("sh ~/.tmux/agent-status.sh idle")] }],
-            Stop:             [{ hooks: [cmd("sh ~/.tmux/agent-status.sh idle")] }],
-            UserPromptSubmit: [{ hooks: [cmd("sh ~/.tmux/agent-status.sh working")] }],
-            PostToolUse:      [{ hooks: [cmd("sh ~/.tmux/agent-status.sh working")] }],
-            PermissionRequest:[{ hooks: [
-                cmd("sh ~/.tmux/agent-status.sh blocked"),
-                cmd("sh ~/.agents/hooks/notify-sound.sh")
-            ]}],
+            PermissionRequest: [{ hooks: [cmd("sh ~/.agents/hooks/notify-sound.sh")] }],
             PreToolUse: [
                 { matcher: "^apply_patch$", hooks: [cmd("sh ~/.codex/hooks/guard-protected-apply-patch.sh")] },
                 { matcher: "^Bash$",        hooks: [cmd("sh ~/.codex/hooks/guard-force-push.sh")] }

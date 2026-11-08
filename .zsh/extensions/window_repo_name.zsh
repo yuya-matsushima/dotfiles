@@ -18,30 +18,9 @@
 # Prefix + , で手動リネームした window には介入しない。自フックが付けた名前は
 # window option @ymt_repo_set_name で識別し、外部で変更されていたら以後触らない。
 # リポジトリ名と worktree 名の区切り文字は _ymt_tmux_window_sep (既定 `:`)。
-#
-# あわせて、agent CLI 終了時にステータスバーのバー (pane option @agent_status) を
-# クリアする。Claude Code (SessionEnd hook) と Pi (session_shutdown) は自前で
-# クリアするが、Codex / OpenCode には終了イベントに相当する hook がなく、この
-# precmd がないとバーが残り続ける (bin/agent_hooks.sh 参照)。
-# 自前でクリアする CLI でも kill など異常終了時はここでクリアされる。
 
 # リポジトリ名と worktree 名の区切り文字
 typeset -g _ymt_tmux_window_sep="${_ymt_tmux_window_sep:-:}"
-
-# この shell が対象 CLI を実行したか (precmd のステータスクリア用のフラグ)
-typeset -g _ymt_tmux_agent_seen=""
-
-# ステータスクリアの生存判定に使う対象コマンド。
-# ~/.zshrc_local などで配列を定義すると上書きできる。
-typeset -ga YMT_TMUX_AGENT_COMMANDS
-(( ${#YMT_TMUX_AGENT_COMMANDS} )) || YMT_TMUX_AGENT_COMMANDS=(
-  claude
-  codex
-  opencode
-  pi
-  agy
-  antigravity
-)
 
 # window 名として使うリポジトリ名を出力する。
 # git 管理外 / git 未インストールのときは何も出力しない。
@@ -84,54 +63,6 @@ _ymt_tmux_window_repo_name() {
   else
     print -r -- "$repo"
   fi
-}
-
-# 対象 CLI のジョブがまだ生きているかどうかを返す。
-# precmd は「agent の終了」ではなく「プロンプトの復帰」で走るため、
-# `opencode &` のバックグラウンド起動や Ctrl-Z での停止でも呼ばれる。
-# そのままクリアすると稼働中の agent のバーを消してしまうので、
-# ジョブのコマンド文字列を対象コマンドと突き合わせて判定する。
-_ymt_tmux_agent_job_alive() {
-  local j w state procs
-  local -a words
-
-  (( ${+jobtexts} )) || return 1
-  (( ${#jobtexts} )) || return 1
-
-  for j in ${(k)jobtexts}; do
-    # jobstates は `suspended:+:12345=done:12346=suspended` 形式
-    # (先頭がジョブ全体の状態、以降がプロセスごとの状態)。
-    # jobtexts はジョブ全体のコマンド文字列しか持たないため、次の優先順で判定する:
-    #   - suspended : Ctrl-Z で止めた agent 自体なので生存扱い
-    #   - running   : いずれかのプロセスが done なら生存扱いしない
-    #   - それ以外  : done 等。生存扱いしない
-    state="${jobstates[$j]%%:*}"
-    procs="${jobstates[$j]#*:*:}"
-    case $state in
-      suspended) ;;
-      running) [[ $procs == *=done* ]] && continue ;;
-      *) continue ;;
-    esac
-
-    words=(${(z)jobtexts[$j]})
-    for w in ${words[@]}; do
-      w="${(Q)w}"
-      w="${w:t}"
-      (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$w]} )) && return 0
-    done
-  done
-
-  return 1
-}
-
-# agent 終了時に自ペインのステータスバーのバーをクリアする。
-# @agent_status は pane option なので、他ペインで動いている agent には影響しない。
-# option 名を二重管理しないよう、直接 tmux を叩かずスクリプト経由で呼ぶ。
-_ymt_tmux_agent_status_clear() {
-  local script="$HOME/.tmux/agent-status.sh"
-  [[ -f $script ]] || return
-  _ymt_tmux_agent_job_alive && return
-  sh "$script" clear 2>/dev/null
 }
 
 # cd したディレクトリに応じて window 名を更新する。
@@ -185,45 +116,6 @@ _ymt_tmux_repo_name_chpwd() {
   fi
 }
 
-# 対象 CLI の起動を検出して、precmd でのステータスクリアを有効にする。
-# 対象 CLI が全く起動していないプロンプトではサブプロセスを起動しないためのフラグ。
-_ymt_tmux_agent_preexec() {
-  [[ -n $TMUX && -n $TMUX_PANE ]] || return
-  (( $+commands[tmux] )) || return
-
-  local line="${3:-$1}" w
-  local -a words
-  words=(${(z)line})
-
-  # fg / %N は停止中の agent の再開かもしれないので保守的にフラグを立てる
-  if [[ ${words[1]} == fg || ${words[1]} == %* ]]; then
-    _ymt_tmux_agent_seen=1
-    return
-  fi
-
-  for w in ${words[@]}; do
-    w="${(Q)w}"
-    w="${w:t}"
-    if (( ${YMT_TMUX_AGENT_COMMANDS[(Ie)$w]} )); then
-      _ymt_tmux_agent_seen=1
-      return
-    fi
-  done
-}
-
-_ymt_tmux_agent_precmd() {
-  # 対象 CLI を実行していないプロンプトでは何もしない (サブプロセスを起動しない)
-  [[ -n $_ymt_tmux_agent_seen ]] || return
-  _ymt_tmux_agent_seen=""
-
-  [[ -n $TMUX && -n $TMUX_PANE ]] || return
-  (( $+commands[tmux] )) || return
-
-  _ymt_tmux_agent_status_clear
-}
-
 if autoload -Uz add-zsh-hook 2>/dev/null; then
   add-zsh-hook chpwd _ymt_tmux_repo_name_chpwd
-  add-zsh-hook preexec _ymt_tmux_agent_preexec
-  add-zsh-hook precmd _ymt_tmux_agent_precmd
 fi

@@ -16,13 +16,12 @@
 #      - Pi 拡張 (存在検査のみ, Linux のみ) が欠けていると install が失敗する
 #   3. OpenCode V1 / V2 設定
 #      - V1 tui.json / V2 cli.json の JSON / schema
-#      - tmux status plugin の V1 / V2 export 形式
 #   4. bin/link.sh
 #      - クリーンな HOME にディレクトリを含む TARGETS を link できる
 #        (Pi 拡張ファイルを含む)
 #      - unlink で symlink のみ削除される
 #
-# 依存: sh (POSIX), jq, node
+# 依存: sh (POSIX), jq
 # 実行: sh bin/tests/test-codex-hooks.sh
 # ============================================================================
 
@@ -35,8 +34,6 @@ AGENT_HOOKS="$REPO_ROOT/bin/agent_hooks.sh"
 LINK_SH="$REPO_ROOT/bin/link.sh"
 OPENCODE_CLI="$REPO_ROOT/.config/opencode/cli.json"
 OPENCODE_TUI="$REPO_ROOT/.config/opencode/tui.json"
-OPENCODE_TMUX_SERVER_PLUGIN="$REPO_ROOT/.config/opencode/plugins/tmux-status.js"
-OPENCODE_TMUX_TUI_PLUGIN="$REPO_ROOT/.config/opencode/plugins/tui/tmux-status.js"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -128,9 +125,8 @@ assert_allow "$GUARD_APPLY" '{"tool_input":{"command":"echo hello"}}'
 echo "# agent_hooks: install / reinstall / uninstall"
 
 HOME_DIR="$WORK/home"
-mkdir -p "$HOME_DIR/.tmux" "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$HOME_DIR/.claude" \
+mkdir -p "$HOME_DIR/.agents/hooks" "$HOME_DIR/.codex/hooks" "$HOME_DIR/.claude" \
          "$HOME_DIR/.pi/agent/extensions/pi-permission-system"
-touch "$HOME_DIR/.tmux/agent-status.sh"
 cp "$REPO_ROOT/.agents/hooks/notify-sound.sh" "$HOME_DIR/.agents/hooks/"
 cp "$REPO_ROOT/.agents/hooks/force-push-verdict.sh" "$HOME_DIR/.agents/hooks/"
 cp "$REPO_ROOT/.agents/hooks/force-push-reason.sh" "$HOME_DIR/.agents/hooks/"
@@ -138,17 +134,22 @@ cp "$GUARD_APPLY" "$HOME_DIR/.codex/hooks/"
 cp "$GUARD_BASH" "$HOME_DIR/.codex/hooks/"
 # Pi は hook JSON ではなく拡張で完結するため, agent_hooks は存在検査のみ行う。
 # 空ファイルで十分 (内容は pi 側が読み込む)。
-touch "$HOME_DIR/.pi/agent/extensions/tmux-status.ts"
+touch "$HOME_DIR/.pi/agent/extensions/notify-sound.ts"
 touch "$HOME_DIR/.pi/agent/extensions/guard-force-push.ts"
 touch "$HOME_DIR/.pi/agent/extensions/pi-permission-system/config.json"
 
-# Seed unrelated Claude hooks (guard-* から notify-sound legacy まで含める)
+# Seed unrelated Claude hooks (guard-* から notify-sound / agent-status の legacy まで含める)
 cat > "$HOME_DIR/.claude/settings.json" <<'JSON'
 {
   "hooks": {
     "PreToolUse": [
       { "matcher": "Edit|Write|MultiEdit", "hooks": [
         { "type": "command", "command": "sh ~/.claude/hooks/guard-protected-files.sh", "timeout": 3 }
+      ]}
+    ],
+    "Stop": [
+      { "hooks": [
+        { "type": "command", "command": "sh ~/.tmux/agent-status.sh idle", "timeout": 5 }
       ]}
     ],
     "Notification": [
@@ -180,6 +181,10 @@ current_case="claude legacy .claude/hooks/notify-sound.sh is removed"
 n=$(jq '[.hooks.Notification[]?.hooks[]? | select(.command | contains(".claude/hooks/notify-sound.sh"))] | length' "$HOME_DIR/.claude/settings.json")
 if [ "$n" = "0" ]; then pass; else fail "expected 0, got $n"; fi
 
+current_case="claude legacy agent-status.sh is removed on install"
+n=$(jq '[.hooks | .. | objects | select(has("command")) | .command | select(contains("agent-status.sh"))] | length' "$HOME_DIR/.claude/settings.json")
+if [ "$n" = "0" ]; then pass; else fail "expected 0, got $n"; fi
+
 current_case="claude shared notify-sound is registered once"
 n=$(jq '[.hooks.Notification[]?.hooks[]? | select(.command | contains(".agents/hooks/notify-sound.sh"))] | length' "$HOME_DIR/.claude/settings.json")
 if [ "$n" = "1" ]; then pass; else fail "expected 1, got $n"; fi
@@ -188,9 +193,9 @@ current_case="codex PreToolUse has exactly 2 matcher groups"
 n=$(jq '.hooks.PreToolUse | length' "$HOME_DIR/.codex/hooks.json")
 if [ "$n" = "2" ]; then pass; else fail "expected 2, got $n"; fi
 
-current_case="codex PermissionRequest group has 2 handlers"
+current_case="codex PermissionRequest group has 1 handler"
 n=$(jq '.hooks.PermissionRequest[0].hooks | length' "$HOME_DIR/.codex/hooks.json")
-if [ "$n" = "2" ]; then pass; else fail "expected 2, got $n"; fi
+if [ "$n" = "1" ]; then pass; else fail "expected 1, got $n"; fi
 
 current_case="codex apply_patch matcher registered"
 n=$(jq '[.hooks.PreToolUse[]? | select(.matcher == "^apply_patch$")] | length' "$HOME_DIR/.codex/hooks.json")
@@ -216,10 +221,6 @@ if [ "$n" = "1" ]; then pass; else fail "expected 1, got $n"; fi
 current_case="uninstall: claude user-unrelated still preserved"
 n=$(jq '[.hooks.Notification[]?.hooks[]? | select(.command | contains("user-unrelated.sh"))] | length' "$HOME_DIR/.claude/settings.json")
 if [ "$n" = "1" ]; then pass; else fail "expected 1, got $n"; fi
-
-current_case="uninstall: claude tmux status handlers removed"
-n=$(jq '[.hooks | .. | objects | select(has("command")) | .command | select(contains("agent-status.sh"))] | length' "$HOME_DIR/.claude/settings.json")
-if [ "$n" = "0" ]; then pass; else fail "expected 0, got $n"; fi
 
 current_case="uninstall: claude shared notify-sound removed"
 n=$(jq '[.hooks | .. | objects | select(has("command")) | .command | select(contains(".agents/hooks/notify-sound.sh"))] | length' "$HOME_DIR/.claude/settings.json")
@@ -248,24 +249,6 @@ else
     fail "invalid JSON or schema"
 fi
 
-current_case="OpenCode tmux server plugin supports V1 and V2 exports"
-if node --no-warnings --input-type=module -e \
-    'const module = await import(`file://${process.argv[1]}?test`); if (typeof module.TmuxStatusPlugin !== "function" || !module.default || typeof module.default.server !== "function" || typeof module.default.setup !== "function") process.exit(1)' \
-    "$OPENCODE_TMUX_SERVER_PLUGIN"; then
-    pass
-else
-    fail "missing V1 or V2 export"
-fi
-
-current_case="OpenCode 2 tmux plugin runs in the TUI process"
-if node --no-warnings --input-type=module -e \
-    'const module = await import(`file://${process.argv[1]}?test`); if (!module.default || module.default.id !== "tmux-status-tui" || typeof module.default.setup !== "function") process.exit(1)' \
-    "$OPENCODE_TMUX_TUI_PLUGIN"; then
-    pass
-else
-    fail "missing V2 TUI export"
-fi
-
 # ------------------------------------------------------------------
 # 5. link.sh
 # ------------------------------------------------------------------
@@ -290,8 +273,8 @@ if [ "$(uname -s)" = "Darwin" ]; then
     current_case="link: Pi config is not linked on macOS"
     if [ ! -e "$LINK_HOME/.pi" ]; then pass; else fail "unexpected ~/.pi"; fi
 else
-    current_case="link: Pi tmux-status extension is a symlink"
-    if [ -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "not a symlink"; fi
+    current_case="link: Pi notify-sound extension is a symlink"
+    if [ -L "$LINK_HOME/.pi/agent/extensions/notify-sound.ts" ]; then pass; else fail "not a symlink"; fi
 
     current_case="link: Pi force-push guard extension is a symlink"
     if [ -L "$LINK_HOME/.pi/agent/extensions/guard-force-push.ts" ]; then pass; else fail "not a symlink"; fi
@@ -326,8 +309,8 @@ if [ ! -L "$LINK_HOME/.agents/hooks" ]; then pass; else fail "still a symlink"; 
 current_case="unlink: ~/.codex/hooks symlink is removed"
 if [ ! -L "$LINK_HOME/.codex/hooks" ]; then pass; else fail "still a symlink"; fi
 
-current_case="unlink: Pi tmux-status extension symlink is removed"
-if [ ! -L "$LINK_HOME/.pi/agent/extensions/tmux-status.ts" ]; then pass; else fail "still a symlink"; fi
+current_case="unlink: Pi notify-sound extension symlink is removed"
+if [ ! -L "$LINK_HOME/.pi/agent/extensions/notify-sound.ts" ]; then pass; else fail "still a symlink"; fi
 
 current_case="unlink: Pi global instructions (AGENTS.md) symlink is removed"
 if [ ! -L "$LINK_HOME/.pi/agent/AGENTS.md" ]; then pass; else fail "still a symlink"; fi
