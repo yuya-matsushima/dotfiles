@@ -61,14 +61,17 @@ return {
             enabled = true,
             clear_in_insert_mode = false,
             download_remote_images = true,
-            only_render_image_at_cursor = true,
+            -- カーソル位置で popup を出すと編集中に急に画像が被さるため, 常時インライン表示にする
+            -- (画像は `![]()` 行の下に仮想行として描画される)
+            only_render_image_at_cursor = false,
             filetypes = { 'markdown', 'vimwiki' },
           },
         },
         max_width = nil,
         max_height = nil,
         max_width_window_percentage = nil,
-        max_height_window_percentage = 50,
+        -- インライン表示では画像の高さぶん仮想行が入るため, 1 枚あたりの高さを抑える
+        max_height_window_percentage = 25,
         window_overlap_clear_enabled = false,
         window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', '' },
       })
@@ -93,6 +96,7 @@ return {
           vim.notify('image.nvim: disabled')
         end
       end, { desc = 'Toggle image.nvim rendering' })
+      vim.keymap.set('n', '<leader>it', '<cmd>ImageToggle<CR>', { desc = 'Toggle inline images' })
     end,
   },
 
