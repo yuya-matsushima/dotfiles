@@ -14,7 +14,8 @@ make omarchy
 1. `bin/omarchy.sh` : `bin/omarchy/cli.sh` を呼び出して CLI ツールを導入し, ログインシェルを zsh 化
 2. `bin/zsh_plugin.sh` : zsh 用 git-prompt の取得
 3. `make link` : `$HOME` 配下への symlink 作成
-4. `make omarchy_hex` : Hex の導入と dictation バックエンドの選択
+4. `make omarchy_superwhisper_remove` : Superwhisper の削除 (パッケージ・バーパネル・設定/モデル)
+5. `make omarchy_hex` : Hex の導入, dictation バックエンドの選択, SenseVoice Small の設定
 
 ## Omarchy 4.5 への更新 (4.0.6 → 4.5.0)
 
@@ -621,6 +622,11 @@ Hex (`~/.local/bin/hex`) を Omarchy の dictation バックエンドとして�
 `make omarchy` または `make omarchy_hex` で導入し, 4.5 以降ではバックエンドを
 hex に切り替える (`omarchy dictation use hex`)。
 
+`make omarchy` はバックエンドの選択に加えて, 認識モデルを **SenseVoice Small**
+(252MB, 日本語対応, 完全ローカル) に設定する。Hex の既定の Whisper
+large-v3-turbo は CPU 推論だと長い録音で待ち時間が大きいため。導入済みなら
+`hex model use`, 未導入なら `hex model install` を実行する。
+
 注意: 4.5 へ更新すると migration が「既存の dictation ユーザーは Voxtype のまま」に
 するため (`~/.config/omarchy/defaults/dictation` に `voxtype` を書き込む), Hex に
 戻すには上記コマンドを明示的に実行する。`make omarchy` もこの切り替えを行う。
@@ -645,6 +651,24 @@ Omarchy 4.5 の既定キーは **F9 / 右 Alt 長押し** (push-to-talk) と
   するため, 入力メーターが常時動いて見える。プライバシーとバッテリーのため
   `hex settings set release_microphone_while_idle true` にしてアイドル時は解放する
   (dictation 開始時に開くため, 開始はわずかに遅くなる)
+
+## Superwhisper の削除
+
+`make omarchy` は, 以前使っていた Superwhisper (`superwhisper-bin`) が入っている場合に
+`bin/omarchy/superwhisper_remove.sh` を実行して削除する。単独で実行するときは
+`make omarchy_superwhisper_remove` (パッケージ削除で sudo を要求する)。
+
+- `superwhisper.service` を停止・無効化
+- dictation backend が superwhisper なら hex に切り替え
+- Omarchy バーの `superwhisper.panel` を無効化し, plugin の symlink と
+  `~/.config/omarchy/shell.json` の tray 設定を削除 (`shell.json` は
+  `*.bak.<timestamp>` に退避)
+- `superwhisper-bin` パッケージを削除
+- `~/.config/superwhisper`, `~/.local/share/superwhisper` (オフラインモデル約2.6GB),
+  `~/.cache/superwhisper` などのユーザーデータを削除
+- `~/.local/bin/superwhisper` の symlink と autostart の残骸を削除
+
+`~/.agents/skills/superwhisper` などのエージェント用スキルは削除しない。
 
 ## symlink とバックアップ
 
