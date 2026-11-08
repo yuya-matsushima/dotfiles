@@ -47,12 +47,48 @@ select_backend() {
     echo "hex.sh: dictation backend set to hex"
 }
 
+# 既定の Whisper large-v3-turbo は CPU 推論だと遅く, 録音の停止が
+# 文字起こし待ちに重なることがある。軽量で日本語対応の SenseVoice Small を選ぶ。
+# 導入済みなら model use (再ダウンロードしない), 未導入なら model install を使う。
+select_model() {
+    if [ ! -x "$HEX_BIN" ]; then
+        return 0
+    fi
+
+    if "$HEX_BIN" model status sense_voice_small 2>/dev/null | grep -q '^installed'; then
+        # model use は起動中の Hex に問い合わせるため, 必要ならサービスを起動する。
+        if ! "$HEX_BIN" status --json >/dev/null 2>&1; then
+            systemctl --user daemon-reload >/dev/null 2>&1 || true
+            systemctl --user start hex >/dev/null 2>&1 ||
+                "$HEX_BIN" start >/dev/null 2>&1 || true
+            i=0
+            while [ "$i" -lt 30 ]; do
+                if "$HEX_BIN" status --json >/dev/null 2>&1; then
+                    break
+                fi
+                sleep 1
+                i=$((i + 1))
+            done
+        fi
+        if "$HEX_BIN" status --json >/dev/null 2>&1; then
+            echo "hex.sh: selecting SenseVoice Small (ja)"
+            "$HEX_BIN" model use sense_voice_small --language ja
+        else
+            echo "hex.sh: Hex did not start; skipped SenseVoice Small selection" >&2
+        fi
+    else
+        echo "hex.sh: downloading SenseVoice Small (252MB)"
+        "$HEX_BIN" model install sense_voice_small --language ja
+    fi
+}
+
 # 導入済みなら何もしない。Hex は stable channel を自分で更新するため,
 # make omarchy のたびにダウンロードし直す必要も, sudo を要求する必要もない。
 if [ -x "$HEX_BIN" ] && [ "${1:-}" != "--force" ]; then
     echo "hex.sh: Hex is already installed: $("$HEX_BIN" --version 2>/dev/null || echo unknown)"
     echo "hex.sh: it updates itself; run 'sh bin/omarchy/hex.sh --force' to reinstall."
     select_backend
+    select_model
     exit 0
 fi
 
@@ -92,6 +128,7 @@ curl --proto '=https' --tlsv1.2 -fsSL \
 sh "$installer"
 
 select_backend
+select_model
 
 echo "hex.sh: Hex installed to $HEX_BIN"
 echo "hex.sh: next steps:"

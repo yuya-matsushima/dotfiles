@@ -81,7 +81,12 @@ omarchy: ## Setup for Linux (omarchy / Arch) machine
 	sh ./bin/omarchy.sh
 	sh ./bin/zsh_plugin.sh
 	$(MAKE) link
+	$(MAKE) omarchy_superwhisper_remove
 	$(MAKE) omarchy_hex
+
+.PHONY: omarchy_superwhisper_remove
+omarchy_superwhisper_remove: ## Remove Superwhisper (package, panel, config, models)
+	sh ./bin/omarchy/superwhisper_remove.sh
 
 .PHONY: omarchy_plugins
 omarchy_plugins: ## Install/enable Omarchy shell plugins
