@@ -76,6 +76,7 @@ export default class Spaces extends View {
     this.reconnecting = JSON.parse(localStorage.getItem("machines.reconnecting") ?? "{}");
     for (const state of Object.values(this.reconnecting)) state.busy = false;
     this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]"));
+    this.closed = new Set(JSON.parse(localStorage.getItem("cards.closed") ?? "[]")); // spaces whose card is folded
     this.refreshMachines(cx);
     cx.timer.every(15000, cx => this.refreshMachines(cx));
     // `git status` walks the whole tree, on another machine a process there:
@@ -388,9 +389,17 @@ export default class Spaces extends View {
     return div().flex_1().min_w(0).truncate().text_right().text_size(11.5).text_color(t.dim).child(repo);
   }
 
+  // Folded cards survive a restart; ones whose space is gone are dropped on the next toggle.
+  toggleCard(id) {
+    this.closed.has(id) ? this.closed.delete(id) : this.closed.add(id);
+    const ids = new Set(spaces().map((s) => s.id));
+    this.closed = new Set([...this.closed].filter((k) => ids.has(k)));
+    localStorage.setItem("cards.closed", JSON.stringify([...this.closed]));
+  }
+
   // The second line: its branch and ahead/behind, or its folder outside a repo.
-  // The third: its tabs, uncommitted files and agents' state. Always there, so
-  // cards keep their height and nothing below them moves.
+  // The third: its tabs, uncommitted files and agents' state. Both go while the
+  // card is folded (see fold()).
   details({ w, g, at, tree }, t) {
     const folder = at?.startsWith(home()) ? `~${at.slice(home().length)}` : at || "~";
     const tabs = w.tabs?.length ?? 0;
@@ -405,6 +414,23 @@ export default class Spaces extends View {
         .child(div().flex_none().child(`${tabs} ${tabs === 1 ? "tab" : "tabs"}`))
         .when(g?.changed > 0, (el) => el.child(div().flex_none().text_color(t.ansi3).child(`\u00b7 ${g.changed} changed`)))
         .when(Boolean(word), (el) => el.child(div().flex_none().text_color(t[w.status] ?? t.dim).child(`\u00b7 ${word}`))));
+  }
+
+  // The chevron at the end of the first line: folds the card to that line alone.
+  // Folded, the agents' state sits in front of it so a space that needs you still says so.
+  fold(w, t) {
+    const open = !this.closed.has(w.id);
+    const word = STATUS_WORD[w.status];
+    return h_flex().id(`card-${w.id}`).flex_none().gap(4).items_center().px(2).rounded(4)
+      .text_size(11).text_color(t.dim).cursor_pointer().hover((s) => s.bg(t.hover).text_color(t.foreground))
+      .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+      .on_click((_e, cx) => {
+        cx.stop_propagation();
+        this.toggleCard(w.id);
+        cx.notify();
+      })
+      .when(!open && Boolean(word), (el) => el.child(div().text_color(t[w.status] ?? t.dim).child(word)))
+      .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11).flex_none());
   }
 
   row({ w, i, g, at, tree }, t) {
@@ -464,9 +490,10 @@ export default class Spaces extends View {
           .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
           .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
           .child(this.repoTail(g, tree, w.name, t))
-          .child(this.agentIcons(w, t)),
+          .child(this.agentIcons(w, t))
+          .child(this.fold(w, t)),
       )
-      .child(this.details({ w, g, at, tree }, t));
+      .when(!this.closed.has(w.id), (el) => el.child(this.details({ w, g, at, tree }, t)));
   }
 
   compact({ w, i }, t) {
