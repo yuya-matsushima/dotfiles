@@ -24,7 +24,9 @@ tflint = "latest"
 # OpenCode は npm 配布の V2 を使う。GitHub Releases / registry の aqua 版
 # (anomalyco/opencode) は V1 系 (最新 v1.19.0) のため宣言しない。
 # `opencode` / `opencode2` の両バイナリが入る。
-"npm:@opencode/cli" = "latest"
+# mise は既定で npm の lifecycle script を実行しないが, 本体バイナリの配置は postinstall が
+# 担うため許可する (未実行だと `opencode` がプレースホルダのままエラー終了する)。
+"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
 # global npm パッケージ (旧: asdf node lts への npm i -g)
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:ccusage" = "latest"
