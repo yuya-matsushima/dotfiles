@@ -1,13 +1,9 @@
 {
-  "language": "Japanese",
-  "model": "sonnet",
-  "fallbackModel": [
-    "claude-opus-5",
-    "claude-opus-4-7[1M]",
-    "claude-sonnet-5"
-  ],
-  "effortLevel": "high",
+  "cleanupPeriodDays": 180,
   "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "600000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5-5",
     "DISABLE_AUTOUPDATER": "1"
   },
   "permissions": {
@@ -17,27 +13,36 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(git *)",
+      "Bash(mv:*)",
       "Bash(gh api *)",
       "Bash(gh pr *)",
       "Bash(gh issue *)",
+      "Bash(afplay:*)",
+      "Bash(echo:*)",
+      "WebFetch(domain:mise.jdx.dev)",
+      "Bash(webdata:*)",
       "Bash(shellcheck:*)",
       "Bash(cat:*)",
       "Bash(test:*)",
-      "Bash(make:*)",
+      "Bash(nvim:*)",
+      "Bash(luac:*)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(tree:*)",
+      "Bash(tmux *)",
+      "Bash(codex --help:*)",
       "Bash(readlink:*)",
+      "Bash(make:*)",
+      "Bash(tmux capture-pane:*)",
       "Bash(command -v:*)",
-      "Bash(xargs:*)",
-      "Bash(python3:*)",
+      "Bash(tmux source-file:*)",
+      "Bash(tmux list-keys:*)",
       "Bash(sd:*)",
       "Bash(bat:*)",
       "Bash(fd:*)",
-      "Bash(tree:*)",
       "Bash(zoxide:*)",
-      "Bash(nvim:*)",
-      "Bash(luac:*)",
-      "Bash(tmux *)",
-      "WebSearch",
-      "WebFetch"
+      "Bash(yazi:*)",
+      "Bash(codex exec:*)"
     ],
     "deny": [
       "Bash(git push --force *)",
@@ -65,11 +70,10 @@
     ],
     "defaultMode": "auto"
   },
-  "sandbox": {
-    "excludedCommands": [
-      "codex:*"
-    ]
-  },
+  "model": "opus",
+  "fallbackModel": [
+    "sonnet"
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -109,5 +113,29 @@
     "type": "command",
     "command": "sh ~/.claude/statusline.sh"
   },
-  "tui": "fullscreen"
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {},
+  "language": "Japanese",
+  "sandbox": {
+    "excludedCommands": [
+      "codex:*",
+      "gh:*"
+    ]
+  },
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "autoCompactWindow": 400000
+    }
+  },
+  "pluginConfigs": {},
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-ansi",
+  "editorMode": "vim",
+  "preferredNotifChannel": "ghostty",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }

@@ -1,6 +1,7 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
 hide_agent_reasoning = true
+sandbox_mode = "workspace-write"
 personality = "pragmatic"
 # 更新は mise (make mise_upgrade) で行うため、起動時の更新確認は止める
 check_for_update_on_startup = false
@@ -10,6 +11,7 @@ url = "https://developers.openai.com/mcp"
 
 [tui]
 vim_mode_default = true
+status_line = ["model-with-reasoning", "total-input-tokens", "total-output-tokens", "context-used"]
 
 [sandbox_workspace_write]
 network_access = true
@@ -17,3 +19,4 @@ network_access = true
 [features]
 hooks = true
 js_repl = false
+codex_hooks = true
