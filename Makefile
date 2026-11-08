@@ -92,11 +92,11 @@ omarchy_hex: ## Install Hex voice dictation and select it as the dictation backe
 	sh ./bin/omarchy/hex.sh
 
 .PHONY: agent_hooks
-agent_hooks: ## Install AI agent status hooks (Claude Code / Codex / OpenCode / Pi)
+agent_hooks: ## Install AI agent hooks (notification sound / Codex guards)
 	sh ./bin/agent_hooks.sh
 
 .PHONY: agent_hooks_uninstall
-agent_hooks_uninstall: ## Uninstall AI agent status hooks
+agent_hooks_uninstall: ## Uninstall AI agent hooks
 	sh ./bin/agent_hooks.sh uninstall
 
 .PHONY: setup_develop

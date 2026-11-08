@@ -79,7 +79,7 @@ Pi も Linux でのみ使います。`~/.pi/agent` 全体は symlink せず、�
 - `.pi/agent/settings.json` (既定プロバイダー/モデル, `theme`, `packages`。Pi は Linux 専用のため `omarchy/` との二重管理はしない)
 - `.pi/agent/keybindings.json` (`pi-vim` 用のキーバインド)
 - `.pi/agent/AGENTS.md` (グローバル指示。日本語で回答する方針など)
-- `.pi/agent/extensions/tmux-status.ts` (tmux ステータス + 通知音のブリッジ)
+- `.pi/agent/extensions/notify-sound.ts` (承認待ちの通知音)
 - `.pi/agent/extensions/guard-force-push.ts` (共有ロジックを使う force-push ガード)
 - `.pi/agent/extensions/pi-permission-system/config.json` (権限ポリシー)
 
@@ -95,10 +95,10 @@ Herdr やランチャーなど環境を引き継がない起動経路では見�
 
 `pi-code` は内包する subagent / plan-mode / MCP flag / web search に加え, Claude Code の
 hooks と MCP も既存拡張 (`pi-subagents` / `@narumitw/pi-plan-mode` / `pi-mcp-adapter` /
-`pi-web-search` / `tmux-status.ts` / `herdr-agent-state.ts`) と衝突するため,
+`pi-web-search` / `notify-sound.ts` / `herdr-agent-state.ts`) と衝突するため,
 `packages` の object 形式で該当 extension だけ除外して読み込みます。特に hooks を除外しないと,
-Pi のセッションが Herdr に `herdr:claude` として登録され, tmux ステータスも二重更新されます。
+Pi のセッションが Herdr に `herdr:claude` として登録され, 通知音も二重に鳴ります。
 `pi-web-access` は `pi-web-search` と `web_search` が重複するため導入しません。
 
-tmux ステータスと通知音は `make agent_hooks` の対象に含まれます。Pi 側は
+通知音は `make agent_hooks` の対象に含まれます。Pi 側は
 `~/.pi/agent/extensions/*.ts` が自動で読み込まれるため、登録作業は不要です。
