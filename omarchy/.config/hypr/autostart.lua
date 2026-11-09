@@ -5,10 +5,6 @@ require("hypr.envs")
 -- Extra autostart processes.
 -- o.launch_on_start("my-service")
 
--- Herdr (GUI) をログイン時に必ず開いておく。
--- hyprland.start でのみ発火するため, 設定の reload では二重に開かない。
-o.launch_on_start("herdr-app")
-
 -- Apple T2: re-link streams that are left attached to a vanished sink after
 -- the headphone jack is unplugged.
 o.exec_on_start("omarchy-audio-stream-recover")
