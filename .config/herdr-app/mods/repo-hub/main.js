@@ -71,6 +71,7 @@ export default class RepoHub extends View {
     this.error = null;
     this.loading = false;
     this.cwd = null;
+    this.on = null;
     this.expanded = new Set();
     this.details = {};
     this.detailLoading = {};
@@ -88,17 +89,23 @@ export default class RepoHub extends View {
     });
   }
 
-  // The focused terminal's folder; when this panel has the keyboard, keep the
-  // last folder that belonged to a terminal.
-  currentCwd() {
+  // The focused terminal's folder and machine; when this panel has the
+  // keyboard, keep the last folder that belonged to a terminal.
+  location() {
     const f = focused();
     const pane = panes().find((p) => p.focused && p.cwd);
     const space = spaces().find((s) => s.active);
-    return f?.cwd || pane?.cwd || space?.folder || this.cwd;
+    let on = space?.machine ?? null;
+    // A visible layout terminal block names its machine in the address; a
+    // focused pane belongs to the shown space.
+    if (f?.pane === null && f?.terminal) {
+      on = f.terminal.includes("/") ? f.terminal.split("/")[0] : null;
+    }
+    return { cwd: f?.cwd || pane?.cwd || space?.folder || this.cwd, on };
   }
 
   refresh(cx, force = false) {
-    const cwd = this.currentCwd();
+    const { cwd, on } = this.location();
     if (!cwd) {
       this.repo = null;
       this.prs = [];
@@ -106,22 +113,23 @@ export default class RepoHub extends View {
       return;
     }
     this.cwd = cwd;
+    this.on = on;
     if (this.loading && !force) return;
     const job = ++this.job;
     this.loading = true;
     this.error = null;
     cx.spawn(async (cx) => {
       try {
-        const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd });
+        const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on });
         if (top.code !== 0) throw new Error("Not a git repository");
         const root = top.stdout.trim();
-        const remote = await exec("git", ["remote", "get-url", "origin"], { cwd: root });
+        const remote = await exec("git", ["remote", "get-url", "origin"], { cwd: root, on });
         let repo = remote.code === 0 ? parseGithub(remote.stdout) : null;
         if (!repo) {
           const view = await exec(
             "gh",
             ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-            { cwd: root },
+            { cwd: root, on },
           );
           if (view.code === 0) repo = view.stdout.trim();
         }
@@ -131,12 +139,12 @@ export default class RepoHub extends View {
           exec(
             "gh",
             ["pr", "list", "--repo", repo, "--limit", "30", "--json", PR_FIELDS],
-            { cwd: root },
+            { cwd: root, on },
           ),
           exec(
             "gh",
             ["issue", "list", "--repo", repo, "--limit", "30", "--json", ISSUE_FIELDS],
-            { cwd: root },
+            { cwd: root, on },
           ),
         ]);
         if (prs.code !== 0) throw new Error(prs.stderr.trim() || "gh pr list failed");
@@ -207,6 +215,7 @@ export default class RepoHub extends View {
     }
     const repo = this.repo;
     const root = this.root;
+    const on = this.on;
     if (!repo) return;
     this.detailLoading[key] = true;
     cx.spawn(async (cx) => {
@@ -216,7 +225,7 @@ export default class RepoHub extends View {
         const r = await exec(
           "gh",
           [command, "view", String(item.number), "--repo", repo, "--json", fields],
-          { cwd: root },
+          { cwd: root, on },
         );
         if (r.code !== 0) throw new Error((r.stderr || "gh view failed").trim());
         this.details[key] = JSON.parse(r.stdout);
@@ -510,9 +519,10 @@ export default class RepoHub extends View {
   }
 
   render(cx) {
-    const cwd = this.currentCwd();
-    if (cwd && cwd !== this.cwd) {
+    const { cwd, on } = this.location();
+    if (cwd && (cwd !== this.cwd || on !== this.on)) {
       this.cwd = cwd;
+      this.on = on;
       this.refresh(cx);
     }
     const t = theme();
