@@ -616,6 +616,70 @@ hl.device({ name = "keychron-keychron-q11", kb_layout = "us" })
 ファイルの値が更新される (その場限りではない)。`SUPER + /` / `SUPER + ALT + /` は
 誤爆防止のため unbind 済み。
 
+## 子マシンで SSH 鍵のパスフレーズを保持する (gcr-ssh-agent)
+
+リモートから子マシンとして操作する Linux マシンだけで行う手動設定。
+全マシン共通ではないため, リポジトリ (`.zshrc` / `bin/omarchy.sh`) には入れていない。
+
+パスフレーズ付きの鍵ファイル (`~/.ssh/id_ed25519` など) は, agent が無いと
+`ssh` / `git push` のたびにパスフレーズを聞かれる。gnome-keyring の
+gcr-ssh-agent にパスフレーズをログインキーリングへ保存させ, ログイン後は
+聞かれないようにする。
+
+1. gcr-ssh-agent の socket を有効化する。
+
+   ```sh
+   systemctl --user enable --now gcr-ssh-agent.socket
+   systemctl --user is-active gcr-ssh-agent.socket   # active
+   ```
+
+2. `~/.ssh/config` の `Host github.com` ブロックで gcr の agent を指定する。
+   socket のパスを直接書くため, `SSH_AUTH_SOCK` の設定は不要
+   (リモートからのセッションでも同じ agent が使われる)。
+
+   ```sshconfig
+   Host github.com
+       User git
+       IdentityFile ~/.ssh/id_ed25519
+       IdentitiesOnly yes
+       IdentityAgent ${XDG_RUNTIME_DIR}/gcr/ssh
+       AddKeysToAgent yes
+   ```
+
+   - `Host *` で 1Password の agent (`IdentityAgent ~/.1password/agent.sock`) を
+     指定している。ssh は先に現れた値を採用するため, このブロックは `Host *` より上に置く
+   - `IdentityAgent none` のままだと agent が使われず, ターミナルで毎回聞かれる
+   - 行を消すだけだと `Host *` の 1Password agent が使われ, 鍵が見つからずに
+     やはりターミナルで聞かれる
+
+3. 反映を確認する。
+
+   ```sh
+   ssh -G github.com | grep -i -E '^(identityagent|addkeystoagent) '
+   # identityagent /run/user/<uid>/gcr/ssh / addkeystoagent true
+   ```
+
+4. **子マシンのローカル画面で** `ssh -T git@github.com` を実行する。
+   GUI のダイアログが出たら「ログイン時に自動的に解錠」にチェックを入れてから
+   パスフレーズを入力する (ダイアログはローカルの画面に出るため, 初回はリモートから行わない)。
+5. もう一度 `ssh -T git@github.com` を実行し, 聞かれないことを確認する。
+   再ログイン後やリモートからのセッションでも聞かれなければ完了。
+6. (任意) `ssh-add` や github.com 以外のホストでも gcr の agent を使う場合は,
+   `~/.zshrc_local` に `SSH_AUTH_SOCK` を設定する。
+
+   ```zsh
+   if [[ -z "$SSH_AUTH_SOCK" && -S "$XDG_RUNTIME_DIR/gcr/ssh" ]]; then
+       export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"
+   fi
+   ```
+
+切り分け:
+
+- ターミナルで聞かれる: agent が使われていない。`ssh -G github.com` の
+  `identityagent` と, socket が `active` かを確認する
+- agent の鍵: `SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh ssh-add -l` (手順 6 の設定後は `ssh-add -l`)
+  (gcr は `~/.ssh` の鍵を自動で一覧に出す)
+
 ## 音声入力 (Hex)
 
 Hex (`~/.local/bin/hex`) を Omarchy の dictation バックエンドとして使う。
