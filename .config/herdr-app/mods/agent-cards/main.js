@@ -1,8 +1,8 @@
 // Agents as one list. Fixed order by default (pinned first), so a change of state moves no
 // card; Priority puts the most urgent first and does move them; Grouped puts them under
 // a header per space, in the same fixed order.
-// Clone of `agents`: each agent gets a card under its row saying what it is doing now;
-// clicking the card opens the task, branch, folder and turn.
+// Clone of `agents`: each agent is one row that also says what it is doing now; the
+// chevron opens it onto the task, branch, folder and turn.
 // A viewed done agent stays in Done until left.
 
 import { View, div, image, svg } from "gpui-kit";
@@ -182,15 +182,19 @@ export default class Agents extends View {
     localStorage.setItem("expanded", JSON.stringify([...this.expanded]));
   }
 
-  // The card's lower part, which opens and closes. The second line: what the agent reports doing, or last reported (a finished agent
-  // reports nothing), else its task unless the row above already says it, else its state.
-  card(t, a, term, pane, shownInRow, list) {
+  // What the agent reports doing, or last reported (a finished agent reports nothing).
+  // The row shows it while the card is closed, so keep it across renders.
+  report(term, a) {
     const reported = (term?.report?.msg ?? "").trim();
     if (reported) this.lastMsg.set(a.address, reported);
-    const msg = reported || this.lastMsg.get(a.address) || "";
+    return reported || this.lastMsg.get(a.address) || "";
+  }
+
+  // The card's lower part, which opens under the row. Its first line is what the agent
+  // reports doing, else its task unless the row already says it, else its state.
+  card(t, a, term, pane, shownInRow, msg, list) {
     const task = clean(a.title);
     const line = msg || (task && task !== shownInRow ? task : "") || (STATUS_WORD[a.status] ?? a.status);
-    const open = this.expanded.has(a.address);
     const folder = pane?.cwd ?? term?.foreground?.cwd ?? null;
     const facts = [
       ["Task", task],
@@ -213,12 +217,10 @@ export default class Agents extends View {
         this.toggleCard(a.address, list);
         cx.notify();
       })
-      .child(h_flex().gap(6).items_center()
-        .child(div().flex_1().min_w(0).when(!open, (el) => el.truncate()).child(line))
-        .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11).flex_none().text_color(t.dim)))
-      .when(open, (el) => el.children(facts.map(([label, value]) => h_flex().gap(6).items_start().text_size(11)
+      .child(div().min_w(0).child(line))
+      .children(facts.map(([label, value]) => h_flex().gap(6).items_start().text_size(11)
         .child(div().w(40).flex_none().text_color(t.dim).child(label))
-        .child(div().flex_1().min_w(0).text_color(t.muted).child(value)))));
+        .child(div().flex_1().min_w(0).text_color(t.muted).child(value))));
   }
 
   peek(addr) {
@@ -299,10 +301,14 @@ export default class Agents extends View {
 
     const withKids = (a, i) => {
       const subs = collapsed ? [] : this.tree(all, a.address);
-      const r = row(a, i, subs);
+      const term = byAddress.get(a.address);
+      const open = this.expanded.has(a.address);
+      // Closed, the row says what the agent reports doing; opened, the card below does.
+      const msg = this.report(term, a);
+      const r = row(a, i, subs, msg, open);
       const kids = this.folded.has(a.address) ? [] : subs.map((s) => this.subRow(t, s, shown));
       if (collapsed) return [r, ...kids];
-      // One card per agent: its row, what it is doing, its details and its sub-agents.
+      // One row per agent, with the details only while it is open.
       return [v_flex()
         .w_full()
         .flex_none()
@@ -312,7 +318,7 @@ export default class Agents extends View {
         .border_color(a.tab === shownTab ? t.input : t.border)
         .bg(a.tab === shownTab ? t.selected : t.chrome)
         .child(r)
-        .child(this.card(t, a, byAddress.get(a.address), byTerminal.get(a.address), detail.get(a.address), list))
+        .when(open, (el) => el.child(this.card(t, a, term, byTerminal.get(a.address), detail.get(a.address), msg, list)))
         .children(kids)];
     };
 
@@ -363,7 +369,7 @@ export default class Agents extends View {
       if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1) detail.set(a.address, label(a));
     }
 
-    const row = (a, i, subs = []) => {
+    const row = (a, i, subs = [], msg = "", open = false) => {
       const pic = icon(a.program, 16, t.foreground);
       const more = detail.get(a.address);
       // An agent on another machine (`vps/t7`) says which.
@@ -382,6 +388,7 @@ export default class Agents extends View {
           .child(h_flex().w(14).flex_none().items_center().justify_center().child(this.status(t, a, true)));
       }
       const when = this.since(a);
+      const said = open ? "" : msg;
       const idle = a.status === "idle" && !a.focused;
       const isPinned = a.pinned;
       const pin = div()
@@ -428,12 +435,27 @@ export default class Agents extends View {
           })).child(pic)))
         .child(h_flex().flex_1().min_w(0).gap(5).items_center()
           .child(div().min_w(0).max_w(full && more ? 120 : 200).truncate().text_color(idle && !full ? t.muted : t.foreground).child(name))
-          .when(full && Boolean(more), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
+          // Closed, what the agent reports doing takes the second slot, where it reads wider.
+          .when(full && Boolean(more) && !said, el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`)))
+          .when(Boolean(said), el => el.child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.muted).child(said))))
         .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
         .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
-        .child(this.status(t, a));
+        .child(this.status(t, a))
+        // The accordion's chevron: the details open under the row.
+        .child(div()
+          .id(`toggle-${a.address}`)
+          .flex_none()
+          .p(2)
+          .rounded(4)
+          .cursor_pointer()
+          .on_click((_e, cx) => {
+            cx.stop_propagation();
+            this.toggleCard(a.address, list);
+            cx.notify();
+          })
+          .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11).flex_none().text_color(t.dim)));
     };
 
     // Agents of a space are next to each other in agents(), so neighbours make a group.
