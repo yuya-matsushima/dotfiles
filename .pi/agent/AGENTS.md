@@ -36,8 +36,8 @@ question tool のように UI 側で番号付けされる場合はその UI に�
 
 ## Issue と PR の併記
 
-Issue に対して PR を作成して作業する場合、会話中でその Issue を参照するときは `#issue-num` ではなく `#issue-num(PR #num)` の形式で、対応する PR 番号も併記する。表示は「GitHub へのリンク」に従って Markdown リンクにする。
+Issue に対して PR を作成して作業する場合、ユーザーへの返信や GitHub のコメントでその Issue を参照するときは、`#issue-num` ではなく `#issue-num(PR #num)` の形式で対応する PR 番号も併記する。表示は「GitHub へのリンク」に従って Markdown リンクにする。Issue に PR がある場合の参照では、この書式を「GitHub へのリンク」の `Issue・PR` の書式より優先する。
 
-- 例: `[#42](Issue の URL)(PR [#43](PR の URL))`
-- 複数のリポジトリを参照するセッションでは `[owner/repo#42](Issue の URL)(PR [owner/repo#43](PR の URL))`
+- 例: `[#42](URL)(PR [#43](URL))`
+- 複数のリポジトリを参照するセッションでは `[owner/repo#42](URL)(PR [owner/repo#43](URL))`
 - PR が未作成、または Issue と PR の対応関係を確認できない場合は、Issue 番号のみを表示する
