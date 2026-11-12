@@ -96,6 +96,14 @@ omarchy_plugins: ## Install/enable Omarchy shell plugins
 omarchy_hex: ## Install Hex voice dictation and select it as the dictation backend
 	sh ./bin/omarchy/hex.sh
 
+.PHONY: skills
+skills: ## Sync user-scope agent skills from .config/skills/skills.json
+	sh ./bin/skills.sh --file ./.config/skills/skills.json
+
+.PHONY: skills_check
+skills_check: ## Show drift of user-scope agent skills
+	sh ./bin/skills.sh --check --file ./.config/skills/skills.json
+
 .PHONY: agent_hooks
 agent_hooks: ## Install AI agent hooks (notification sound / Codex guards)
 	sh ./bin/agent_hooks.sh

@@ -22,6 +22,7 @@ OVERLAY_DIR=$CURRENT_DIR/omarchy
 TARGETS=( \
          ".gemrc" \
          ".config/mise/config.toml" \
+         ".config/skills/skills.json" \
          ".gitconfig" \
          "_.gitignore" \
          ".tmux" \
@@ -239,6 +240,25 @@ do
     fi
   fi
 done
+
+# skills.sh は manifest と同じ ~/.config/skills 配下から実行できるように link する。
+# グローバルの mise タスク ($HOME からでも実行可能) がこのパスを呼ぶ。
+SKILLS_SCRIPT_SOURCE=$CURRENT_DIR/bin/skills.sh
+SKILLS_SCRIPT_DEST=$HOME/.config/skills/skills.sh
+if [[ $MODE == "link" ]]; then
+  mkdir -p "$(dirname "$SKILLS_SCRIPT_DEST")"
+  if [ -L "$SKILLS_SCRIPT_DEST" ] || [ ! -e "$SKILLS_SCRIPT_DEST" ]; then
+    echo "link: $SKILLS_SCRIPT_DEST -> $SKILLS_SCRIPT_SOURCE"
+    ln -sfn "$SKILLS_SCRIPT_SOURCE" "$SKILLS_SCRIPT_DEST"
+  else
+    echo "skip (exists): $SKILLS_SCRIPT_DEST"
+  fi
+else
+  if [ -L "$SKILLS_SCRIPT_DEST" ]; then
+    echo "unlink: $SKILLS_SCRIPT_DEST"
+    unlink "$SKILLS_SCRIPT_DEST"
+  fi
+fi
 
 # Herdr は symlink 先や絶対パスの SVG を描画しない (アプリディレクトリ外の扱いになる)。
 # repo-hub のアイコンだけは symlink せず実ファイルとしてコピーする。
