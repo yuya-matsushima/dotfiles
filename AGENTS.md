@@ -38,6 +38,8 @@ macOS と Linux で設定が本質的に異なるものだけを `omarchy/` 配�
 ## Skill の利用
 - コミットや PR 作成などの操作では, 利用可能な skill を優先的に使用してください。
 - 手動の git コマンド直接実行は避け, skill が提供するフローに従ってください。
+- user scope の skill は `.config/skills/skills.json` を SSOT とします。`mise run skills` で宣言どおりに install / 更新, `mise run skills:check` で差分確認, `mise run skills:prune` で宣言外の gh 管理 skill を削除, `mise run skills:force` で状態に関係なく再 install します。`gh skill install -g` で個別に入れた skill は宣言に追加してください。
+- skill 管理の mise タスクはグローバル設定 (`~/.config/mise/config.toml`) に置いているため, dotfiles リポジトリ外 (`$HOME` 等) からでも実行できます。manifest と script は `make link` で `~/.config/skills/` に link されます。
 
 ## コーディングスタイルと命名規則
 - スクリプトは `/bin/sh` シバンと `set -e` を基本とし, 四スペースインデントを推奨します。

@@ -31,3 +31,21 @@ tflint = "latest"
 # @github/copilot は Homebrew cask copilot-cli に一本化
 "npm:ccusage" = "latest"
 "npm:@mermaid-lint/cli" = "latest"
+
+# user scope の agent skill 管理。manifest と script は ~/.config/skills に link される。
+# グローバル設定なので $HOME を含む任意のディレクトリから実行できる。
+[tasks.skills]
+description = "宣言どおりに user scope の skill を install / 更新する"
+run = "sh \"$HOME/.config/skills/skills.sh\""
+
+[tasks."skills:check"]
+description = "宣言とインストール済み skill の差分を表示する"
+run = "sh \"$HOME/.config/skills/skills.sh\" --check"
+
+[tasks."skills:force"]
+description = "宣言済み skill を強制再 install する (上流で消えたファイルの掃除)"
+run = "sh \"$HOME/.config/skills/skills.sh\" --force"
+
+[tasks."skills:prune"]
+description = "宣言に無い gh 管理 skill を削除する (確認あり)"
+run = "sh \"$HOME/.config/skills/skills.sh\" --prune"
