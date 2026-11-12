@@ -18,6 +18,18 @@ local toggleApp = function(appName)
 	end
 end
 
+-- Herdr は hs.window からウィンドウを取得できないことがあるため、
+-- ウィンドウ移動はせずアプリ単位で開閉する
+local toggleHerdr = function()
+	local app = application.get("Herdr")
+
+	if app ~= nil and app:isFrontmost() then
+		app:hide()
+	else
+		application.launchOrFocus("Herdr")
+	end
+end
+
 -- Determine Terminal App (Ghostty or Alacritty)
 local terminalApp = "Alacritty"
 if hs.application.infoForBundleID("com.mitchellh.ghostty") ~= nil then
@@ -29,7 +41,7 @@ hs.hotkey.bind({ "ctrl" }, "delete", function()
 	toggleApp(terminalApp)
 end)
 hs.hotkey.bind({ "ctrl" }, "=", function()
-	toggleApp("Obsidian")
+	toggleHerdr()
 end)
 
 -- IME の英字/ひらがなを cmd 単体押しで切り替え
