@@ -44,7 +44,7 @@
     "ctrl-e g": { "command": "tab.new", "args": { "name": "lazygit", "argv": ["lazygit"] } },
 
     "ctrl-e ?": "app.help",
-    "ctrl-e :": "app.palette",
+    "ctrl-e p": "app.palette",
     "ctrl-e b": "layout.toggle:sidebar",
     "ctrl-e space": "layout.switch",
 
@@ -70,7 +70,6 @@
     "cmd-alt-h": "app.hide_others"
   },
   "terminal": {
-    "ctrl-e p": "terminal.paste",
     "ctrl-e /": "terminal.search",
 
     "cmd-c": "terminal.copy",
