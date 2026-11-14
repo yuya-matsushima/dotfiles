@@ -13,6 +13,8 @@
         "pull-request",
         "root-cause-analysis",
         "skills-sync",
+        "session-export",
+        "session-retrospect",
         "spec"
       ]
     }
