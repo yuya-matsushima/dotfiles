@@ -1,11 +1,9 @@
 {
   "repos": {
     "fillin-inc/internal-skills": {
-      "version": "v0.10.3",
+      "version": "v0.10.4",
       "skills": [
         "agents-init",
-        "audit-skill",
-        "audit-skill-sweep",
         "commit",
         "cross-review",
         "dig",
