@@ -1,7 +1,7 @@
 /**
  * Claude Code 風のステータスラインを OpenCode V2 のプロンプトフッターに描画する TUI plugin。
  *
- * 表示: MODEL | ⚡VARIANT | IN:xx OUT:yy | 経過時間 | sub:N | CTX%
+ * 表示: ⚡VARIANT | IN:xx OUT:yy | 経過時間 | sub:N | CTX%
  *
  * Claude Code の statusLine (settings.json の statusLine.command) は
  * シェルコマンドの標準出力を出す仕組みだが, OpenCode には同等のキーが無い。
@@ -11,19 +11,14 @@
  *   - model / variant : context.ui.model.current()
  *   - tokens          : context.data.session.get(sessionID)
  *   - context %       : 直近 assistant メッセージの tokens / Model.Info.limit.context
+ *   - 色              : context.theme の text.base / text.muted / text.feedback.*
  *
- * agent は composer 直下の "Build · MODEL" 表示と重複するため出さない。
+ * agent と model は composer 直下の "Build · MODEL" 表示と重複するため出さない。
  */
 import { Plugin, usePlugin } from "@opencode/plugin/tui"
 import { Show, createMemo, createSignal, onCleanup } from "solid-js"
 
-// gruvbox dark のパレット (theme: gruvbox)
-const CYAN = "#8ec07c"
-const GRAY = "#928374"
-const GREEN = "#b8bb26"
-const YELLOW = "#fabd2f"
-const RED = "#fb4934"
-const BASE = "#ebdbb2"
+// 色はテーマのセマンティックトークンに従う (背景色が変わっても読めるように, 固定色は使わない)。
 
 // 再計算のきっかけにするイベント。text delta 系は無視して頻繁な再描画を避ける。
 const REFRESH_EVENTS = [
@@ -107,7 +102,7 @@ function StatusLine(props: { sessionID?: string }) {
         }
         if (!session) return undefined
 
-        // モデル名と context window は選択中モデル → レジストリの順で解決する
+        // context window は選択中モデル → レジストリの順で解決する
         const location = context.location ?? context.data.location.default()
         const models: any[] = (() => {
             try {
@@ -125,7 +120,6 @@ function StatusLine(props: { sessionID?: string }) {
                           (m.modelID === ref?.id || m.id === ref?.id) &&
                           (!ref?.providerID || m.providerID === ref.providerID),
                   )
-        const modelName = selected?.name ?? registered?.name ?? ref?.id ?? "unknown"
         const limit = selected?.limit?.context ?? registered?.limit?.context
         const variant = selected?.variant ?? ref?.variant ?? "default"
 
@@ -158,7 +152,6 @@ function StatusLine(props: { sessionID?: string }) {
         }
 
         return {
-            model: modelName,
             variant,
             input: session.tokens?.input ?? 0,
             output: session.tokens?.output ?? 0,
@@ -172,19 +165,17 @@ function StatusLine(props: { sessionID?: string }) {
         <Show when={view()}>
             {(data) => (
                 <box flexDirection="row" paddingLeft={2} paddingRight={2}>
-                    <text fg={CYAN}>{data().model}</text>
-                    <text fg={GRAY}>{" | "}</text>
-                    <text fg={variantColor(data().variant)}>{`⚡${data().variant}`}</text>
-                    <text fg={GRAY}>{" | "}</text>
-                    <text fg={BASE}>{`IN:${formatTokens(data().input)} OUT:${formatTokens(data().output)}`}</text>
-                    <text fg={GRAY}>{" | "}</text>
-                    <text fg={BASE}>{formatDuration(now() - (data().created ?? now()))}</text>
+                    <text fg={variantColor(context.theme, data().variant)}>{`⚡${data().variant}`}</text>
+                    <text fg={context.theme.text.muted}>{" | "}</text>
+                    <text fg={context.theme.text.base}>{`IN:${formatTokens(data().input)} OUT:${formatTokens(data().output)}`}</text>
+                    <text fg={context.theme.text.muted}>{" | "}</text>
+                    <text fg={context.theme.text.base}>{formatDuration(now() - (data().created ?? now()))}</text>
                     <Show when={data().subagents > 0}>
-                        <text fg={GRAY}>{" | "}</text>
-                        <text fg={BASE}>{`sub:${data().subagents}`}</text>
+                        <text fg={context.theme.text.muted}>{" | "}</text>
+                        <text fg={context.theme.text.base}>{`sub:${data().subagents}`}</text>
                     </Show>
-                    <text fg={GRAY}>{" | "}</text>
-                    <text fg={contextColor(data().percent)}>
+                    <text fg={context.theme.text.muted}>{" | "}</text>
+                    <text fg={contextColor(context.theme, data().percent)}>
                         {data().percent == null ? "--" : `${data().percent}%`}
                     </text>
                 </box>
@@ -193,24 +184,24 @@ function StatusLine(props: { sessionID?: string }) {
     )
 }
 
-function variantColor(variant: string): string {
+function variantColor(theme: any, variant: string): string {
     switch (variant) {
         case "high":
-            return RED
+            return theme.text.feedback.error.base
         case "medium":
-            return YELLOW
+            return theme.text.feedback.warning.base
         case "low":
-            return GREEN
+            return theme.text.feedback.success.base
         default:
-            return CYAN
+            return theme.text.feedback.info.base
     }
 }
 
-function contextColor(percent: number | undefined): string {
-    if (percent == null) return GRAY
-    if (percent > 80) return RED
-    if (percent > 60) return YELLOW
-    return GREEN
+function contextColor(theme: any, percent: number | undefined): string {
+    if (percent == null) return theme.text.muted
+    if (percent > 80) return theme.text.feedback.error.base
+    if (percent > 60) return theme.text.feedback.warning.base
+    return theme.text.feedback.success.base
 }
 
 export default Plugin.define({
