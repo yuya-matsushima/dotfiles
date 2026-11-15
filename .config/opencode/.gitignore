@@ -3,6 +3,9 @@ package.json
 package-lock.json
 bun.lock
 
+# statusline plugin の package.json は手動管理
+!plugins/statusline/package.json
+
 # herdr が生成する連携ファイル (herdr integration install opencode が管理・上書きする)
 herdr-opencode/
 herdr-tui-session.js
