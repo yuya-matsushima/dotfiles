@@ -43,6 +43,7 @@ TARGETS=( \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
+         ".config/leaf/config.toml" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \

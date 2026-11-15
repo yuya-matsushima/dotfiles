@@ -1,0 +1,19 @@
+# leaf (https://leaf.rivolink.mg/) の設定
+# リンク先: ~/.config/leaf/config.toml (bin/link.sh)
+#
+# leaf のキーバインドは設定で変更できないが, 既定で vim 風
+# (j/k, d/u, g/G, / と n/N, q) になっている。ここでは nvim との
+# 操作感を揃えるための値だけを上書きする。全項目は `leaf --config reset` で
+# 生成される既定ファイル, または upstream の config.toml を参照。
+#
+# history.toml や themes/ は leaf が同じディレクトリに作るため,
+# ディレクトリごとではなくこのファイルだけを link している。
+
+# Ctrl+E で表示中の行を nvim で開く (nvim の画面中央に合わせる)
+editor = 'nvim +{$line} +"normal! zz"'
+
+# d/u のスクロール量を nvim の Ctrl-d / Ctrl-u と同じ半画面にする
+page-scroll-size = "50%"
+
+# Ctrl+H / `leaf --last` で最近開いたファイルに戻れるようにする (既定 0 = 無効)
+file-history-length = 20

@@ -85,5 +85,7 @@ install_official \
 # 公式リポジトリに無いツールは AUR から導入する。
 # Arch (対応する Homebrew ツール):
 #   diff-pdf-git (diff-pdf)
+#   leaf-markdown-viewer-bin (leaf-markdown-viewer): 公式配布のビルド済みバイナリ
 install_aur \
-    diff-pdf-git
+    diff-pdf-git \
+    leaf-markdown-viewer-bin
