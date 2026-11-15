@@ -6,8 +6,11 @@
 # 操作感を揃えるための値だけを上書きする。全項目は `leaf --config reset` で
 # 生成される既定ファイル, または upstream の config.toml を参照。
 #
-# history.toml や themes/ は leaf が同じディレクトリに作るため,
-# ディレクトリごとではなくこのファイルだけを link している。
+# history.toml などは leaf が同じディレクトリに作るため,
+# ディレクトリごとではなくこのファイルと themes/ 配下のファイルだけを link している。
+
+# Ghostty (TokyoNight) と揃える。themes/tokyonight.toml を名前で選択する
+theme = "tokyonight"
 
 # Ctrl+E で表示中の行を nvim で開く (nvim の画面中央に合わせる)
 editor = 'nvim +{$line} +"normal! zz"'
