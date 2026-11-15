@@ -12,9 +12,9 @@
 # Ghostty (TokyoNight) と揃える。themes/tokyonight.toml を名前で選択する
 theme = "tokyonight"
 
-# 本文の最大幅を A4 縦の 1 行程度 (和文 40 字 = 80 セル) に抑える。
+# 横長の端末でも 1 行が長くなりすぎないよう本文の最大幅を抑える (和文 60 字 = 120 セル)。
 # 中央寄せの設定は無いため本文は左寄せで, 右側の余白は背景色のまま。
-width = 80
+width = 120
 
 # Ctrl+E で表示中の行を nvim で開く (nvim の画面中央に合わせる)
 editor = 'nvim +{$line} +"normal! zz"'
