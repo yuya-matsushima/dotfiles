@@ -43,6 +43,7 @@ TARGETS=( \
          ".config/hypr/looknfeel.lua" \
          ".config/chromium-flags.conf" \
          ".config/ghostty" \
+         ".config/mdfried/config.toml" \
          ".local/bin/omarchy-screensaver" \
          ".local/bin/ime-toggle" \
          ".local/bin/omarchy-audio-stream-recover" \
@@ -197,6 +198,12 @@ do
   # .gitconfig は XDG 配置 (~/.config/git/config) にリンクする
   if [ "$TARGET" = ".gitconfig" ]; then
     DEST=$HOME/.config/git/config
+  fi
+
+  # mdfried の設定は macOS では XDG ではなく Application Support 配下から読まれる
+  # (confy / directories crate の config_dir)。Linux は ~/.config/mdfried のまま。
+  if [ "$TARGET" = ".config/mdfried/config.toml" ] && [ "$OS" = "Darwin" ]; then
+    DEST="$HOME/Library/Application Support/rs.mdfried/config.toml"
   fi
 
   # .tmux.conf は Linux では XDG 配置 (~/.config/tmux/tmux.conf) にリンクする。

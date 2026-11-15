@@ -80,7 +80,8 @@ install_official \
     stern \
     wget \
     bind \
-    7zip
+    7zip \
+    mdfried
 
 # 公式リポジトリに無いツールは AUR から導入する。
 # Arch (対応する Homebrew ツール):

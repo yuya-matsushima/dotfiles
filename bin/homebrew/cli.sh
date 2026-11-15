@@ -30,6 +30,7 @@ brew install \
           herdr \
           htop \
           lazygit \
+          mdfried \
           imagemagick \
           pngpaste \
           jq \

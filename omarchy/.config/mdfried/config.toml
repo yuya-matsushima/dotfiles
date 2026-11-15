@@ -1,0 +1,20 @@
+# mdfried (https://github.com/benjajaja/mdfried) の設定
+# リンク先 (bin/link.sh):
+#   macOS: ~/Library/Application Support/rs.mdfried/config.toml
+#   Linux: ~/.config/mdfried/config.toml (omarchy/ 配下の OS 別定義)
+#
+# mdfried のキーバインドは設定で変更できないが, 既定で vim 風
+# (j/k, d/u, g/G, / と n/N, q) になっている。
+# 全項目は `mdfried --print-config` または `:help configuration` を参照。
+#
+# 注意: mdfried はフォント選択 (`--setup` や font_family 未設定時) と, 設定の
+# 読み込みエラーで「Overwrite」を選んだときにこのファイルを書き換える。
+# symlink 先 (このリポジトリ) が上書きされるため, font_family は必ず設定しておく。
+
+# 見出しを画像として描画するときのフォント。Omarchy 既定 (foot) のフォントと揃える。
+font_family = "JetBrainsMono Nerd Font"
+
+# 本文を中央寄せにし, 最大幅を 120 セル (和文 60 字) に抑える
+[padding]
+type = "centered"
+width = 120
