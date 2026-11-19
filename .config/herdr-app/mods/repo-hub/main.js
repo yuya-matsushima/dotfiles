@@ -78,8 +78,6 @@ export default class RepoHub extends View {
     this.cwd = null;
     this.on = null;
     this.expanded = new Set();
-    // Umbrella issues are folded until opened; only the opened ones are kept.
-    this.unfolded = new Set(JSON.parse(localStorage.getItem("issue.unfolded") ?? "[]"));
     this.childrenOf = new Map();
     this.issueIndex = new Map();
     this.roots = [];
@@ -256,30 +254,26 @@ export default class RepoHub extends View {
     this.roots = this.issues.filter((issue) => !placed.has(issue.number));
   }
 
-  toggleFold(issue, cx) {
-    this.unfolded.has(issue.number)
-      ? this.unfolded.delete(issue.number)
-      : this.unfolded.add(issue.number);
-    localStorage.setItem("issue.unfolded", JSON.stringify([...this.unfolded]));
-    cx.notify();
-  }
-
-  // The sub-issues under an umbrella: one short row each, indented by a rule.
-  // A row opens that issue's detail in place; a chevron opens its own children.
+  // The sub-issues under an umbrella as a list: a small heading, then one row
+  // each. Opening a row shows its detail and, one level down, its own list.
   subIssues(kids, t, cx, depth = 1) {
     const shown = kids.slice(0, 50);
     return v_flex()
       .w_full()
-      .pl(8)
-      .ml(1)
       .gap(1)
-      .border_l(1)
-      .border_color(t.border)
+      .pt(2)
+      .when(depth > 1, (e) => e.pl(10))
+      .child(
+        div()
+          .pb(2)
+          .text_size(9)
+          .text_color(t.dim)
+          .child("Sub-issues"),
+      )
       .children(shown.map((kid) => this.subRow(kid, t, cx, depth)))
       .when(kids.length > shown.length, (e) =>
         e.child(
           div()
-            .pl(6)
             .py(1)
             .text_size(9)
             .text_color(t.dim)
@@ -293,7 +287,6 @@ export default class RepoHub extends View {
     const closed = String(kid.state ?? "").toUpperCase() === "CLOSED";
     const detailOpen = this.expanded.has(key);
     const kids = depth < 2 ? this.childrenOf.get(kid.number) : null;
-    const open = Boolean(kids?.length) && this.unfolded.has(kid.number);
     return v_flex()
       .w_full()
       .flex_none()
@@ -302,7 +295,7 @@ export default class RepoHub extends View {
           .id(`issue-sub-${kid.number}`)
           .w_full()
           .h(23)
-          .pl(6)
+          .pl(2)
           .pr(2)
           .gap(6)
           .items_center()
@@ -345,34 +338,18 @@ export default class RepoHub extends View {
               .text_size(11.5)
               .text_color(closed ? t.dim : t.muted)
               .child(kid.title ?? ""),
-          )
-          .when(Boolean(kids?.length), (e) =>
-            e.child(
-              div()
-                .id(`issue-fold-${kid.number}`)
-                .flex_none()
-                .p(2)
-                .rounded(4)
-                .cursor_pointer()
-                .text_color(t.dim)
-                .hover((s) => s.bg(t.hover).text_color(t.foreground))
-                .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-                .on_click((_e, cx) => {
-                  cx.stop_propagation();
-                  this.toggleFold(kid, cx);
-                })
-                .child(
-                  svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`)
-                    .size(11)
-                    .flex_none(),
-                ),
-            ),
           ),
       )
       .when(detailOpen, (e) =>
-        e.child(div().pl(6).child(this.detail(key, t, "issues", kid))),
-      )
-      .when(open, (e) => e.child(this.subIssues(kids, t, cx, depth + 1)));
+        e.child(
+          v_flex()
+            .w_full()
+            .when(Boolean(kids?.length), (el) =>
+              el.child(this.subIssues(kids, t, cx, depth + 1)),
+            )
+            .child(this.detail(key, t, "issues", kid, depth > 1 ? 10 : 0)),
+        ),
+      );
   }
 
   reloadExpanded(cx) {
@@ -595,27 +572,6 @@ export default class RepoHub extends View {
     // A sub-issue shown on its own (its parent fell outside the fetched page,
     // or is a nested umbrella) says whose it is.
     const parent = kind === "issues" ? item.parent ?? null : null;
-    const open = Boolean(kids?.length) && this.unfolded.has(item.number);
-    const fold = kids?.length
-      ? div()
-          .id(`issue-fold-${item.number}`)
-          .flex_none()
-          .p(2)
-          .rounded(4)
-          .cursor_pointer()
-          .text_color(t.dim)
-          .hover((s) => s.bg(t.hover).text_color(t.foreground))
-          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-          .on_click((_e, cx) => {
-            cx.stop_propagation();
-            this.toggleFold(item, cx);
-          })
-          .child(
-            svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`)
-              .size(11)
-              .flex_none(),
-          )
-      : null;
     const badge = (text, color) =>
       div()
         .px(5)
@@ -670,8 +626,7 @@ export default class RepoHub extends View {
             ),
           )
           .child(div().flex_1())
-          .child(div().text_size(10).text_color(t.dim).child(timeAgo(item.updatedAt)))
-          .when(Boolean(fold), (e) => e.child(fold)),
+          .child(div().text_size(10).text_color(t.dim).child(timeAgo(item.updatedAt))),
       )
       .child(div().text_size(12.5).text_color(t.foreground).child(item.title))
       .child(
@@ -723,9 +678,15 @@ export default class RepoHub extends View {
             ),
           ),
       )
-      .when(open, (e) => e.child(this.subIssues(kids, t, cx)))
       .when(this.expanded.has(key), (e) =>
-        e.child(this.detail(key, t, kind, item)),
+        e.child(
+          v_flex()
+            .w_full()
+            .when(Boolean(kids?.length), (el) =>
+              el.child(this.subIssues(kids, t, cx)),
+            )
+            .child(this.detail(key, t, kind, item)),
+        ),
       );
   }
 
