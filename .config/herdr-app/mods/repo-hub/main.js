@@ -82,6 +82,8 @@ export default class RepoHub extends View {
     this.childrenOf = new Map();
     this.issueIndex = new Map();
     this.roots = [];
+    this.prChildrenOf = new Map();
+    this.prRoots = [];
     this.prByNumber = new Map();
     this.prLinks = new Map(); // issue number -> its pull requests
     this.prIssueLinks = new Map(); // pr number -> [{ ref, issue }]
@@ -148,6 +150,8 @@ export default class RepoHub extends View {
       this.childrenOf = new Map();
       this.issueIndex = new Map();
       this.roots = [];
+      this.prChildrenOf = new Map();
+      this.prRoots = [];
       this.prByNumber = new Map();
       this.prLinks = new Map();
       this.prIssueLinks = new Map();
@@ -224,6 +228,7 @@ export default class RepoHub extends View {
         this.stacks = stacks;
         this.groupIssues();
         this.linkPrs();
+        this.groupPrs();
         this.error = null;
         this.reloadExpanded(cx);
       } catch (e) {
@@ -234,6 +239,8 @@ export default class RepoHub extends View {
         this.childrenOf = new Map();
         this.issueIndex = new Map();
         this.roots = [];
+        this.prChildrenOf = new Map();
+        this.prRoots = [];
         this.prByNumber = new Map();
         this.prLinks = new Map();
         this.prIssueLinks = new Map();
@@ -440,6 +447,33 @@ export default class RepoHub extends View {
         refs.map((ref) => ({ ref, issue: this.issueIndex.get(ref.number) })),
       );
     }
+  }
+
+  // Stacked pull requests: the open members of a stack sit under its lowest
+  // open member, like sub-issues under an umbrella. A stack whose other layers
+  // are merged or outside the fetched list stays where it is.
+  groupPrs() {
+    const open = new Set(this.prs.map((pr) => pr.number));
+    const childrenOf = new Map();
+    const placed = new Set();
+    const seen = new Set();
+    for (const pr of this.prs) {
+      const stack = this.stacks.get(pr.number);
+      if (!stack || seen.has(stack.number)) continue;
+      seen.add(stack.number);
+      const present = stack.members
+        .filter((member) => open.has(member.number))
+        .sort((a, b) => a.position - b.position);
+      if (present.length < 2) continue;
+      const bottom = present[0];
+      childrenOf.set(
+        bottom.number,
+        present.slice(1).map((member) => this.prByNumber.get(member.number) ?? member),
+      );
+      for (const member of present.slice(1)) placed.add(member.number);
+    }
+    this.prChildrenOf = childrenOf;
+    this.prRoots = this.prs.filter((pr) => !placed.has(pr.number));
   }
 
   // A small link that opens another issue or pull request on GitHub.
@@ -822,9 +856,6 @@ export default class RepoHub extends View {
         kind === "pr" && (this.prIssueLinks.get(item.number)?.length ?? 0) > 0,
         (e) => e.child(this.linkedIssues(this.prIssueLinks.get(item.number), t)),
       )
-      .when(kind === "pr" && this.stacks.has(item.number), (e) =>
-        e.child(this.stackList(this.stacks.get(item.number), item.number, t)),
-      )
       .when(kind === "issues" && this.prLinks.has(item.number), (e) =>
         e.child(this.linkedPrs(this.prLinks.get(item.number), t)),
       )
@@ -1080,6 +1111,9 @@ export default class RepoHub extends View {
             .when(Boolean(kids?.length), (el) =>
               el.child(this.subIssues(kids, t, cx)),
             )
+            .when(kind === "pr" && Boolean(stack), (el) =>
+              el.child(this.stackList(stack, item.number, t)),
+            )
             .child(this.detail(key, t, kind, item)),
         ),
       );
@@ -1121,7 +1155,9 @@ export default class RepoHub extends View {
     const panel = Boolean(props()?.panel);
     const all = this.tab === "pr" ? this.prs : this.issues;
     const found = this.findItems(all);
-    const items = found ?? (this.tab === "pr" || this.flat ? all : this.roots);
+    const items = found ?? (this.flat ? all : this.tab === "pr" ? this.prRoots : this.roots);
+    const canGroup =
+      this.tab === "pr" ? this.prChildrenOf.size > 0 : this.childrenOf.size > 0;
 
     return v_flex()
       .id("repo-hub")
@@ -1191,7 +1227,7 @@ export default class RepoHub extends View {
           .child(this.tabButton("pr", "repo-hub-icons/pull-request.svg", this.prs.length, t))
           .child(this.tabButton("issues", "repo-hub-icons/issue.svg", this.issues.length, t))
           .child(div().flex_1())
-          .when(this.tab === "issues" && this.childrenOf.size > 0, (e) =>
+          .when(canGroup, (e) =>
             e.child(
               div()
                 .id("view-mode")
