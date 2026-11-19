@@ -1,5 +1,5 @@
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex, TextView } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { exec, focused, nextCommand, panes, props, settings, spaces, theme, window } from "herdr";
 
 const PR_FIELDS =
@@ -82,6 +82,8 @@ export default class RepoHub extends View {
     this.childrenOf = new Map();
     this.issueIndex = new Map();
     this.roots = [];
+    this.prChildrenOf = new Map();
+    this.prRoots = [];
     this.prByNumber = new Map();
     this.prLinks = new Map(); // issue number -> its pull requests
     this.prIssueLinks = new Map(); // pr number -> [{ ref, issue }]
@@ -89,6 +91,38 @@ export default class RepoHub extends View {
     this.details = {};
     this.detailLoading = {};
     this.job = 0;
+    // Issues are grouped under their umbrella by default, pull requests under
+    // their stack; a plain list is one click away per tab and remembers the
+    // choice. The search box filters the tab you are on, and each tab keeps
+    // what was typed in it.
+    let savedFlat = null;
+    try {
+      savedFlat = JSON.parse(localStorage.getItem("flat") ?? "null");
+    } catch {
+      savedFlat = null;
+    }
+    this.flat =
+      savedFlat && typeof savedFlat === "object"
+        ? { pr: Boolean(savedFlat.pr), issues: Boolean(savedFlat.issues) }
+        : { pr: false, issues: savedFlat === 1 || savedFlat === "1" };
+    this.queries = { pr: "", issues: "" };
+    this.query = "";
+    this.searchFocused = false;
+    this.search = InputState.new({ placeholder: "Search #id or title" });
+    this.search.on("change", (_e, cx) => {
+      this.queries[this.tab] = this.search.value();
+      this.query = this.queries[this.tab];
+      cx.notify();
+    });
+    this.search.on("focus", (_e, cx) => {
+      this.searchFocused = true;
+      cx.notify();
+    });
+    this.search.on("blur", (_e, cx) => {
+      this.searchFocused = false;
+      cx.notify();
+    });
+    this.handle = cx.focus_handle();
     this.refresh(cx);
     cx.timer.every(60000, (cx) => this.refresh(cx));
     cx.spawn(async (cx) => {
@@ -126,6 +160,8 @@ export default class RepoHub extends View {
       this.childrenOf = new Map();
       this.issueIndex = new Map();
       this.roots = [];
+      this.prChildrenOf = new Map();
+      this.prRoots = [];
       this.prByNumber = new Map();
       this.prLinks = new Map();
       this.prIssueLinks = new Map();
@@ -191,6 +227,9 @@ export default class RepoHub extends View {
           this.expanded.clear();
           this.details = {};
           this.detailLoading = {};
+          this.queries = { pr: "", issues: "" };
+          this.query = "";
+          this.search.set_value("");
         }
         this.repo = repo;
         this.root = root;
@@ -199,6 +238,7 @@ export default class RepoHub extends View {
         this.stacks = stacks;
         this.groupIssues();
         this.linkPrs();
+        this.groupPrs();
         this.error = null;
         this.reloadExpanded(cx);
       } catch (e) {
@@ -209,6 +249,8 @@ export default class RepoHub extends View {
         this.childrenOf = new Map();
         this.issueIndex = new Map();
         this.roots = [];
+        this.prChildrenOf = new Map();
+        this.prRoots = [];
         this.prByNumber = new Map();
         this.prLinks = new Map();
         this.prIssueLinks = new Map();
@@ -227,6 +269,87 @@ export default class RepoHub extends View {
     this.details = {};
     this.detailLoading = {};
     this.refresh(cx, true);
+  }
+
+  setTab(id, cx) {
+    this.tab = id;
+    this.query = this.queries[id] ?? "";
+    this.search.set_value(this.query);
+    cx.notify();
+  }
+
+  toggleFlat(cx) {
+    this.flat[this.tab] = !this.flat[this.tab];
+    localStorage.setItem("flat", JSON.stringify(this.flat));
+    cx.notify();
+  }
+
+  clearSearch(cx) {
+    this.queries[this.tab] = "";
+    this.query = "";
+    this.search.set_value("");
+    cx.notify();
+  }
+
+  // What the search box shows for this tab, or null when it is empty. A number
+  // matches ids (exact first), anything else matches titles.
+  findItems(list) {
+    const raw = this.query.trim().replace(/^#/, "");
+    if (!raw) return null;
+    const numeric = /^\d+$/.test(raw);
+    const q = raw.toLowerCase();
+    const hit = numeric
+      ? (item) => String(item.number).startsWith(q)
+      : (item) => (item.title ?? "").toLowerCase().includes(q);
+    const exact = (item) => String(item.number) === q;
+    return list
+      .filter(hit)
+      .sort((a, b) => Number(exact(b)) - Number(exact(a)));
+  }
+
+  searchRow(found, count, t) {
+    return h_flex()
+      .h(34)
+      .flex_none()
+      .px(8)
+      .gap(6)
+      .items_center()
+      .border_b(1)
+      .border_color(t.border)
+      .child(svg("mods/workspace-chrome/search.svg").size(12).flex_none().text_color(t.dim))
+      .child(
+        div()
+          .flex_1()
+          .min_w(0)
+          .child(
+            Input.new(this.search)
+              .h(24)
+              .px(6)
+              .rounded(6)
+              .border_1()
+              .border_color(this.searchFocused ? t.accent : t.input)
+              .bg(t.background)
+              .text_size(11)
+              .text_color(t.foreground),
+          ),
+      )
+      .when(Boolean(this.query), (e) =>
+        e.child(
+          div()
+            .id("search-clear")
+            .p(2)
+            .rounded(4)
+            .flex_none()
+            .cursor_pointer()
+            .text_color(t.dim)
+            .hover((s) => s.bg(t.hover).text_color(t.foreground))
+            .on_click((_e, cx) => this.clearSearch(cx))
+            .child(svg("mods/workspace-chrome/x.svg").size(11).flex_none()),
+        ),
+      )
+      .when(found !== null, (e) =>
+        e.child(div().flex_none().text_size(9).text_color(t.dim).child(String(count))),
+      );
   }
 
   // An umbrella issue carries its sub-issues as (open list) issues too: nest
@@ -334,6 +457,33 @@ export default class RepoHub extends View {
         refs.map((ref) => ({ ref, issue: this.issueIndex.get(ref.number) })),
       );
     }
+  }
+
+  // Stacked pull requests: the open members of a stack sit under its lowest
+  // open member, like sub-issues under an umbrella. A stack whose other layers
+  // are merged or outside the fetched list stays where it is.
+  groupPrs() {
+    const open = new Set(this.prs.map((pr) => pr.number));
+    const childrenOf = new Map();
+    const placed = new Set();
+    const seen = new Set();
+    for (const pr of this.prs) {
+      const stack = this.stacks.get(pr.number);
+      if (!stack || seen.has(stack.number)) continue;
+      seen.add(stack.number);
+      const present = stack.members
+        .filter((member) => open.has(member.number))
+        .sort((a, b) => a.position - b.position);
+      if (present.length < 2) continue;
+      const bottom = present[0];
+      childrenOf.set(
+        bottom.number,
+        present.slice(1).map((member) => this.prByNumber.get(member.number) ?? member),
+      );
+      for (const member of present.slice(1)) placed.add(member.number);
+    }
+    this.prChildrenOf = childrenOf;
+    this.prRoots = this.prs.filter((pr) => !placed.has(pr.number));
   }
 
   // A small link that opens another issue or pull request on GitHub.
@@ -690,23 +840,39 @@ export default class RepoHub extends View {
       .child(
         h_flex()
           .w_full()
-          .gap(8)
+          .gap_x(8)
+          .gap_y(2)
           .items_center()
+          .flex_wrap()
+          .line_height(1)
           .text_size(10)
           .text_color(t.muted)
           .when(kind === "pr" && data.headRefName, (e) =>
-            e.child(`${data.headRefName} → ${data.baseRefName}`),
+            e.child(
+              div()
+                .min_w(0)
+                .whitespace_normal()
+                .child(`${data.headRefName} → ${data.baseRefName}`),
+            ),
           )
           .when(kind === "pr", (e) =>
             e.child(
-              `+${data.additions ?? 0} −${data.deletions ?? 0} · ${
-                data.changedFiles ?? 0
-              } files`,
+              div()
+                .whitespace_nowrap()
+                .child(
+                  `+${data.additions ?? 0} −${data.deletions ?? 0} · ${
+                    data.changedFiles ?? 0
+                  } files`,
+                ),
             ),
           )
           .when(kind === "issues", (e) =>
             e.child(
-              `${data.state ?? ""} · ${(data.comments ?? []).length} comments`,
+              div()
+                .whitespace_nowrap()
+                .child(
+                  `${data.state ?? ""} · ${(data.comments ?? []).length} comments`,
+                ),
             ),
           )
           .child(div().flex_1())
@@ -715,9 +881,6 @@ export default class RepoHub extends View {
       .when(
         kind === "pr" && (this.prIssueLinks.get(item.number)?.length ?? 0) > 0,
         (e) => e.child(this.linkedIssues(this.prIssueLinks.get(item.number), t)),
-      )
-      .when(kind === "pr" && this.stacks.has(item.number), (e) =>
-        e.child(this.stackList(this.stacks.get(item.number), item.number, t)),
       )
       .when(kind === "issues" && this.prLinks.has(item.number), (e) =>
         e.child(this.linkedPrs(this.prLinks.get(item.number), t)),
@@ -974,6 +1137,9 @@ export default class RepoHub extends View {
             .when(Boolean(kids?.length), (el) =>
               el.child(this.subIssues(kids, t, cx)),
             )
+            .when(kind === "pr" && Boolean(stack), (el) =>
+              el.child(this.stackList(stack, item.number, t)),
+            )
             .child(this.detail(key, t, kind, item)),
         ),
       );
@@ -992,10 +1158,7 @@ export default class RepoHub extends View {
       .when(on, (e) => e.bg(t.selected))
       .text_color(on ? t.foreground : t.muted)
       .hover((s) => s.bg(t.hover))
-      .on_click((_e, cx) => {
-        this.tab = id;
-        cx.notify();
-      })
+      .on_click((_e, cx) => this.setTab(id, cx))
       .child(svg(icon).size(14).flex_none())
       .when(count > 0, (e) =>
         e.child(
@@ -1016,7 +1179,12 @@ export default class RepoHub extends View {
     }
     const t = theme();
     const panel = Boolean(props()?.panel);
-    const items = this.tab === "pr" ? this.prs : this.roots;
+    const all = this.tab === "pr" ? this.prs : this.issues;
+    const flat = Boolean(this.flat[this.tab]);
+    const found = this.findItems(all);
+    const items = found ?? (flat ? all : this.tab === "pr" ? this.prRoots : this.roots);
+    const canGroup =
+      this.tab === "pr" ? this.prChildrenOf.size > 0 : this.childrenOf.size > 0;
 
     return v_flex()
       .id("repo-hub")
@@ -1028,6 +1196,13 @@ export default class RepoHub extends View {
       )
       .text_color(t.foreground)
       .text_size(12)
+      .track_focus(this.handle)
+      .on_key_down((e, cx) => {
+        if (e.key === "escape" && this.query) {
+          this.clearSearch(cx);
+          cx.stop_propagation();
+        }
+      })
       .child(
         h_flex()
           .h(42)
@@ -1079,6 +1254,27 @@ export default class RepoHub extends View {
           .child(this.tabButton("pr", "repo-hub-icons/pull-request.svg", this.prs.length, t))
           .child(this.tabButton("issues", "repo-hub-icons/issue.svg", this.issues.length, t))
           .child(div().flex_1())
+          .when(canGroup, (e) =>
+            e.child(
+              div()
+                .id("view-mode")
+                .flex_none()
+                .p(2)
+                .rounded(4)
+                .cursor_pointer()
+                .text_color(t.dim)
+                .tooltip(flat ? "Grouped list" : "Flat list")
+                .hover((s) => s.bg(t.hover).text_color(t.foreground))
+                .on_click((_e, cx) => this.toggleFlat(cx))
+                .child(
+                  svg(
+                    `mods/workspace-chrome/${flat ? "files" : "layers"}.svg`,
+                  )
+                    .size(13)
+                    .flex_none(),
+                ),
+            ),
+          )
           .child(
             div()
               .text_size(10)
@@ -1086,6 +1282,7 @@ export default class RepoHub extends View {
               .child(this.loading ? "Syncing…" : "60s"),
           ),
       )
+      .child(this.searchRow(found, items.length, t))
       .child(
         v_flex()
           .id("list")
@@ -1111,9 +1308,11 @@ export default class RepoHub extends View {
                 .p(12)
                 .text_color(t.muted)
                 .child(
-                  this.tab === "pr"
-                    ? "No open pull requests."
-                    : "No open issues.",
+                  found !== null
+                    ? "No matches."
+                    : this.tab === "pr"
+                      ? "No open pull requests."
+                      : "No open issues.",
                 ),
             ),
           )
