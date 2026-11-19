@@ -17,6 +17,11 @@
         "session-retrospect",
         "spec"
       ]
+    },
+    "github/gh-stack": {
+      "skills": [
+        "gh-stack"
+      ]
     }
   }
 }
