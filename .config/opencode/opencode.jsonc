@@ -82,6 +82,12 @@
     { "action": "edit", "resource": "*.envrc", "effect": "deny" },
     { "action": "edit", "resource": "*.git", "effect": "deny" },
     { "action": "edit", "resource": "*.git/*", "effect": "deny" },
+    // worktree の作業ツリー (<git-common-dir>/wtr/*) は git の内部データではなく
+    // 通常のソースなので、上の deny より後ろで編集を許可する。
+    // ただし worktree 直下の .git は <git-common-dir>/worktrees/<name> への
+    // ポインターファイルで、壊すと worktree が使用不能になるため保護を維持する。
+    { "action": "edit", "resource": "*.git/wtr/*", "effect": "allow" },
+    { "action": "edit", "resource": "*.git/wtr/*/.git", "effect": "deny" },
     { "action": "edit", "resource": "*package-lock.json", "effect": "deny" },
     { "action": "edit", "resource": "*yarn.lock", "effect": "deny" },
     { "action": "edit", "resource": "*pnpm-lock.yaml", "effect": "deny" },
