@@ -842,21 +842,35 @@ export default class RepoHub extends View {
           .w_full()
           .gap(8)
           .items_center()
+          .flex_wrap()
           .text_size(10)
           .text_color(t.muted)
           .when(kind === "pr" && data.headRefName, (e) =>
-            e.child(`${data.headRefName} → ${data.baseRefName}`),
+            e.child(
+              div()
+                .min_w(0)
+                .whitespace_normal()
+                .child(`${data.headRefName} → ${data.baseRefName}`),
+            ),
           )
           .when(kind === "pr", (e) =>
             e.child(
-              `+${data.additions ?? 0} −${data.deletions ?? 0} · ${
-                data.changedFiles ?? 0
-              } files`,
+              div()
+                .whitespace_nowrap()
+                .child(
+                  `+${data.additions ?? 0} −${data.deletions ?? 0} · ${
+                    data.changedFiles ?? 0
+                  } files`,
+                ),
             ),
           )
           .when(kind === "issues", (e) =>
             e.child(
-              `${data.state ?? ""} · ${(data.comments ?? []).length} comments`,
+              div()
+                .whitespace_nowrap()
+                .child(
+                  `${data.state ?? ""} · ${(data.comments ?? []).length} comments`,
+                ),
             ),
           )
           .child(div().flex_1())
