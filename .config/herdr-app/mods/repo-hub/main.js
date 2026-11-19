@@ -2,11 +2,12 @@ import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, TextView } from "gpui-base";
 import { exec, focused, nextCommand, panes, props, settings, spaces, theme, window } from "herdr";
 
-const PR_FIELDS = "number,title,author,isDraft,reviewDecision,statusCheckRollup,updatedAt,url";
+const PR_FIELDS =
+  "number,title,state,author,isDraft,reviewDecision,statusCheckRollup,updatedAt,url,closingIssuesReferences";
 // parent / subIssues need `gh` 2.94 or newer (GitHub sub-issues); the same list
 // without them is the fallback for an older gh or a GHES without sub-issues.
 const ISSUE_FIELDS =
-  "number,title,state,author,labels,comments,updatedAt,url,parent,subIssues,subIssuesSummary";
+  "number,title,state,author,labels,comments,updatedAt,url,parent,subIssues,subIssuesSummary,closedByPullRequestsReferences";
 const ISSUE_FIELDS_PLAIN =
   "number,title,state,author,labels,comments,updatedAt,url";
 const PR_DETAIL_FIELDS =
@@ -81,6 +82,10 @@ export default class RepoHub extends View {
     this.childrenOf = new Map();
     this.issueIndex = new Map();
     this.roots = [];
+    this.prByNumber = new Map();
+    this.prLinks = new Map(); // issue number -> its pull requests
+    this.prIssueLinks = new Map(); // pr number -> [{ ref, issue }]
+    this.stacks = new Map(); // pr number -> its stack
     this.details = {};
     this.detailLoading = {};
     this.job = 0;
@@ -121,6 +126,10 @@ export default class RepoHub extends View {
       this.childrenOf = new Map();
       this.issueIndex = new Map();
       this.roots = [];
+      this.prByNumber = new Map();
+      this.prLinks = new Map();
+      this.prIssueLinks = new Map();
+      this.stacks = new Map();
       return;
     }
     this.cwd = cwd;
@@ -146,7 +155,7 @@ export default class RepoHub extends View {
         }
         if (!repo) throw new Error("No GitHub repository for this folder");
 
-        const [prs, rich] = await Promise.all([
+        const [prs, rich, stacks] = await Promise.all([
           exec(
             "gh",
             ["pr", "list", "--repo", repo, "--limit", "30", "--json", PR_FIELDS],
@@ -157,6 +166,7 @@ export default class RepoHub extends View {
             ["issue", "list", "--repo", repo, "--limit", "50", "--json", ISSUE_FIELDS],
             { cwd: root, on },
           ),
+          this.loadStacks(repo, root, on),
         ]);
         // An older gh (or a host without sub-issues) rejects the newer fields:
         // ask again without them rather than losing the whole list.
@@ -186,7 +196,9 @@ export default class RepoHub extends View {
         this.root = root;
         this.prs = JSON.parse(prs.stdout);
         this.issues = JSON.parse(issues.stdout);
+        this.stacks = stacks;
         this.groupIssues();
+        this.linkPrs();
         this.error = null;
         this.reloadExpanded(cx);
       } catch (e) {
@@ -197,6 +209,10 @@ export default class RepoHub extends View {
         this.childrenOf = new Map();
         this.issueIndex = new Map();
         this.roots = [];
+        this.prByNumber = new Map();
+        this.prLinks = new Map();
+        this.prIssueLinks = new Map();
+        this.stacks = new Map();
         this.error = e?.message ?? String(e);
       } finally {
         if (job === this.job) {
@@ -252,6 +268,210 @@ export default class RepoHub extends View {
     this.childrenOf = childrenOf;
     this.issueIndex = index;
     this.roots = this.issues.filter((issue) => !placed.has(issue.number));
+  }
+
+  // The stack containing each open PR, from one repository-wide call. A repo
+  // without stacks (or a host that has none) answers 404 or []: no stacks.
+  async loadStacks(repo, root, on) {
+    try {
+      const r = await exec("gh", ["api", `repos/${repo}/stacks?per_page=100`], {
+        cwd: root,
+        on,
+      });
+      if (r.code !== 0) return new Map();
+      const list = JSON.parse(r.stdout);
+      const map = new Map();
+      for (const stack of Array.isArray(list) ? list : []) {
+        const members = (stack.pull_requests ?? []).map((pr, i) => ({
+          ...pr,
+          position: i + 1,
+        }));
+        const entry = {
+          number: stack.number,
+          size: stack.size ?? members.length,
+          members,
+        };
+        for (const member of members) {
+          map.set(member.number, { ...entry, position: member.position });
+        }
+      }
+      return map;
+    } catch {
+      return new Map();
+    }
+  }
+
+  // Only links inside this repository: the sidebar shows one repo's list.
+  sameRepoRef(ref) {
+    const repository = ref?.repository;
+    if (!repository?.owner?.login || !repository?.name) return true;
+    return `${repository.owner.login}/${repository.name}` === this.repo;
+  }
+
+  // Both directions of the closing links: the issue list knows its pull
+  // requests, the pull request list knows the issues it closes. Use the open
+  // record when there is one for titles and checks, else the reference itself.
+  linkPrs() {
+    this.prByNumber = new Map(this.prs.map((pr) => [pr.number, pr]));
+    this.prLinks = new Map();
+    for (const issue of this.issues) {
+      const refs = (issue.closedByPullRequestsReferences ?? []).filter((ref) =>
+        this.sameRepoRef(ref),
+      );
+      if (!refs.length) continue;
+      this.prLinks.set(
+        issue.number,
+        refs.map((ref) => this.prByNumber.get(ref.number) ?? ref),
+      );
+    }
+    this.prIssueLinks = new Map();
+    for (const pr of this.prs) {
+      const refs = (pr.closingIssuesReferences ?? []).filter((ref) =>
+        this.sameRepoRef(ref),
+      );
+      this.prIssueLinks.set(
+        pr.number,
+        refs.map((ref) => ({ ref, issue: this.issueIndex.get(ref.number) })),
+      );
+    }
+  }
+
+  // A small link that opens another issue or pull request on GitHub.
+  chip(text, color, url, t) {
+    return div()
+      .px(4)
+      .py(1)
+      .rounded(3)
+      .bg(`${color}22`)
+      .text_color(color)
+      .text_size(9)
+      .cursor_pointer()
+      .hover((s) => s.text_color(t.foreground))
+      .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+      .on_click((_e, cx) => {
+        cx.stop_propagation();
+        this.open(url);
+      })
+      .child(text);
+  }
+
+  // The issues a pull request closes, with the umbrella it belongs to.
+  linkedIssues(links, t) {
+    return v_flex()
+      .w_full()
+      .gap(3)
+      .child(div().text_size(9).text_color(t.dim).child("LINKED ISSUES"))
+      .children(
+        links.map(({ ref, issue }) =>
+          h_flex()
+            .w_full()
+            .gap(6)
+            .items_center()
+            .text_size(10)
+            .child(this.chip(`#${ref.number}`, t.accent, ref.url, t))
+            .child(
+              div()
+                .flex_1()
+                .min_w(0)
+                .truncate()
+                .text_color(t.muted)
+                .child(issue?.title ?? ""),
+            )
+            .when(Boolean(issue?.parent), (e) =>
+              e.child(
+                this.chip(
+                  `↳ #${issue.parent.number}`,
+                  t.dim,
+                  issue.parent.url,
+                  t,
+                ),
+              ),
+            ),
+        ),
+      );
+  }
+
+  // The pull requests that close an issue, for the issue's own detail.
+  linkedPrs(prs, t) {
+    return v_flex()
+      .w_full()
+      .gap(3)
+      .child(div().text_size(9).text_color(t.dim).child("PULL REQUESTS"))
+      .children(
+        prs.map((pr) =>
+          h_flex()
+            .w_full()
+            .gap(6)
+            .items_center()
+            .text_size(10)
+            .child(this.chip(`#${pr.number}`, t.accent, pr.url, t))
+            .child(
+              div()
+                .flex_1()
+                .min_w(0)
+                .truncate()
+                .text_color(t.muted)
+                .child(pr.title ?? ""),
+            ),
+        ),
+      );
+  }
+
+  // Every layer of a stack, bottom first.
+  stackList(stack, current, t) {
+    const members = [...stack.members].sort((a, b) => a.position - b.position);
+    return v_flex()
+      .w_full()
+      .gap(3)
+      .child(
+        div()
+          .text_size(9)
+          .text_color(t.dim)
+          .child(`STACK ${stack.number} · ${stack.size} PRs`),
+      )
+      .children(
+        members.map((member) => {
+          const pr = this.prByNumber.get(member.number);
+          const state = member.merged_at ? "merged" : member.state;
+          const here = member.number === current;
+          return h_flex()
+            .w_full()
+            .gap(6)
+            .items_center()
+            .rounded(4)
+            .px(3)
+            .py(1)
+            .when(here, (e) => e.bg(t.raised))
+            .text_size(10)
+            .child(
+              div()
+                .w(12)
+                .flex_none()
+                .text_color(t.dim)
+                .child(String(member.position)),
+            )
+            .child(
+              div()
+                .flex_none()
+                .text_color(here ? t.foreground : t.accent)
+                .child(`#${member.number}`),
+            )
+            .child(
+              div()
+                .flex_1()
+                .min_w(0)
+                .truncate()
+                .text_color(t.muted)
+                .child(pr?.title ?? member.title ?? ""),
+            )
+            .when(Boolean(member.draft), (e) =>
+              e.child(div().text_size(9).text_color(t.dim).child("draft")),
+            )
+            .when(state !== "open", (e) =>
+              e.child(div().text_size(9).text_color(t.dim).child(state ?? "")),
+            );
+        }),
+      );
   }
 
   // The sub-issues under an umbrella as a list: a small heading, then one row
@@ -339,6 +559,18 @@ export default class RepoHub extends View {
               .text_size(11.5)
               .text_color(closed ? t.dim : t.muted)
               .child(kid.title ?? ""),
+          )
+          .when((this.prLinks.get(kid.number)?.length ?? 0) > 0, (e) =>
+            e.child(
+              div()
+                .flex_none()
+                .px(4)
+                .rounded(3)
+                .bg(`${t.accent}22`)
+                .text_color(t.accent)
+                .text_size(8)
+                .child("PR"),
+            ),
           ),
       )
       .when(detailOpen, (e) =>
@@ -480,6 +712,16 @@ export default class RepoHub extends View {
           .child(div().flex_1())
           .child(link(data.url ?? item.url, "GitHub ↗")),
       )
+      .when(
+        kind === "pr" && (this.prIssueLinks.get(item.number)?.length ?? 0) > 0,
+        (e) => e.child(this.linkedIssues(this.prIssueLinks.get(item.number), t)),
+      )
+      .when(kind === "pr" && this.stacks.has(item.number), (e) =>
+        e.child(this.stackList(this.stacks.get(item.number), item.number, t)),
+      )
+      .when(kind === "issues" && this.prLinks.has(item.number), (e) =>
+        e.child(this.linkedPrs(this.prLinks.get(item.number), t)),
+      )
       .child(
         TextView.markdown(`detail-${key}`, text || "No description.")
           .text_size(12)
@@ -570,6 +812,9 @@ export default class RepoHub extends View {
     const kids = kind === "issues" ? this.childrenOf.get(item.number) : null;
     const summary = kind === "issues" ? item.subIssuesSummary : null;
     const done = Boolean(summary?.total) && summary.completed >= summary.total;
+    const linked = kind === "pr" ? this.prIssueLinks.get(item.number) ?? [] : [];
+    const stack = kind === "pr" ? this.stacks.get(item.number) : null;
+    const issuePrs = kind === "issues" ? this.prLinks.get(item.number) ?? [] : [];
     // A sub-issue shown on its own (its parent fell outside the fetched page,
     // or is a nested umbrella) says whose it is.
     const parent = kind === "issues" ? item.parent ?? null : null;
@@ -618,6 +863,36 @@ export default class RepoHub extends View {
           .when(Boolean(review), (e) =>
             e.child(badge(review.text, t[review.color] ?? t.dim)),
           )
+          .when(linked.length > 0, (e) =>
+            e.child(
+              this.chip(`#${linked[0].ref.number}`, t.accent, linked[0].ref.url, t),
+            ),
+          )
+          .when(Boolean(linked[0]?.issue?.parent), (e) =>
+            e.child(
+              this.chip(
+                `↳ #${linked[0].issue.parent.number}`,
+                t.dim,
+                linked[0].issue.parent.url,
+                t,
+              ),
+            ),
+          )
+          .when(linked.length > 1, (e) =>
+            e.child(
+              div().text_size(9).text_color(t.dim).child(`+${linked.length - 1}`),
+            ),
+          )
+          .when(Boolean(stack), (e) =>
+            e.child(
+              this.chip(
+                `stack ${stack.position}/${stack.size}`,
+                t.muted,
+                item.url,
+                t,
+              ),
+            ),
+          )
           .when(Boolean(summary?.total), (e) =>
             e.child(
               badge(
@@ -656,6 +931,19 @@ export default class RepoHub extends View {
                 .text_size(10)
                 .text_color(t.dim)
                 .child(`${item.comments} comments`),
+            ),
+          )
+          .when(kind === "issues" && issuePrs.length > 0, (e) =>
+            e.child(
+              this.chip(`PR #${issuePrs[0].number}`, t.accent, issuePrs[0].url, t),
+            ),
+          )
+          .when(kind === "issues" && issuePrs.length > 1, (e) =>
+            e.child(
+              div()
+                .text_size(9)
+                .text_color(t.dim)
+                .child(`+${issuePrs.length - 1}`),
             ),
           )
           .when(Boolean(parent), (e) =>
