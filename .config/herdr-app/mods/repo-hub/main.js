@@ -840,9 +840,11 @@ export default class RepoHub extends View {
       .child(
         h_flex()
           .w_full()
-          .gap(8)
+          .gap_x(8)
+          .gap_y(2)
           .items_center()
           .flex_wrap()
+          .line_height(12)
           .text_size(10)
           .text_color(t.muted)
           .when(kind === "pr" && data.headRefName, (e) =>
