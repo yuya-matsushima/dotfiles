@@ -91,10 +91,20 @@ export default class RepoHub extends View {
     this.details = {};
     this.detailLoading = {};
     this.job = 0;
-    // Issues are grouped under their umbrella by default; a plain list is one
-    // click away and remembers the choice. The search box filters the tab you
-    // are on, and each tab keeps what was typed in it.
-    this.flat = localStorage.getItem("flat") === "1";
+    // Issues are grouped under their umbrella by default, pull requests under
+    // their stack; a plain list is one click away per tab and remembers the
+    // choice. The search box filters the tab you are on, and each tab keeps
+    // what was typed in it.
+    let savedFlat = null;
+    try {
+      savedFlat = JSON.parse(localStorage.getItem("flat") ?? "null");
+    } catch {
+      savedFlat = null;
+    }
+    this.flat =
+      savedFlat && typeof savedFlat === "object"
+        ? { pr: Boolean(savedFlat.pr), issues: Boolean(savedFlat.issues) }
+        : { pr: false, issues: savedFlat === 1 || savedFlat === "1" };
     this.queries = { pr: "", issues: "" };
     this.query = "";
     this.searchFocused = false;
@@ -269,8 +279,8 @@ export default class RepoHub extends View {
   }
 
   toggleFlat(cx) {
-    this.flat = !this.flat;
-    localStorage.setItem("flat", this.flat ? "1" : "0");
+    this.flat[this.tab] = !this.flat[this.tab];
+    localStorage.setItem("flat", JSON.stringify(this.flat));
     cx.notify();
   }
 
@@ -1154,8 +1164,9 @@ export default class RepoHub extends View {
     const t = theme();
     const panel = Boolean(props()?.panel);
     const all = this.tab === "pr" ? this.prs : this.issues;
+    const flat = Boolean(this.flat[this.tab]);
     const found = this.findItems(all);
-    const items = found ?? (this.flat ? all : this.tab === "pr" ? this.prRoots : this.roots);
+    const items = found ?? (flat ? all : this.tab === "pr" ? this.prRoots : this.roots);
     const canGroup =
       this.tab === "pr" ? this.prChildrenOf.size > 0 : this.childrenOf.size > 0;
 
@@ -1236,12 +1247,12 @@ export default class RepoHub extends View {
                 .rounded(4)
                 .cursor_pointer()
                 .text_color(t.dim)
-                .tooltip(this.flat ? "Grouped list" : "Flat list")
+                .tooltip(flat ? "Grouped list" : "Flat list")
                 .hover((s) => s.bg(t.hover).text_color(t.foreground))
                 .on_click((_e, cx) => this.toggleFlat(cx))
                 .child(
                   svg(
-                    `mods/workspace-chrome/${this.flat ? "files" : "layers"}.svg`,
+                    `mods/workspace-chrome/${flat ? "files" : "layers"}.svg`,
                   )
                     .size(13)
                     .flex_none(),
