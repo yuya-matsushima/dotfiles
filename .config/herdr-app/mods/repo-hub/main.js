@@ -1,5 +1,5 @@
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex, TextView } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { exec, focused, nextCommand, panes, props, settings, spaces, theme, window } from "herdr";
 
 const PR_FIELDS =
@@ -89,6 +89,28 @@ export default class RepoHub extends View {
     this.details = {};
     this.detailLoading = {};
     this.job = 0;
+    // Issues are grouped under their umbrella by default; a plain list is one
+    // click away and remembers the choice. The search box filters the tab you
+    // are on, and each tab keeps what was typed in it.
+    this.flat = localStorage.getItem("flat") === "1";
+    this.queries = { pr: "", issues: "" };
+    this.query = "";
+    this.searchFocused = false;
+    this.search = InputState.new({ placeholder: "Search #id or title" });
+    this.search.on("change", (_e, cx) => {
+      this.queries[this.tab] = this.search.value();
+      this.query = this.queries[this.tab];
+      cx.notify();
+    });
+    this.search.on("focus", (_e, cx) => {
+      this.searchFocused = true;
+      cx.notify();
+    });
+    this.search.on("blur", (_e, cx) => {
+      this.searchFocused = false;
+      cx.notify();
+    });
+    this.handle = cx.focus_handle();
     this.refresh(cx);
     cx.timer.every(60000, (cx) => this.refresh(cx));
     cx.spawn(async (cx) => {
@@ -191,6 +213,9 @@ export default class RepoHub extends View {
           this.expanded.clear();
           this.details = {};
           this.detailLoading = {};
+          this.queries = { pr: "", issues: "" };
+          this.query = "";
+          this.search.set_value("");
         }
         this.repo = repo;
         this.root = root;
@@ -227,6 +252,87 @@ export default class RepoHub extends View {
     this.details = {};
     this.detailLoading = {};
     this.refresh(cx, true);
+  }
+
+  setTab(id, cx) {
+    this.tab = id;
+    this.query = this.queries[id] ?? "";
+    this.search.set_value(this.query);
+    cx.notify();
+  }
+
+  toggleFlat(cx) {
+    this.flat = !this.flat;
+    localStorage.setItem("flat", this.flat ? "1" : "0");
+    cx.notify();
+  }
+
+  clearSearch(cx) {
+    this.queries[this.tab] = "";
+    this.query = "";
+    this.search.set_value("");
+    cx.notify();
+  }
+
+  // What the search box shows for this tab, or null when it is empty. A number
+  // matches ids (exact first), anything else matches titles.
+  findItems(list) {
+    const raw = this.query.trim().replace(/^#/, "");
+    if (!raw) return null;
+    const numeric = /^\d+$/.test(raw);
+    const q = raw.toLowerCase();
+    const hit = numeric
+      ? (item) => String(item.number).startsWith(q)
+      : (item) => (item.title ?? "").toLowerCase().includes(q);
+    const exact = (item) => String(item.number) === q;
+    return list
+      .filter(hit)
+      .sort((a, b) => Number(exact(b)) - Number(exact(a)));
+  }
+
+  searchRow(found, count, t) {
+    return h_flex()
+      .h(34)
+      .flex_none()
+      .px(8)
+      .gap(6)
+      .items_center()
+      .border_b(1)
+      .border_color(t.border)
+      .child(svg("mods/workspace-chrome/search.svg").size(12).flex_none().text_color(t.dim))
+      .child(
+        div()
+          .flex_1()
+          .min_w(0)
+          .child(
+            Input.new(this.search)
+              .h(24)
+              .px(6)
+              .rounded(6)
+              .border_1()
+              .border_color(this.searchFocused ? t.accent : t.input)
+              .bg(t.background)
+              .text_size(11)
+              .text_color(t.foreground),
+          ),
+      )
+      .when(Boolean(this.query), (e) =>
+        e.child(
+          div()
+            .id("search-clear")
+            .p(2)
+            .rounded(4)
+            .flex_none()
+            .cursor_pointer()
+            .text_color(t.dim)
+            .hover((s) => s.bg(t.hover).text_color(t.foreground))
+            .on_click((_e, cx) => this.clearSearch(cx))
+            .child(svg("mods/workspace-chrome/x.svg").size(11).flex_none()),
+        ),
+      )
+      .when(found !== null, (e) =>
+        e.child(div().flex_none().text_size(9).text_color(t.dim).child(String(count))),
+      );
   }
 
   // An umbrella issue carries its sub-issues as (open list) issues too: nest
@@ -992,10 +1098,7 @@ export default class RepoHub extends View {
       .when(on, (e) => e.bg(t.selected))
       .text_color(on ? t.foreground : t.muted)
       .hover((s) => s.bg(t.hover))
-      .on_click((_e, cx) => {
-        this.tab = id;
-        cx.notify();
-      })
+      .on_click((_e, cx) => this.setTab(id, cx))
       .child(svg(icon).size(14).flex_none())
       .when(count > 0, (e) =>
         e.child(
@@ -1016,7 +1119,9 @@ export default class RepoHub extends View {
     }
     const t = theme();
     const panel = Boolean(props()?.panel);
-    const items = this.tab === "pr" ? this.prs : this.roots;
+    const all = this.tab === "pr" ? this.prs : this.issues;
+    const found = this.findItems(all);
+    const items = found ?? (this.tab === "pr" || this.flat ? all : this.roots);
 
     return v_flex()
       .id("repo-hub")
@@ -1028,6 +1133,13 @@ export default class RepoHub extends View {
       )
       .text_color(t.foreground)
       .text_size(12)
+      .track_focus(this.handle)
+      .on_key_down((e, cx) => {
+        if (e.key === "escape" && this.query) {
+          this.clearSearch(cx);
+          cx.stop_propagation();
+        }
+      })
       .child(
         h_flex()
           .h(42)
@@ -1079,6 +1191,27 @@ export default class RepoHub extends View {
           .child(this.tabButton("pr", "repo-hub-icons/pull-request.svg", this.prs.length, t))
           .child(this.tabButton("issues", "repo-hub-icons/issue.svg", this.issues.length, t))
           .child(div().flex_1())
+          .when(this.tab === "issues" && this.childrenOf.size > 0, (e) =>
+            e.child(
+              div()
+                .id("view-mode")
+                .flex_none()
+                .p(2)
+                .rounded(4)
+                .cursor_pointer()
+                .text_color(t.dim)
+                .tooltip(this.flat ? "Grouped list" : "Flat list")
+                .hover((s) => s.bg(t.hover).text_color(t.foreground))
+                .on_click((_e, cx) => this.toggleFlat(cx))
+                .child(
+                  svg(
+                    `mods/workspace-chrome/${this.flat ? "files" : "layers"}.svg`,
+                  )
+                    .size(13)
+                    .flex_none(),
+                ),
+            ),
+          )
           .child(
             div()
               .text_size(10)
@@ -1086,6 +1219,7 @@ export default class RepoHub extends View {
               .child(this.loading ? "Syncing…" : "60s"),
           ),
       )
+      .child(this.searchRow(found, items.length, t))
       .child(
         v_flex()
           .id("list")
@@ -1111,9 +1245,11 @@ export default class RepoHub extends View {
                 .p(12)
                 .text_color(t.muted)
                 .child(
-                  this.tab === "pr"
-                    ? "No open pull requests."
-                    : "No open issues.",
+                  found !== null
+                    ? "No matches."
+                    : this.tab === "pr"
+                      ? "No open pull requests."
+                      : "No open issues.",
                 ),
             ),
           )
