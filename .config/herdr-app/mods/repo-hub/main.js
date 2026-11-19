@@ -3,7 +3,12 @@ import { v_flex, h_flex, TextView } from "gpui-base";
 import { exec, focused, nextCommand, panes, props, settings, spaces, theme, window } from "herdr";
 
 const PR_FIELDS = "number,title,author,isDraft,reviewDecision,statusCheckRollup,updatedAt,url";
-const ISSUE_FIELDS = "number,title,author,labels,comments,updatedAt,url";
+// parent / subIssues need `gh` 2.94 or newer (GitHub sub-issues); the same list
+// without them is the fallback for an older gh or a GHES without sub-issues.
+const ISSUE_FIELDS =
+  "number,title,state,author,labels,comments,updatedAt,url,parent,subIssues,subIssuesSummary";
+const ISSUE_FIELDS_PLAIN =
+  "number,title,state,author,labels,comments,updatedAt,url";
 const PR_DETAIL_FIELDS =
   "body,additions,deletions,changedFiles,files,baseRefName,headRefName,reviewDecision,statusCheckRollup,comments,url,state,createdAt,updatedAt";
 const ISSUE_DETAIL_FIELDS = "body,state,labels,comments,url,createdAt,updatedAt";
@@ -73,6 +78,9 @@ export default class RepoHub extends View {
     this.cwd = null;
     this.on = null;
     this.expanded = new Set();
+    this.childrenOf = new Map();
+    this.issueIndex = new Map();
+    this.roots = [];
     this.details = {};
     this.detailLoading = {};
     this.job = 0;
@@ -110,6 +118,9 @@ export default class RepoHub extends View {
       this.repo = null;
       this.prs = [];
       this.issues = [];
+      this.childrenOf = new Map();
+      this.issueIndex = new Map();
+      this.roots = [];
       return;
     }
     this.cwd = cwd;
@@ -135,7 +146,7 @@ export default class RepoHub extends View {
         }
         if (!repo) throw new Error("No GitHub repository for this folder");
 
-        const [prs, issues] = await Promise.all([
+        const [prs, rich] = await Promise.all([
           exec(
             "gh",
             ["pr", "list", "--repo", repo, "--limit", "30", "--json", PR_FIELDS],
@@ -143,10 +154,25 @@ export default class RepoHub extends View {
           ),
           exec(
             "gh",
-            ["issue", "list", "--repo", repo, "--limit", "30", "--json", ISSUE_FIELDS],
+            ["issue", "list", "--repo", repo, "--limit", "50", "--json", ISSUE_FIELDS],
             { cwd: root, on },
           ),
         ]);
+        // An older gh (or a host without sub-issues) rejects the newer fields:
+        // ask again without them rather than losing the whole list.
+        let issues = rich;
+        if (
+          rich.code !== 0 &&
+          /unknown json field|doesn't exist|does not exist|not supported/i.test(
+            rich.stderr ?? "",
+          )
+        ) {
+          issues = await exec(
+            "gh",
+            ["issue", "list", "--repo", repo, "--limit", "50", "--json", ISSUE_FIELDS_PLAIN],
+            { cwd: root, on },
+          );
+        }
         if (prs.code !== 0) throw new Error(prs.stderr.trim() || "gh pr list failed");
         if (issues.code !== 0) throw new Error(issues.stderr.trim() || "gh issue list failed");
         if (job !== this.job) return;
@@ -160,6 +186,7 @@ export default class RepoHub extends View {
         this.root = root;
         this.prs = JSON.parse(prs.stdout);
         this.issues = JSON.parse(issues.stdout);
+        this.groupIssues();
         this.error = null;
         this.reloadExpanded(cx);
       } catch (e) {
@@ -167,6 +194,9 @@ export default class RepoHub extends View {
         this.repo = null;
         this.prs = [];
         this.issues = [];
+        this.childrenOf = new Map();
+        this.issueIndex = new Map();
+        this.roots = [];
         this.error = e?.message ?? String(e);
       } finally {
         if (job === this.job) {
@@ -183,11 +213,153 @@ export default class RepoHub extends View {
     this.refresh(cx, true);
   }
 
+  // An umbrella issue carries its sub-issues as (open list) issues too: nest
+  // them under it, open first, closed last and dimmed. Two levels are drawn;
+  // anything deeper keeps its place in the top list, with a `↳ #parent` line,
+  // so no issue disappears.
+  groupIssues() {
+    const open = new Map(this.issues.map((issue) => [issue.number, issue]));
+    const childrenOf = new Map();
+    const index = new Map(open);
+    for (const issue of this.issues) {
+      const nodes = issue.subIssues?.nodes ?? [];
+      if (!nodes.length) continue;
+      for (const node of nodes) if (!index.has(node.number)) index.set(node.number, node);
+      const kids = nodes
+        .map((node) => index.get(node.number) ?? node)
+        .filter((kid) => kid.number !== issue.number)
+        .sort(
+          (a, b) =>
+            Number(a.state === "CLOSED") - Number(b.state === "CLOSED") ||
+            a.number - b.number,
+        );
+      if (kids.length) childrenOf.set(issue.number, kids);
+    }
+
+    // Only two levels are drawn: collect the issues placed there and leave
+    // everything deeper (and orphans) in the top list.
+    const placed = new Set();
+    const place = (number, depth) => {
+      for (const kid of childrenOf.get(number) ?? []) {
+        if (placed.has(kid.number)) continue;
+        placed.add(kid.number);
+        if (depth < 2) place(kid.number, depth + 1);
+      }
+    };
+    for (const issue of this.issues) {
+      if (!issue.parent || !open.has(issue.parent.number)) place(issue.number, 1);
+    }
+    this.childrenOf = childrenOf;
+    this.issueIndex = index;
+    this.roots = this.issues.filter((issue) => !placed.has(issue.number));
+  }
+
+  // The sub-issues under an umbrella as a list: a small heading, then one row
+  // each. Opening a row shows its detail and, one level down, its own list.
+  subIssues(kids, t, cx, depth = 1) {
+    const shown = kids.slice(0, 50);
+    return v_flex()
+      .w_full()
+      .gap(1)
+      .pt(2)
+      .when(depth > 1, (e) => e.pl(10))
+      .child(
+        div()
+          .pb(2)
+          .text_size(9)
+          .text_color(t.dim)
+          .child("Sub-issues"),
+      )
+      .children(shown.map((kid) => this.subRow(kid, t, cx, depth)))
+      .when(kids.length > shown.length, (e) =>
+        e.child(
+          div()
+            .py(1)
+            .text_size(9)
+            .text_color(t.dim)
+            .child(`… and ${kids.length - shown.length} more`),
+        ),
+      );
+  }
+
+  subRow(kid, t, cx, depth) {
+    const key = `issues:${kid.number}`;
+    const closed = String(kid.state ?? "").toUpperCase() === "CLOSED";
+    const detailOpen = this.expanded.has(key);
+    const kids = depth < 2 ? this.childrenOf.get(kid.number) : null;
+    return v_flex()
+      .w_full()
+      .flex_none()
+      .child(
+        h_flex()
+          .id(`issue-sub-${kid.number}`)
+          .w_full()
+          .h(23)
+          .pl(2)
+          .pr(2)
+          .gap(6)
+          .items_center()
+          .rounded(5)
+          .cursor_pointer()
+          .hover((s) => s.bg(t.hover))
+          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+          .on_click((_e, cx) => {
+            cx.stop_propagation();
+            this.toggleCard(kid, "issues", cx);
+          })
+          .child(
+            div()
+              .w(10)
+              .flex_none()
+              .text_size(10)
+              .text_color(closed ? t.done : t.dim)
+              .child(closed ? "✓" : "○"),
+          )
+          .child(
+            div()
+              .flex_none()
+              .text_size(10)
+              .text_color(closed ? t.dim : t.accent)
+              .when(!closed, (e) => e.underline())
+              .when(closed, (e) => e.line_through())
+              .cursor_pointer()
+              .hover((s) => s.text_color(t.foreground))
+              .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+              .on_click((_e, cx) => {
+                cx.stop_propagation();
+                this.open(kid.url);
+              })
+              .child(`#${kid.number}`),
+          )
+          .child(
+            div()
+              .flex_1()
+              .min_w(0)
+              .truncate()
+              .text_size(11.5)
+              .text_color(closed ? t.dim : t.muted)
+              .child(kid.title ?? ""),
+          ),
+      )
+      .when(detailOpen, (e) =>
+        e.child(
+          v_flex()
+            .w_full()
+            .when(Boolean(kids?.length), (el) =>
+              el.child(this.subIssues(kids, t, cx, depth + 1)),
+            )
+            .child(this.detail(key, t, "issues", kid, depth > 1 ? 10 : 0)),
+        ),
+      );
+  }
+
   reloadExpanded(cx) {
     for (const key of [...this.expanded]) {
       const [kind, number] = key.split(":");
-      const list = kind === "pr" ? this.prs : this.issues;
-      const item = list.find((x) => String(x.number) === number);
+      const item =
+        kind === "pr"
+          ? this.prs.find((x) => String(x.number) === number)
+          : this.issueIndex.get(Number(number));
       if (!item) {
         this.expanded.delete(key);
         continue;
@@ -389,12 +561,18 @@ export default class RepoHub extends View {
 ;
   }
 
-  card(item, t, kind) {
+  card(item, t, kind, cx) {
     const key = `${kind}:${item.number}`;
     const draft = kind === "pr" && item.isDraft;
     const review = kind === "pr" ? reviewBadge(item.reviewDecision) : null;
     const checks = kind === "pr" ? checkBadge(item) : null;
     const labels = kind === "issues" ? (item.labels ?? []).slice(0, 3) : [];
+    const kids = kind === "issues" ? this.childrenOf.get(item.number) : null;
+    const summary = kind === "issues" ? item.subIssuesSummary : null;
+    const done = Boolean(summary?.total) && summary.completed >= summary.total;
+    // A sub-issue shown on its own (its parent fell outside the fetched page,
+    // or is a nested umbrella) says whose it is.
+    const parent = kind === "issues" ? item.parent ?? null : null;
     const badge = (text, color) =>
       div()
         .px(5)
@@ -440,6 +618,14 @@ export default class RepoHub extends View {
           .when(Boolean(review), (e) =>
             e.child(badge(review.text, t[review.color] ?? t.dim)),
           )
+          .when(Boolean(summary?.total), (e) =>
+            e.child(
+              badge(
+                `${summary.completed}/${summary.total}`,
+                done ? t.done : t.muted,
+              ),
+            ),
+          )
           .child(div().flex_1())
           .child(div().text_size(10).text_color(t.dim).child(timeAgo(item.updatedAt))),
       )
@@ -472,6 +658,14 @@ export default class RepoHub extends View {
                 .child(`${item.comments} comments`),
             ),
           )
+          .when(Boolean(parent), (e) =>
+            e.child(
+              div()
+                .text_size(9)
+                .text_color(t.dim)
+                .child(`↳ #${parent.number}`),
+            ),
+          )
           .children(
             labels.map((label) =>
               div()
@@ -486,7 +680,14 @@ export default class RepoHub extends View {
           ),
       )
       .when(this.expanded.has(key), (e) =>
-        e.child(this.detail(key, t, kind, item)),
+        e.child(
+          v_flex()
+            .w_full()
+            .when(Boolean(kids?.length), (el) =>
+              el.child(this.subIssues(kids, t, cx)),
+            )
+            .child(this.detail(key, t, kind, item)),
+        ),
       );
   }
 
@@ -527,7 +728,7 @@ export default class RepoHub extends View {
     }
     const t = theme();
     const panel = Boolean(props()?.panel);
-    const items = this.tab === "pr" ? this.prs : this.issues;
+    const items = this.tab === "pr" ? this.prs : this.roots;
 
     return v_flex()
       .id("repo-hub")
@@ -628,7 +829,7 @@ export default class RepoHub extends View {
                 ),
             ),
           )
-          .children(items.map((item) => this.card(item, t, this.tab))),
+          .children(items.map((item) => this.card(item, t, this.tab, cx))),
       );
   }
 }
