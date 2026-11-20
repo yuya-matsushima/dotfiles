@@ -38,10 +38,10 @@ end
 
 -- US MacBook Pro
 hs.hotkey.bind({ "ctrl" }, "delete", function()
-	toggleApp(terminalApp)
+	toggleHerdr()
 end)
 hs.hotkey.bind({ "ctrl" }, "=", function()
-	toggleHerdr()
+	toggleApp(terminalApp)
 end)
 
 -- IME の英字/ひらがなを cmd 単体押しで切り替え
