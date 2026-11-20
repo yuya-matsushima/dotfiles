@@ -41,7 +41,7 @@
     "ctrl-e a": "agent.next",
     "ctrl-e shift-a": "agent.prev",
 
-    "ctrl-e g": { "command": "tab.new", "args": { "name": "lazygit", "argv": ["lazygit"] } },
+    "ctrl-e g": "mod.open:lazygit-popup",
 
     "ctrl-e ?": "app.help",
     "ctrl-e p": "app.palette",

@@ -63,6 +63,7 @@ TARGETS=( \
          ".config/herdr-app/mods/repo-toggle" \
          ".config/herdr-app/mods/launcher-menu" \
          ".config/herdr-app/mods/tabs-plus" \
+         ".config/herdr-app/mods/lazygit-popup" \
          ".hammerspoon" \
          ".markdownlint.yml" \
          ".claude/hooks" \
