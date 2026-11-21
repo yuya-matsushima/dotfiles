@@ -1,0 +1,5 @@
+[
+  { "matched_phrase": "全身型", "output": "漸進型" },
+  { "matched_phrase": "全身型DX", "output": "漸進型DX" },
+  { "matched_phrase": "前進型DX", "output": "漸進型DX" }
+]

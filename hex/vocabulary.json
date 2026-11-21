@@ -1,0 +1,65 @@
+[
+  {
+    "term": "PR",
+    "sounds_like": [
+      "ピーアール"
+    ]
+  },
+  {
+    "term": "commit",
+    "sounds_like": [
+      "コミット"
+    ]
+  },
+  {
+    "term": "issue",
+    "sounds_like": [
+      "イッシュー",
+      "イシュー"
+    ]
+  },
+  {
+    "term": "Pull Request",
+    "sounds_like": [
+      "プルリクエスト",
+      "プルリク"
+    ]
+  },
+  {
+    "term": "implement",
+    "sounds_like": [
+      "インプリメント"
+    ]
+  },
+  {
+    "term": "review",
+    "sounds_like": [
+      "レビュー"
+    ]
+  },
+  {
+    "term": "cross-review",
+    "sounds_like": [
+      "クロスレビュー"
+    ]
+  },
+  {
+    "term": "herdr",
+    "sounds_like": [
+      "ハーダー"
+    ]
+  },
+  {
+    "term": "漸進型",
+    "sounds_like": [
+      "全身型",
+      "前進型"
+    ]
+  },
+  {
+    "term": "OpenCode",
+    "sounds_like": [
+      "オープンコード"
+    ]
+  }
+]
