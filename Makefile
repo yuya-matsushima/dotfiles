@@ -96,6 +96,18 @@ omarchy_plugins: ## Install/enable Omarchy shell plugins
 omarchy_hex: ## Install Hex voice dictation and select it as the dictation backend
 	sh ./bin/omarchy/hex.sh
 
+.PHONY: hex_sync
+hex_sync: ## Sync Hex vocabulary and replacements from hex/*.json
+	sh ./bin/hex_sync.sh sync
+
+.PHONY: hex_check
+hex_check: ## Show diff between hex/*.json and the running Hex
+	sh ./bin/hex_sync.sh check
+
+.PHONY: hex_export
+hex_export: ## Export Hex vocabulary and replacements to hex/*.json
+	sh ./bin/hex_sync.sh export
+
 .PHONY: skills
 skills: ## Sync user-scope agent skills from .config/skills/skills.json
 	sh ./bin/skills.sh --file ./.config/skills/skills.json

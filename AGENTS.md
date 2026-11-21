@@ -25,6 +25,7 @@ macOS と Linux で設定が本質的に異なるものだけを `omarchy/` 配�
 - それぞれのツールの設定ファイルは `$HOME` ディレクトリに配置した際のファイル名やディレクトリ構造に基づいて配置されています。
 - 例外として `_.gitignore` は Symbolic link 作成時に `.gitignore` としてリンクされます。
 - `.gitconfig` は XDG 配置の `$HOME/.config/git/config` へリンクされます (omarchy 既定の git 設定を上書き)。
+- Hex (音声入力) の語彙と Global モードの replacements は `hex/vocabulary.json` / `hex/replacements.json` を SSOT とし, symlink せず Hex の CLI で反映します (`settings.json` にはアプリが書き換える状態や API キーが同居するため)。`make hex_sync` で反映 (JSON に無い語彙は削除), `make hex_check` で差分確認, `make hex_export` で Hex 側の編集をリポジトリへ書き戻します。いずれも Hex の起動が必要です。
 - Herdr は symlink 先の SVG を描画しないため, repo-hub のアイコンだけは `bin/link.sh` が `$HOME/.config/herdr-app/repo-hub-icons/` へコピーします。アイコンを変更したら `make link` を再実行します。
 
 ## ビルド・テスト・開発コマンド
