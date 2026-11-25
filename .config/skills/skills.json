@@ -1,7 +1,7 @@
 {
   "repos": {
     "fillin-inc/internal-skills": {
-      "version": "v0.10.6",
+      "version": "v0.11.0",
       "skills": [
         "agents-init",
         "commit",
@@ -11,8 +11,8 @@
         "issue",
         "kwsk",
         "pull-request",
-        "root-cause-analysis",
         "skills-sync",
+        "session-catchup",
         "session-export",
         "session-retrospect",
         "spec"
